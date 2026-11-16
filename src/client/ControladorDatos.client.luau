@@ -12,3 +12,41 @@ EventosRemotos.DatosActualizados.OnClientEvent:Connect(function(datos)
 		)
 	)
 end)
+
+EventosRemotos.CocinaActualizada.OnClientEvent:Connect(function(info)
+	if info.Recogido then
+		print(
+			string.format(
+				"🍬 [Cocina]: ¡Recogiste %d unidades de %s!",
+				info.Cantidad,
+				info.IdDulce
+			)
+		)
+	elseif info.Listo then
+		print(
+			string.format(
+				"🔔 [Cocina]: ¡Tu tanda de %s ya está lista para recoger!",
+				info.IdDulce
+			)
+		)
+	else
+		print(
+			string.format(
+				"⏳ [Cocina]: Cocinando %s (tardará %d segundos)...",
+				info.IdDulce,
+				info.Duracion
+			)
+		)
+	end
+end)
+
+EventosRemotos.VentaCompletada.OnClientEvent:Connect(function(resumen)
+	print(
+		string.format(
+			"💰 [Venta]: ¡Vendiste %d dulces en %s y ganaste $%d pesos dulces!",
+			resumen.DulcesVendidos,
+			resumen.Tienda,
+			resumen.PesosGanados
+		)
+	)
+end)
