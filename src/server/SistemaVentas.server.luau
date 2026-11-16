@@ -1,5 +1,6 @@
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local GestorDatos = require(script.Parent.GestorDatos)
 local Datos = require(ReplicatedStorage.Shared.Datos)
@@ -15,7 +16,65 @@ local MAPA_PUNTOS_TIENDAS = {
 	Punto_Venta_Tienda06 = "Tienda_TerminalRuta",
 }
 
-local function procesarVenta(player: Player, idTienda: string)
+local function crearEfectoVenta(puntoPart: BasePart, montoPesos: number)
+	-- Texto 3D flotante animado
+	local bbg = Instance.new("BillboardGui")
+	bbg.Name = "EfectoVentaFlotante"
+	bbg.Size = UDim2.fromOffset(160, 45)
+	bbg.StudsOffset = Vector3.new(0, 2, 0)
+	bbg.AlwaysOnTop = true
+	bbg.MaxDistance = 60
+	bbg.Parent = puntoPart
+
+	local texto = Instance.new("TextLabel")
+	texto.Size = UDim2.fromScale(1, 1)
+	texto.BackgroundTransparency = 1
+	texto.Font = Enum.Font.FredokaOne
+	texto.Text = string.format("+$%d 💰", montoPesos)
+	texto.TextColor3 = Color3.fromRGB(255, 220, 60)
+	texto.TextSize = 24
+	texto.Parent = bbg
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(30, 20, 10)
+	stroke.Thickness = 2
+	stroke.Parent = texto
+
+	-- Animación flotante hacia arriba
+	local tweenOffset = TweenService:Create(
+		bbg,
+		TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ StudsOffset = Vector3.new(0, 6, 0) }
+	)
+	local tweenFade = TweenService:Create(
+		texto,
+		TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ TextTransparency = 1 }
+	)
+	local tweenStrokeFade = TweenService:Create(
+		stroke,
+		TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ Transparency = 1 }
+	)
+
+	tweenOffset:Play()
+	tweenFade:Play()
+	tweenStrokeFade:Play()
+
+	-- Sonido de moneda
+	local sonido = Instance.new("Sound")
+	sonido.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+	sonido.Volume = 0.9
+	sonido.Parent = puntoPart
+	sonido:Play()
+
+	task.delay(1.3, function()
+		bbg:Destroy()
+		sonido:Destroy()
+	end)
+end
+
+local function procesarVenta(player: Player, idTienda: string, puntoPart: BasePart)
 	local tiendaInfo = Datos.Tiendas[idTienda]
 	if not tiendaInfo then
 		return
@@ -56,6 +115,9 @@ local function procesarVenta(player: Player, idTienda: string)
 				famaVal.Value = datosJugador.Fama
 			end
 		end
+
+		-- Disparar efectos visuales y sonoros en 3D
+		crearEfectoVenta(puntoPart, totalPesos)
 
 		EventosRemotos.VentaCompletada:FireClient(player, {
 			Tienda = tiendaInfo.Nombre,
@@ -109,20 +171,20 @@ local function configurarPuntosDeVenta()
 					prompt.Name = "PromptVenta"
 					prompt.ObjectText = nombreTienda
 					prompt.ActionText = "Vender dulces"
-					prompt.HoldDuration = 0.5
-					prompt.MaxActivationDistance = 12
+					prompt.HoldDuration = 0.4
+					prompt.MaxActivationDistance = 14
 					prompt.RequiresLineOfSight = false
 					prompt.Parent = puntoPart
 				end
 
 				prompt.Triggered:Connect(function(player: Player)
-					procesarVenta(player, idTienda)
+					procesarVenta(player, idTienda, puntoPart)
 				end)
 			end
 		end
 	end
 
-	print("El Patrón del Dulce: 7 Puntos de Venta conectados a las tiendas")
+	print("El Patrón del Dulce: 7 Puntos de Venta conectados con efectos visuales")
 end
 
 task.spawn(configurarPuntosDeVenta)
