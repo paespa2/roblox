@@ -23,4 +23,3 @@ local PlantillaPerfil: PerfilJugador = {
 }
 
 return PlantillaPerfil
-
