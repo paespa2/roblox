@@ -10,3 +10,7 @@
 | `SolicitarCompraVehiculo` | Cliente -> Servidor | `idVehiculo: string` | Solicita comprar un nuevo vehículo (ej. Moto) |
 | `SolicitarEquiparVehiculo` | Cliente -> Servidor | `idVehiculo: string` | Solicita equipar un vehículo adquirido |
 | `AbrirTiendaMejoras` | Servidor -> Cliente | ninguno | Notifica al cliente que abra la UI de mejoras (ej. al hablar con Don Ábaco) |
+| `EstrellasActualizadas` | Servidor -> Cliente | `info: { Estrellas: number, Enfriando: boolean, ProgresoEnfriamiento: number? }` | Notifica al cliente su nivel de estrellas de búsqueda y estado de enfriamiento en escondites |
+| `AlertaPolicia` | Servidor -> Cliente | `mensaje: string, nivel: number` | Envía advertencias y anuncios de la Policía Dental al jugador |
+| `CargaConfiscada` | Servidor -> Cliente | `cantidadConfiscada: number` | Notifica al jugador cuando la Policía Dental le decomisa los dulces transportados |
+| `DispararArma` | Cliente -> Servidor | `idArma: string, direccion: Vector3` | Solicita disparar una dulce-arma consumiendo munición de golosinas |

@@ -267,6 +267,49 @@ function GestorDatos.ObtenerCapacidadCarga(player: Player): number
 	return (vehiculo and vehiculo.CapacidadCarga) or 20
 end
 
+function GestorDatos.ObtenerEstrellas(player: Player): number
+	local perfil = perfilesCargados[player]
+	return (perfil and perfil.Data.EstrellasBusqueda) or 0
+end
+
+function GestorDatos.EstablecerEstrellas(player: Player, estrellas: number): number
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return 0
+	end
+	local nuevas = math.clamp(estrellas, 0, 5)
+	perfil.Data.EstrellasBusqueda = nuevas
+	sincronizarCliente(player)
+	return nuevas
+end
+
+function GestorDatos.ModificarEstrellas(player: Player, delta: number): number
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return 0
+	end
+	local actuales = perfil.Data.EstrellasBusqueda or 0
+	local nuevas = math.clamp(actuales + delta, 0, 5)
+	perfil.Data.EstrellasBusqueda = nuevas
+	sincronizarCliente(player)
+	return nuevas
+end
+
+function GestorDatos.ConfiscarCarga(player: Player): number
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return 0
+	end
+	local total = 0
+	for _, cant in pairs(perfil.Data.Inventario) do
+		total += cant
+	end
+	perfil.Data.Inventario = {}
+	perfil.Data.EstrellasBusqueda = 0
+	sincronizarCliente(player)
+	return total
+end
+
 function GestorDatos.Iniciar()
 	EventosRemotos.SolicitarDatos.OnServerInvoke = function(player: Player)
 		local perfil = perfilesCargados[player]

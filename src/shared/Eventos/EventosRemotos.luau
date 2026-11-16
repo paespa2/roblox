@@ -59,5 +59,9 @@ EventosRemotos.SolicitarCompraMejora = obtenerOCrearFuncion("SolicitarCompraMejo
 EventosRemotos.SolicitarCompraVehiculo = obtenerOCrearFuncion("SolicitarCompraVehiculo")
 EventosRemotos.SolicitarEquiparVehiculo = obtenerOCrearFuncion("SolicitarEquiparVehiculo")
 EventosRemotos.AbrirTiendaMejoras = obtenerOCrearEvento("AbrirTiendaMejoras")
+EventosRemotos.EstrellasActualizadas = obtenerOCrearEvento("EstrellasActualizadas")
+EventosRemotos.AlertaPolicia = obtenerOCrearEvento("AlertaPolicia")
+EventosRemotos.CargaConfiscada = obtenerOCrearEvento("CargaConfiscada")
+EventosRemotos.DispararArma = obtenerOCrearFuncion("DispararArma")
 
 return EventosRemotos
