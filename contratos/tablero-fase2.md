@@ -27,3 +27,4 @@
 ### ⚪ POR HACER (Backlog Inmediato)
 - [ ] **[Santiago - Economía]** Plan de pruebas de Fase 2 (huida exitosa, enfriamiento en escondite y uso de cauchera).
 - [ ] **[Los Tres]** Auditoría formal de Fase 2 antes del paso a Fase 3 (Rutina Diaria).
+

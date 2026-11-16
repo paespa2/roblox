@@ -35,42 +35,6 @@ local function crearToolCauchera(): Tool
 	weld.Part1 = elastico
 	weld.Parent = handle
 
-	-- Script del lado del cliente dentro de la herramienta
-	local clientScript = Instance.new("LocalScript")
-	clientScript.Name = "ControlCauchera"
-	clientScript.Source = [[
-		local Tool = script.Parent
-		local Players = game:GetService("Players")
-		local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-		local player = Players.LocalPlayer
-		local mouse = player:GetMouse()
-		local Eventos = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Eventos"):WaitForChild("EventosRemotos"))
-
-		local enCooldown = false
-
-		Tool.Activated:Connect(function()
-			if enCooldown then return end
-			enCooldown = true
-
-			local character = player.Character
-			if character and character:FindFirstChild("Head") then
-				local origen = character.Head.Position
-				local destino = mouse.Hit.Position
-				local direccion = (destino - origen).Unit
-
-				local exito, mensaje = Eventos.DispararArma:InvokeServer("Arma_CaucheraGomitas", direccion)
-				if not exito then
-					warn(mensaje)
-				end
-			end
-
-			task.wait(0.6)
-			enCooldown = false
-		end)
-	]]
-	clientScript.Parent = tool
-
 	return tool
 end
 
@@ -82,6 +46,15 @@ local function entregarCauchera(player: Player)
 			local cauchera = crearToolCauchera()
 			cauchera.Parent = backpack
 		end
+	end
+end
+
+local function configurarStarterPack()
+	local starterPack = game:GetService("StarterPack")
+	local existente = starterPack:FindFirstChild("Cauchera de Gomitas")
+	if not existente then
+		local tool = crearToolCauchera()
+		tool.Parent = starterPack
 	end
 end
 
@@ -213,21 +186,20 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 	return true, "¡Disparo de gomita efectuado!"
 end
 
-Players.PlayerAdded:Connect(function(player)
+local function conectarJugador(player: Player)
 	player.CharacterAdded:Connect(function()
-		task.wait(0.5)
+		task.wait(0.3)
 		entregarCauchera(player)
 	end)
-	if player.Character then
-		task.wait(0.5)
-		entregarCauchera(player)
-	end
-end)
-
-for _, player in ipairs(Players:GetPlayers()) do
 	if player.Character then
 		task.spawn(entregarCauchera, player)
 	end
 end
+
+Players.PlayerAdded:Connect(conectarJugador)
+for _, player in ipairs(Players:GetPlayers()) do
+	task.spawn(conectarJugador, player)
+end
+task.spawn(configurarStarterPack)
 
 print("El Patrón del Dulce: Sistema de Dulce-Armas (Cauchera de Gomitas) inicializado")

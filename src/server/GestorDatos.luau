@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local ProfileService = require(ReplicatedStorage.Packages.ProfileService)
 local PlantillaPerfil = require(ReplicatedStorage.Shared.Datos.PlantillaPerfil)
@@ -10,6 +11,9 @@ type PerfilJugador = PlantillaPerfil.PerfilJugador
 
 local NOMBRE_ALMACEN = "DatosJugadores_v1"
 local AlmacenPerfiles = ProfileService.GetProfileStore(NOMBRE_ALMACEN, PlantillaPerfil)
+if RunService:IsStudio() then
+	AlmacenPerfiles = AlmacenPerfiles.Mock
+end
 
 local GestorDatos = {}
 local perfilesCargados: { [Player]: any } = {}
@@ -52,10 +56,16 @@ local function sincronizarCliente(player: Player)
 end
 
 local function alEntrarJugador(player: Player)
-	local clavePerfil = "Jugador_" .. player.UserId
-	local perfil = AlmacenPerfiles:LoadProfileAsync(clavePerfil)
+	if perfilesCargados[player] then
+		return
+	end
 
-	if perfil ~= nil then
+	local clavePerfil = "Jugador_" .. player.UserId
+	local exito, perfil = pcall(function()
+		return AlmacenPerfiles:LoadProfileAsync(clavePerfil)
+	end)
+
+	if exito and perfil ~= nil then
 		perfil:AddUserId(player.UserId)
 		perfil:Reconcile()
 		perfil:ListenToRelease(function()
@@ -66,11 +76,17 @@ local function alEntrarJugador(player: Player)
 		if player:IsDescendantOf(Players) == true then
 			perfilesCargados[player] = perfil
 			sincronizarCliente(player)
+			print("El Patrón del Dulce: Perfil cargado exitosamente para " .. player.Name)
 		else
 			perfil:Release()
 		end
 	else
-		player:Kick("No se pudieron cargar tus datos. Vuelve a intentarlo en unos momentos.")
+		warn(
+			"El Patrón del Dulce: Error al cargar perfil para "
+				.. player.Name
+				.. ": "
+				.. tostring(perfil)
+		)
 	end
 end
 
