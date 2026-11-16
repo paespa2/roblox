@@ -20,7 +20,7 @@ screenGui.Parent = PlayerGui
 -- Contenedor Superior Izquierdo (Billetera y Fama)
 local marcoSuperior = Instance.new("Frame")
 marcoSuperior.Name = "MarcoSuperior"
-marcoSuperior.Size = UDim2.fromOffset(280, 95)
+marcoSuperior.Size = UDim2.fromOffset(280, 130)
 marcoSuperior.Position = UDim2.fromOffset(20, 20)
 marcoSuperior.BackgroundTransparency = 1
 marcoSuperior.Parent = screenGui
@@ -103,6 +103,32 @@ textoFama.TextColor3 = Color3.fromRGB(220, 200, 255)
 textoFama.TextSize = 15
 textoFama.TextXAlignment = Enum.TextXAlignment.Left
 textoFama.Parent = pillFama
+
+-- Botón de Mejoras
+local botonMejoras = Instance.new("TextButton")
+botonMejoras.Name = "BotonMejoras"
+botonMejoras.Size = UDim2.new(1, 0, 0, 34)
+botonMejoras.Position = UDim2.fromOffset(0, 88)
+botonMejoras.BackgroundColor3 = Color3.fromRGB(30, 40, 58)
+botonMejoras.BackgroundTransparency = 0.2
+botonMejoras.Font = Enum.Font.FredokaOne
+botonMejoras.Text = "🛒 Mejoras del Negocio"
+botonMejoras.TextColor3 = Color3.fromRGB(255, 230, 120)
+botonMejoras.TextSize = 14
+botonMejoras.Parent = marcoSuperior
+
+local cornerMejoras = Instance.new("UICorner")
+cornerMejoras.CornerRadius = UDim.new(0, 8)
+cornerMejoras.Parent = botonMejoras
+
+local strokeMejoras = Instance.new("UIStroke")
+strokeMejoras.Color = Color3.fromRGB(70, 160, 240)
+strokeMejoras.Thickness = 1.5
+strokeMejoras.Parent = botonMejoras
+
+botonMejoras.MouseButton1Click:Connect(function()
+	EventosRemotos.AbrirTiendaMejoras:FireServer()
+end)
 
 -- Contenedor Inferior (Inventario de carga)
 local marcoInventario = Instance.new("Frame")

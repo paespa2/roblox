@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ProfileService = require(ReplicatedStorage.Packages.ProfileService)
 local PlantillaPerfil = require(ReplicatedStorage.Shared.Datos.PlantillaPerfil)
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
+local Datos = require(ReplicatedStorage.Shared.Datos)
 
 type PerfilJugador = PlantillaPerfil.PerfilJugador
 
@@ -141,6 +142,131 @@ function GestorDatos.QuitarDulce(player: Player, idDulce: string, cantidad: numb
 	return true
 end
 
+function GestorDatos.TieneMejora(player: Player, idMejora: string): boolean
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return false
+	end
+	if not perfil.Data.MejorasCompradas then
+		perfil.Data.MejorasCompradas = {}
+	end
+	return perfil.Data.MejorasCompradas[idMejora] == true
+end
+
+function GestorDatos.ComprarMejora(player: Player, idMejora: string): (boolean, string)
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return false, "Perfil no disponible"
+	end
+	if not perfil.Data.MejorasCompradas then
+		perfil.Data.MejorasCompradas = {}
+	end
+	if perfil.Data.MejorasCompradas[idMejora] then
+		return false, "Ya posees esta mejora"
+	end
+
+	local infoMejora = Datos.Mejoras[idMejora]
+	if not infoMejora then
+		return false, "Mejora no encontrada en el catálogo"
+	end
+
+	if infoMejora.Nivel > 1 then
+		local mejoraAnterior = string.gsub(
+			idMejora,
+			"_" .. tostring(infoMejora.Nivel) .. "$",
+			"_" .. tostring(infoMejora.Nivel - 1)
+		)
+		if not perfil.Data.MejorasCompradas[mejoraAnterior] then
+			return false, "Debes adquirir el nivel anterior primero"
+		end
+	end
+
+	if perfil.Data.PesosDulces < infoMejora.Precio then
+		return false, "Saldo insuficiente de pesos dulces"
+	end
+
+	perfil.Data.PesosDulces -= infoMejora.Precio
+	perfil.Data.MejorasCompradas[idMejora] = true
+	sincronizarCliente(player)
+	return true, "Mejora comprada con éxito"
+end
+
+function GestorDatos.TieneVehiculo(player: Player, idVehiculo: string): boolean
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return false
+	end
+	if not perfil.Data.VehiculosComprados then
+		perfil.Data.VehiculosComprados = { ["Vehiculo_Bicicleta"] = true }
+	end
+	return perfil.Data.VehiculosComprados[idVehiculo] == true
+end
+
+function GestorDatos.ComprarVehiculo(player: Player, idVehiculo: string): (boolean, string)
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return false, "Perfil no disponible"
+	end
+	if not perfil.Data.VehiculosComprados then
+		perfil.Data.VehiculosComprados = { ["Vehiculo_Bicicleta"] = true }
+	end
+	if perfil.Data.VehiculosComprados[idVehiculo] then
+		return false, "Ya posees este vehículo"
+	end
+
+	local infoVehiculo = Datos.Vehiculos[idVehiculo]
+	if not infoVehiculo then
+		return false, "Vehículo no encontrado en el catálogo"
+	end
+
+	if perfil.Data.PesosDulces < infoVehiculo.Precio then
+		return false, "Saldo insuficiente de pesos dulces"
+	end
+
+	perfil.Data.PesosDulces -= infoVehiculo.Precio
+	perfil.Data.VehiculosComprados[idVehiculo] = true
+	perfil.Data.VehiculoEquipado = idVehiculo
+	sincronizarCliente(player)
+	return true, "Vehículo comprado y equipado con éxito"
+end
+
+function GestorDatos.EquiparVehiculo(player: Player, idVehiculo: string): (boolean, string)
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return false, "Perfil no disponible"
+	end
+	if not GestorDatos.TieneVehiculo(player, idVehiculo) then
+		return false, "No posees este vehículo aún"
+	end
+	perfil.Data.VehiculoEquipado = idVehiculo
+	sincronizarCliente(player)
+	return true, "Vehículo equipado"
+end
+
+function GestorDatos.ObtenerMultiplicadorTiempoCocina(player: Player): number
+	local perfil = perfilesCargados[player]
+	if not perfil or not perfil.Data.MejorasCompradas then
+		return 1.0
+	end
+
+	if perfil.Data.MejorasCompradas["Mejora_Cocina_Velocidad_2"] then
+		local mejora = Datos.Mejoras["Mejora_Cocina_Velocidad_2"]
+		return 1.0 - (mejora and mejora.Valor or 0.30)
+	elseif perfil.Data.MejorasCompradas["Mejora_Cocina_Velocidad_1"] then
+		local mejora = Datos.Mejoras["Mejora_Cocina_Velocidad_1"]
+		return 1.0 - (mejora and mejora.Valor or 0.15)
+	end
+
+	return 1.0
+end
+
+function GestorDatos.ObtenerCapacidadCarga(player: Player): number
+	local perfil = perfilesCargados[player]
+	local idVehiculo = (perfil and perfil.Data.VehiculoEquipado) or "Vehiculo_Bicicleta"
+	local vehiculo = Datos.Vehiculos[idVehiculo]
+	return (vehiculo and vehiculo.CapacidadCarga) or 20
+end
+
 function GestorDatos.Iniciar()
 	EventosRemotos.SolicitarDatos.OnServerInvoke = function(player: Player)
 		local perfil = perfilesCargados[player]
@@ -148,6 +274,33 @@ function GestorDatos.Iniciar()
 			return perfil.Data
 		end
 		return nil
+	end
+
+	EventosRemotos.SolicitarCompraMejora.OnServerInvoke = function(player: Player, idMejora: string)
+		if typeof(idMejora) ~= "string" then
+			return false, "Petición inválida"
+		end
+		return GestorDatos.ComprarMejora(player, idMejora)
+	end
+
+	EventosRemotos.SolicitarCompraVehiculo.OnServerInvoke = function(
+		player: Player,
+		idVehiculo: string
+	)
+		if typeof(idVehiculo) ~= "string" then
+			return false, "Petición inválida"
+		end
+		return GestorDatos.ComprarVehiculo(player, idVehiculo)
+	end
+
+	EventosRemotos.SolicitarEquiparVehiculo.OnServerInvoke = function(
+		player: Player,
+		idVehiculo: string
+	)
+		if typeof(idVehiculo) ~= "string" then
+			return false, "Petición inválida"
+		end
+		return GestorDatos.EquiparVehiculo(player, idVehiculo)
 	end
 
 	for _, player in ipairs(Players:GetPlayers()) do

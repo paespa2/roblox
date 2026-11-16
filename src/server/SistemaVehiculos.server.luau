@@ -50,6 +50,57 @@ local function crearModeloBicicletaFallback(): Model
 	return modelo
 end
 
+local function crearModeloMotoFallback(): Model
+	local modelo = Instance.new("Model")
+	modelo.Name = "Vehiculo_Moto"
+
+	local asiento = Instance.new("VehicleSeat")
+	asiento.Name = "AsientoConductor"
+	asiento.Size = Vector3.new(2.2, 1.2, 4.5)
+	asiento.Color = Color3.fromRGB(30, 30, 35)
+	asiento.Material = Enum.Material.Metal
+	asiento.MaxSpeed = Datos.Vehiculos.Vehiculo_Moto.VelocidadMax or 28
+	asiento.Torque = 30
+	asiento.TurnSpeed = 3
+	asiento.Parent = modelo
+	modelo.PrimaryPart = asiento
+
+	local tanque = Instance.new("Part")
+	tanque.Name = "Tanque"
+	tanque.Size = Vector3.new(1.8, 0.8, 2)
+	tanque.Position = asiento.Position + Vector3.new(0, 0.9, -0.6)
+	tanque.Color = Color3.fromRGB(220, 40, 40)
+	tanque.Material = Enum.Material.SmoothPlastic
+	tanque.Parent = modelo
+
+	local weldTanque = Instance.new("WeldConstraint")
+	weldTanque.Part0 = asiento
+	weldTanque.Part1 = tanque
+	weldTanque.Parent = asiento
+
+	local farol = Instance.new("Part")
+	farol.Name = "Farol"
+	farol.Size = Vector3.new(0.8, 0.8, 0.4)
+	farol.Position = asiento.Position + Vector3.new(0, 1.2, -2.3)
+	farol.Color = Color3.fromRGB(255, 255, 200)
+	farol.Material = Enum.Material.Neon
+	farol.Parent = modelo
+
+	local luz = Instance.new("SpotLight")
+	luz.Range = 30
+	luz.Brightness = 2
+	luz.Angle = 60
+	luz.Face = Enum.NormalId.Front
+	luz.Parent = farol
+
+	local weldFarol = Instance.new("WeldConstraint")
+	weldFarol.Part0 = asiento
+	weldFarol.Part1 = farol
+	weldFarol.Parent = asiento
+
+	return modelo
+end
+
 local function aparecerVehiculo(player: Player, idVehiculo: string): Model?
 	local vehiculoExistente = vehiculosActivos[player]
 	if vehiculoExistente and vehiculoExistente.Parent then
@@ -74,7 +125,11 @@ local function aparecerVehiculo(player: Player, idVehiculo: string): Model?
 	end
 
 	if not modeloBase then
-		modeloBase = crearModeloBicicletaFallback()
+		if idVehiculo == "Vehiculo_Moto" then
+			modeloBase = crearModeloMotoFallback()
+		else
+			modeloBase = crearModeloBicicletaFallback()
+		end
 	end
 
 	local posAparicion = obtenerPuntoAparicion()
@@ -141,7 +196,7 @@ local function configurarSpawnBicicleta()
 			prompt = Instance.new("ProximityPrompt")
 			prompt.Name = "PromptVehiculo"
 			prompt.ObjectText = "Taller de Reparto"
-			prompt.ActionText = "Tomar Bicicleta"
+			prompt.ActionText = "Tomar Vehículo"
 			prompt.HoldDuration = 0.5
 			prompt.MaxActivationDistance = 14
 			prompt.RequiresLineOfSight = false

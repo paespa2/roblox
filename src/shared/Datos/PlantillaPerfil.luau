@@ -4,6 +4,8 @@ export type PerfilJugador = {
 	AzucarDorada: number,
 	Inventario: { [string]: number },
 	RecetasDesbloqueadas: { [string]: boolean },
+	MejorasCompradas: { [string]: boolean },
+	VehiculosComprados: { [string]: boolean },
 	CapituloActual: number,
 	VehiculoEquipado: string,
 	EstrellasBusqueda: number,
@@ -16,6 +18,10 @@ local PlantillaPerfil: PerfilJugador = {
 	Inventario = {},
 	RecetasDesbloqueadas = {
 		["Dulce_Bombon"] = true,
+	},
+	MejorasCompradas = {},
+	VehiculosComprados = {
+		["Vehiculo_Bicicleta"] = true,
 	},
 	CapituloActual = 1,
 	VehiculoEquipado = "Vehiculo_Bicicleta",

@@ -157,7 +157,9 @@ local function configurarPromptCocina(paila: BasePart)
 				return
 			end
 
-			local duracion = infoDulce.TiempoProduccion
+			local duracion = math.round(
+				infoDulce.TiempoProduccion * GestorDatos.ObtenerMultiplicadorTiempoCocina(player)
+			)
 
 			coccionesActivas[player] = {
 				IdDulce = idDulceDefault,
@@ -279,14 +281,18 @@ EventosRemotos.SolicitarCocinar.OnServerInvoke = function(player: Player, idDulc
 		return false, "Ya hay una tanda en cocción"
 	end
 
+	local duracion = math.round(
+		infoDulce.TiempoProduccion * GestorDatos.ObtenerMultiplicadorTiempoCocina(player)
+	)
+
 	coccionesActivas[player] = {
 		IdDulce = idDulce,
 		Inicio = os.time(),
-		Duracion = infoDulce.TiempoProduccion,
+		Duracion = duracion,
 		Listo = false,
 	}
 
-	task.delay(infoDulce.TiempoProduccion, function()
+	task.delay(duracion, function()
 		if coccionesActivas[player] and coccionesActivas[player].IdDulce == idDulce then
 			coccionesActivas[player].Listo = true
 			EventosRemotos.CocinaActualizada:FireClient(player, {

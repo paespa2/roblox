@@ -55,5 +55,9 @@ EventosRemotos.SolicitarDatos = obtenerOCrearFuncion("SolicitarDatos")
 EventosRemotos.CocinaActualizada = obtenerOCrearEvento("CocinaActualizada")
 EventosRemotos.SolicitarCocinar = obtenerOCrearFuncion("SolicitarCocinar")
 EventosRemotos.VentaCompletada = obtenerOCrearEvento("VentaCompletada")
+EventosRemotos.SolicitarCompraMejora = obtenerOCrearFuncion("SolicitarCompraMejora")
+EventosRemotos.SolicitarCompraVehiculo = obtenerOCrearFuncion("SolicitarCompraVehiculo")
+EventosRemotos.SolicitarEquiparVehiculo = obtenerOCrearFuncion("SolicitarEquiparVehiculo")
+EventosRemotos.AbrirTiendaMejoras = obtenerOCrearEvento("AbrirTiendaMejoras")
 
 return EventosRemotos
