@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: CompeyDev/setup-rokit@v0.2.1
+      - run: wally install
       - run: selene src
       - run: stylua --check src
       - run: rojo build -o build.rbxl
-
