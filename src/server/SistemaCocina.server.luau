@@ -23,13 +23,28 @@ local function obtenerPaila(): BasePart?
 	if not mapa then
 		return nil
 	end
-	local cocina = mapa:WaitForChild("CocinaInicial", 10)
-	if not cocina then
-		return nil
+
+	-- 1. Buscar en el nuevo edificio modelado por Andrés
+	local nuevoEdificio = mapa:FindFirstChild("Edificio_CocinaInicial")
+	if nuevoEdificio then
+		local paila = nuevoEdificio:FindFirstChild("Paila")
+			or nuevoEdificio:FindFirstChild("FogonLena")
+		if paila and paila:IsA("BasePart") then
+			return paila
+		end
 	end
-	return (
-		cocina:FindFirstChild("Paila_Melcocha") or cocina:FindFirstChild("Fogon_Ladrillo")
-	) :: BasePart?
+
+	-- 2. Fallback a la estructura previa
+	local cocina = mapa:FindFirstChild("CocinaInicial")
+	if cocina then
+		local paila = cocina:FindFirstChild("Paila_Melcocha")
+			or cocina:FindFirstChild("Fogon_Ladrillo")
+		if paila and paila:IsA("BasePart") then
+			return paila
+		end
+	end
+
+	return nil
 end
 
 local function crearBillboardPaila(paila: BasePart)
