@@ -12,3 +12,4 @@ jobs:
       - run: selene src
       - run: stylua --check src
       - run: rojo build -o build.rbxl
+
