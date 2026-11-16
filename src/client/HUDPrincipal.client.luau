@@ -154,11 +154,25 @@ textoInventario.Size = UDim2.new(1, -20, 1, 0)
 textoInventario.Position = UDim2.fromOffset(12, 0)
 textoInventario.BackgroundTransparency = 1
 textoInventario.Font = Enum.Font.FredokaOne
-textoInventario.Text = "🎒 Carga: Vacía (¡Cocina en la paila!)"
+textoInventario.Text = "🎒 Carga: Vacía (¡Clic o pulsa I!)"
 textoInventario.TextColor3 = Color3.fromRGB(255, 230, 240)
-textoInventario.TextSize = 15
+textoInventario.TextSize = 14
 textoInventario.TextXAlignment = Enum.TextXAlignment.Left
 textoInventario.Parent = marcoInventario
+
+local botonInventario = Instance.new("TextButton")
+botonInventario.Name = "BotonAbrirInventario"
+botonInventario.Size = UDim2.fromScale(1, 1)
+botonInventario.BackgroundTransparency = 1
+botonInventario.Text = ""
+botonInventario.Parent = marcoInventario
+
+botonInventario.MouseButton1Click:Connect(function()
+	local pantallaInv = PlayerGui:FindFirstChild("UI_Pantalla_Inventario")
+	if pantallaInv then
+		pantallaInv.Enabled = not pantallaInv.Enabled
+	end
+end)
 
 -- Notificación Banner Superior Central
 local bannerNotificacion = Instance.new("Frame")
