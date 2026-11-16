@@ -54,3 +54,4 @@ EventosRemotos.DatosActualizados = obtenerOCrearEvento("DatosActualizados")
 EventosRemotos.SolicitarDatos = obtenerOCrearFuncion("SolicitarDatos")
 
 return EventosRemotos
+

@@ -159,3 +159,4 @@ function GestorDatos.Iniciar()
 end
 
 return GestorDatos
+
