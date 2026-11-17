@@ -71,5 +71,8 @@ EventosRemotos.CepillarMuela = obtenerOCrearFuncion("CepillarMuela")
 EventosRemotos.MostrarDialogoNPC = obtenerOCrearEvento("MostrarDialogoNPC")
 EventosRemotos.LogroDesbloqueado = obtenerOCrearEvento("LogroDesbloqueado")
 EventosRemotos.CampanaRecreo = obtenerOCrearEvento("CampanaRecreo")
+EventosRemotos.ObjetivoMisionActualizado = obtenerOCrearEvento("ObjetivoMisionActualizado")
+EventosRemotos.RedadaIniciada = obtenerOCrearEvento("RedadaIniciada")
+EventosRemotos.RedadaTerminada = obtenerOCrearEvento("RedadaTerminada")
 
 return EventosRemotos

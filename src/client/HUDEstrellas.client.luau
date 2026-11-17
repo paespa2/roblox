@@ -121,7 +121,7 @@ local bannerAlerta = Instance.new("Frame")
 bannerAlerta.Name = "BannerAlerta"
 bannerAlerta.Size = UDim2.fromOffset(420, 46)
 bannerAlerta.AnchorPoint = Vector2.new(0.5, 0)
-bannerAlerta.Position = UDim2.new(0.5, 0, 0, -80)
+bannerAlerta.Position = UDim2.new(0.5, 0, 0, -250)
 bannerAlerta.BackgroundColor3 = Color3.fromRGB(35, 15, 18)
 bannerAlerta.BackgroundTransparency = 0.15
 bannerAlerta.ClipsDescendants = true
@@ -156,7 +156,7 @@ botonCerrarAlerta.Size = UDim2.fromOffset(24, 24)
 botonCerrarAlerta.Position = UDim2.new(1, -34, 0.5, -12)
 botonCerrarAlerta.BackgroundColor3 = Color3.fromRGB(70, 25, 30)
 botonCerrarAlerta.Font = Enum.Font.GothamBold
-botonCerrarAlerta.Text = "✕"
+botonCerrarAlerta.Text = "X"
 botonCerrarAlerta.TextColor3 = Color3.fromRGB(255, 220, 220)
 botonCerrarAlerta.TextSize = 13
 botonCerrarAlerta.AutoButtonColor = true
@@ -175,7 +175,7 @@ local function cerrarBannerAlerta()
 	local tweenSalida = TweenService:Create(
 		bannerAlerta,
 		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-		{ Position = UDim2.new(0.5, 0, 0, -80) }
+		{ Position = UDim2.new(0.5, 0, 0, -250) }
 	)
 	tweenSalida:Play()
 	tweenSalida.Completed:Connect(function()
@@ -320,6 +320,30 @@ end)
 
 EventosRemotos.LiberadoDelInternado.OnClientEvent:Connect(function()
 	mostrarAlerta("🕊️ ¡LIBERTAD CONCEDIDA! Vuelve al negocio con cautela.", false)
+end)
+
+EventosRemotos.RedadaIniciada.OnClientEvent:Connect(function(info)
+	reproducirSonido("rbxassetid://9069609268")
+	local duracion = (info and info.DuracionSegundos) or 45
+	mostrarAlerta(
+		string.format(
+			"🚨 ¡REDADA DENTAL ACTIVA! Escuadrón antidulces patrullando (%ds). ¡Escóndete o defiéndete!",
+			duracion
+		),
+		true
+	)
+end)
+
+EventosRemotos.RedadaTerminada.OnClientEvent:Connect(function(info)
+	if info and info.Sobrevivio then
+		mostrarAlerta(
+			string.format(
+				"🎉 ¡REDADA EVADIDA! Recibiste +$%d pesos de bonificación.",
+				info.BonoPesos or 50
+			),
+			false
+		)
+	end
 end)
 
 EventosRemotos.DatosActualizados.OnClientEvent:Connect(function(nuevosDatos)

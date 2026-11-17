@@ -149,92 +149,70 @@ local function crearModeloMotoFallback(): Model
 	return modelo
 end
 
-local function configurarFisicaConduccion(player: Player, modelo: Model, _infoVehiculo: any)
+local function configurarFisicaConduccion(player: Player, modelo: Model, infoVehiculo: any)
 	local chasis = modelo.PrimaryPart or modelo:FindFirstChild("Chasis") :: BasePart?
 	local asiento = modelo:FindFirstChildOfClass("VehicleSeat")
 	if not chasis or not asiento then
 		return
 	end
 
-	-- Desactivar fricción de ruedas físicas existentes para evitar que giren en reversa
-	for _, desc in ipairs(modelo:GetDescendants()) do
-		if desc:IsA("JointInstance") and desc.ClassName == "Rotate" then
-			desc:Destroy()
-		end
-		if desc:IsA("BasePart") and desc ~= chasis and desc ~= asiento then
-			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = chasis
-			weld.Part1 = desc
-			weld.Parent = chasis
+	-- Limpiar cualquier constraint de física artificial previo
+	local lvViejo = chasis:FindFirstChild("DriveVelocity")
+	if lvViejo then
+		lvViejo:Destroy()
+	end
+	local avViejo = chasis:FindFirstChild("SteerVelocity")
+	if avViejo then
+		avViejo:Destroy()
+	end
+	local attViejo = chasis:FindFirstChild("VehicleDriveAttachment")
+	if attViejo then
+		attViejo:Destroy()
+	end
+	local aoViejo = chasis:FindFirstChild("UprightStabilizer")
+		or modelo:FindFirstChild("UprightStabilizer", true)
+	if aoViejo then
+		aoViejo:Destroy()
+	end
 
+	-- El asiento NUNCA debe colisionar para evitar fuerzas parásitas con el cuerpo del jugador
+	asiento.CanCollide = false
+	asiento.MaxSpeed = (infoVehiculo and infoVehiculo.VelocidadMax) or 22
+	asiento.Torque = 45
+	asiento.TurnSpeed = 2.4
+
+	-- Configurar colisiones de partes: NO destruir los joints Rotate de las ruedas físicas
+	for _, desc in ipairs(modelo:GetDescendants()) do
+		if desc:IsA("BasePart") and desc ~= chasis and desc ~= asiento then
 			if desc.Name == "RuedaFisica" then
 				desc.CanCollide = true
-				desc.CustomPhysicalProperties = PhysicalProperties.new(1.2, 0.7, 0.2, 1, 1)
+				desc.CustomPhysicalProperties = PhysicalProperties.new(0.8, 0.4, 0.1, 1, 1)
 			else
 				desc.CanCollide = false
-				desc.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.05, 0.2, 1, 1)
+				desc.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.05, 0.1, 1, 1)
+
+				-- Soldar partes decorativas o ejes al chasis si no están unidas ya
+				local yaUnido = false
+				for _, w in ipairs(chasis:GetChildren()) do
+					if w:IsA("WeldConstraint") and (w.Part1 == desc or w.Part0 == desc) then
+						yaUnido = true
+						break
+					end
+				end
+				if not yaUnido then
+					local weld = Instance.new("WeldConstraint")
+					weld.Part0 = chasis
+					weld.Part1 = desc
+					weld.Parent = chasis
+				end
 			end
 		end
 	end
 
-	chasis.CustomPhysicalProperties = PhysicalProperties.new(1.0, 0.2, 0.3, 1, 1)
+	chasis.CanCollide = false
+	chasis.CustomPhysicalProperties = PhysicalProperties.new(1.0, 0.2, 0.1, 1, 1)
 
-	-- Desactivar el solver interno de VehicleSeat para que no interfiera con los constraints
-	asiento.MaxSpeed = 0
-	asiento.Torque = 0
-	asiento.TurnSpeed = 0
-
-	local att = chasis:FindFirstChild("VehicleDriveAttachment") :: Attachment?
-	if not att then
-		att = Instance.new("Attachment")
-		att.Name = "VehicleDriveAttachment"
-		att.Position = Vector3.zero
-		att.Axis = Vector3.new(0, 1, 0) -- Eje primario apunta verticalmente (Local Up)
-		att.SecondaryAxis = Vector3.new(0, 0, 1)
-		att.Parent = chasis
-	else
-		att.Axis = Vector3.new(0, 1, 0)
-		att.SecondaryAxis = Vector3.new(0, 0, 1)
-	end
-
-	local lv = chasis:FindFirstChild("DriveVelocity") :: LinearVelocity?
-	if not lv then
-		lv = Instance.new("LinearVelocity")
-		lv.Name = "DriveVelocity"
-		lv.Attachment0 = att
-		lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-		lv.MaxAxesForce = Vector3.new(35000, 0, 35000) -- Fuerza CERO en Y mundial para evitar que despegue del suelo
-		lv.RelativeTo = Enum.ActuatorRelativeTo.World
-		lv.VectorVelocity = Vector3.zero
-		lv.Parent = chasis
-	else
-		lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-		lv.MaxAxesForce = Vector3.new(35000, 0, 35000)
-		lv.RelativeTo = Enum.ActuatorRelativeTo.World
-	end
-
-	local av = chasis:FindFirstChild("SteerVelocity") :: AngularVelocity?
-	if not av then
-		av = Instance.new("AngularVelocity")
-		av.Name = "SteerVelocity"
-		av.Attachment0 = att
-		av.MaxTorque = 45000
-		av.RelativeTo = Enum.ActuatorRelativeTo.World
-		av.AngularVelocity = Vector3.zero
-		av.Parent = chasis
-	else
-		av.MaxTorque = 45000
-		av.RelativeTo = Enum.ActuatorRelativeTo.World
-	end
-
-	-- Eliminar cualquier estabilizador que bloquee el giro natural
-	local ao = chasis:FindFirstChild("UprightStabilizer")
-		or modelo:FindFirstChild("UprightStabilizer", true)
-	if ao then
-		ao:Destroy()
-	end
-
-	-- Asignar la propiedad de red (NetworkOwnership) al jugador para conducción suave en cliente
+	-- Asignar la propiedad de red (NetworkOwnership) al jugador para conducción nativa fluida
 	for _, part in ipairs(modelo:GetDescendants()) do
 		if part:IsA("BasePart") then
 			pcall(function()
@@ -243,7 +221,7 @@ local function configurarFisicaConduccion(player: Player, modelo: Model, _infoVe
 		end
 	end
 
-	-- Monitorear cuando el jugador abandone el asiento para frenar el vehículo
+	-- Monitorear ocupante del asiento
 	if conexionesVehiculos[player] then
 		conexionesVehiculos[player]:Disconnect()
 		conexionesVehiculos[player] = nil
@@ -251,8 +229,6 @@ local function configurarFisicaConduccion(player: Player, modelo: Model, _infoVe
 
 	conexionesVehiculos[player] = asiento:GetPropertyChangedSignal("Occupant"):Connect(function()
 		if not asiento.Occupant then
-			lv.VectorVelocity = Vector3.zero
-			av.AngularVelocity = Vector3.zero
 			pcall(function()
 				chasis:SetNetworkOwner(nil)
 			end)

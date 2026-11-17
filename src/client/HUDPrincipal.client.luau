@@ -244,7 +244,7 @@ local bannerNotificacion = Instance.new("Frame")
 bannerNotificacion.Name = "BannerNotificacion"
 bannerNotificacion.Size = UDim2.fromOffset(420, 48)
 bannerNotificacion.AnchorPoint = Vector2.new(0.5, 0)
-bannerNotificacion.Position = UDim2.new(0.5, 0, 0, -80) -- Oculto arriba
+bannerNotificacion.Position = UDim2.new(0.5, 0, 0, -250) -- Completamente fuera de pantalla
 bannerNotificacion.BackgroundColor3 = Color3.fromRGB(26, 30, 40)
 bannerNotificacion.BackgroundTransparency = 0.1
 bannerNotificacion.ClipsDescendants = true
@@ -279,7 +279,7 @@ botonCerrarBanner.Size = UDim2.fromOffset(24, 24)
 botonCerrarBanner.Position = UDim2.new(1, -34, 0.5, -12)
 botonCerrarBanner.BackgroundColor3 = Color3.fromRGB(50, 55, 70)
 botonCerrarBanner.Font = Enum.Font.GothamBold
-botonCerrarBanner.Text = "✕"
+botonCerrarBanner.Text = "X"
 botonCerrarBanner.TextColor3 = Color3.fromRGB(240, 240, 250)
 botonCerrarBanner.TextSize = 13
 botonCerrarBanner.AutoButtonColor = true
@@ -298,7 +298,7 @@ local function cerrarBannerNotificacion()
 	local tweenSubir = TweenService:Create(
 		bannerNotificacion,
 		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-		{ Position = UDim2.new(0.5, 0, 0, -80) }
+		{ Position = UDim2.new(0.5, 0, 0, -250) }
 	)
 	tweenSubir:Play()
 	tweenSubir.Completed:Connect(function()
@@ -313,14 +313,14 @@ local function mostrarBanner(mensaje: string, colorStroke: Color3?)
 	textoBanner.Text = mensaje
 
 	bannerNotificacion.Visible = true
-	bannerNotificacion.Position = UDim2.new(0.5, 0, 0, -80)
+	bannerNotificacion.Position = UDim2.new(0.5, 0, 0, -250)
 	local tweenBajar = TweenService:Create(
 		bannerNotificacion,
 		TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 		{ Position = UDim2.new(0.5, 0, 0, 70) }
 	)
 	tweenBajar:Play()
-	-- Permanece estático hasta que el jugador pulse [X]
+	-- Permanece estático con su botón [✕] hasta que el jugador decida cerrarlo
 end
 
 -- ====================================================================
@@ -389,7 +389,7 @@ botonCerrarDialogo.AnchorPoint = Vector2.new(1, 0)
 botonCerrarDialogo.Position = UDim2.new(1, -12, 0, 10)
 botonCerrarDialogo.BackgroundColor3 = Color3.fromRGB(60, 68, 88)
 botonCerrarDialogo.Font = Enum.Font.GothamBold
-botonCerrarDialogo.Text = "✕"
+botonCerrarDialogo.Text = "X"
 botonCerrarDialogo.TextColor3 = Color3.fromRGB(240, 240, 255)
 botonCerrarDialogo.TextSize = 14
 botonCerrarDialogo.AutoButtonColor = true
@@ -410,7 +410,7 @@ hintCerrar.Size = UDim2.fromOffset(140, 16)
 hintCerrar.Position = UDim2.new(1, -150, 1, -18)
 hintCerrar.BackgroundTransparency = 1
 hintCerrar.Font = Enum.Font.GothamMedium
-hintCerrar.Text = "Pulsa ✕ para continuar"
+hintCerrar.Text = "Pulsa [X] para continuar"
 hintCerrar.TextColor3 = Color3.fromRGB(160, 170, 190)
 hintCerrar.TextSize = 10
 hintCerrar.TextXAlignment = Enum.TextXAlignment.Right
@@ -450,7 +450,7 @@ local function mostrarDialogoNPC(info: {
 	local tweenEntrada = TweenService:Create(
 		cuadroDialogo,
 		TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ Position = UDim2.new(0.5, 0, 1, -25) }
+		{ Position = UDim2.new(0.5, 0, 1, -80) }
 	)
 	tweenEntrada:Play()
 
@@ -627,4 +627,27 @@ EventosRemotos.CampanaRecreo.OnClientEvent:Connect(function()
 		"🔔 ¡SUENA LA CAMPANA DEL RECREO! Los niños llenan el patio escolar",
 		Color3.fromRGB(255, 120, 200)
 	)
+end)
+
+EventosRemotos.ObjetivoMisionActualizado.OnClientEvent:Connect(function(info)
+	if not info then
+		return
+	end
+	if info.Titulo then
+		tituloObjetivo.Text = info.Titulo
+	else
+		tituloObjetivo.Text = string.format("📋 MISIÓN: CAPÍTULO %d", info.Capitulo or 1)
+	end
+	textoMision.Text = info.Descripcion or ""
+	barraProgreso.Text = info.Progreso or info.ProgresoTexto or info.MetaTexto or ""
+
+	if info.Completado then
+		mostrarBanner(
+			string.format(
+				"🎉 ¡CAPÍTULO %d COMPLETADO! Habla con Don Ábaco para avanzar.",
+				info.Capitulo or 1
+			),
+			Color3.fromRGB(100, 255, 120)
+		)
+	end
 end)

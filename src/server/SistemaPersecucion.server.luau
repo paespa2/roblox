@@ -18,6 +18,8 @@ type EstadoJugadorPersecucion = {
 }
 
 local estadosPersecucion: { [Player]: EstadoJugadorPersecucion } = {}
+local redadaEnCurso = false
+local iniciarRedadaDental: () -> ()
 
 local function obtenerPuntoSpawnSeguro(): Vector3
 	local puntos = Workspace:FindFirstChild("Puntos")
@@ -924,6 +926,11 @@ RunService.Heartbeat:Connect(function(dt: number)
 			end
 		end
 
+		-- Disparo dinámico de Redada si las estrellas alcanzan nivel 4 o 5
+		if estrellas >= 4 and not redadaEnCurso and iniciarRedadaDental then
+			task.spawn(iniciarRedadaDental)
+		end
+
 		-- C. Intercepción en Retenes Policiales
 		if estrellas >= 1 and cercaReten and retenPart then
 			local mapa = Workspace:FindFirstChild("Mapa")
@@ -1011,7 +1018,307 @@ Players.PlayerRemoving:Connect(function(player: Player)
 	estadosPersecucion[player] = nil
 end)
 
+-- ====================================================================
+-- SISTEMA DE OLEADAS Y REDADAS DENTALES (OPERATIVO CERO AZÚCAR)
+-- ====================================================================
+iniciarRedadaDental = function()
+	if redadaEnCurso then
+		return
+	end
+	redadaEnCurso = true
+
+	local mapa = Workspace:FindFirstChild("Mapa")
+	local decoracion = mapa and mapa:FindFirstChild("Decoracion")
+	local policiasFolder = decoracion and decoracion:FindFirstChild("PoliciasDentales")
+	if not policiasFolder then
+		redadaEnCurso = false
+		return
+	end
+
+	local folderChoque = policiasFolder:FindFirstChild("FuerzasEspeciales")
+	if folderChoque then
+		folderChoque:Destroy()
+	end
+	folderChoque = Instance.new("Folder")
+	folderChoque.Name = "FuerzasEspeciales"
+	folderChoque.Parent = policiasFolder
+
+	-- Notificar inicio de redada a todos los clientes
+	EventosRemotos.RedadaIniciada:FireAllClients()
+	for _, player in ipairs(Players:GetPlayers()) do
+		EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+			Nombre = "Alcalde Apio (Altavoz Municipal)",
+			Titulo = "🚨 ¡OPERATIVO DE EMERGENCIA: REDADA DENTAL!",
+			Icono = "📢",
+			Mensaje = "¡ATENCIÓN VILLA ALMÍBAR! Por orden de la Alcaldía, se activa el TOQUE DE QUEDA DE CERO AZÚCAR. Las fuerzas especiales tienen orden de decomisar todo y reducir a los infractores. ¡Escóndete en un callejón seguro o defiéndete con tu cauchera!",
+		})
+	end
+
+	-- Despliegue de 4 Oficiales de Fuerzas Especiales Antidisturbios
+	local puntosAparicionChoque = {
+		Vector3.new(-60, 65, -30),
+		Vector3.new(10, 68, 80),
+		Vector3.new(-30, 75, 230),
+		Vector3.new(10, 95, 360),
+	}
+
+	for i, spawnPos in ipairs(puntosAparicionChoque) do
+		local nombreOficial = "Policia_Choque_" .. i
+		local modelo = Instance.new("Model")
+		modelo.Name = nombreOficial
+		modelo.Parent = folderChoque
+
+		local hrp = Instance.new("Part")
+		hrp.Name = "HumanoidRootPart"
+		hrp.Size = Vector3.new(2, 2, 1)
+		hrp.Position = spawnPos
+		hrp.Transparency = 1
+		hrp.CanCollide = false
+		hrp.Anchored = true
+		hrp.Parent = modelo
+		modelo.PrimaryPart = hrp
+
+		local torso = Instance.new("Part")
+		torso.Name = "Torso"
+		torso.Size = Vector3.new(2.2, 2.2, 1.2)
+		torso.Position = hrp.Position
+		torso.Color = Color3.fromRGB(15, 20, 30)
+		torso.Material = Enum.Material.Metal
+		torso.Anchored = true
+		torso.CanCollide = true
+		torso.Parent = modelo
+
+		local cabeza = Instance.new("Part")
+		cabeza.Name = "Head"
+		cabeza.Size = Vector3.new(1.2, 1.2, 1.2)
+		cabeza.Position = torso.Position + Vector3.new(0, 1.7, 0)
+		cabeza.Color = Color3.fromRGB(220, 185, 150)
+		cabeza.Material = Enum.Material.SmoothPlastic
+		cabeza.Anchored = true
+		cabeza.CanCollide = false
+		cabeza.Parent = modelo
+
+		-- Casco táctico antimotines
+		local casco = Instance.new("Part")
+		casco.Name = "CascoAntimotines"
+		casco.Size = Vector3.new(1.4, 0.9, 1.4)
+		casco.Position = cabeza.Position + Vector3.new(0, 0.45, 0)
+		casco.Color = Color3.fromRGB(25, 30, 40)
+		casco.Material = Enum.Material.Metal
+		casco.Anchored = true
+		casco.CanCollide = false
+		casco.Parent = modelo
+
+		local visor = Instance.new("Part")
+		visor.Name = "Visor"
+		visor.Size = Vector3.new(1.1, 0.4, 0.3)
+		visor.Position = casco.Position + Vector3.new(0, -0.2, -0.65)
+		visor.Color = Color3.fromRGB(80, 200, 255)
+		visor.Material = Enum.Material.Neon
+		visor.Transparency = 0.3
+		visor.Anchored = true
+		visor.CanCollide = false
+		visor.Parent = modelo
+
+		-- Escudo antidisturbios en mano izquierda
+		local escudo = Instance.new("Part")
+		escudo.Name = "EscudoDental"
+		escudo.Size = Vector3.new(0.3, 3.8, 2.2)
+		escudo.Position = torso.Position + Vector3.new(-1.6, 0, -0.4)
+		escudo.Color = Color3.fromRGB(30, 40, 55)
+		escudo.Material = Enum.Material.Metal
+		escudo.Anchored = true
+		escudo.CanCollide = false
+		escudo.Parent = modelo
+
+		-- Bastón eléctrico dental en mano derecha
+		local baston = Instance.new("Part")
+		baston.Name = "BastonElectrico"
+		baston.Size = Vector3.new(0.3, 2.6, 0.3)
+		baston.Position = torso.Position + Vector3.new(1.6, 0, -0.4)
+		baston.Color = Color3.fromRGB(60, 180, 255)
+		baston.Material = Enum.Material.Neon
+		baston.Anchored = true
+		baston.CanCollide = false
+		baston.Parent = modelo
+
+		local luzBaston = Instance.new("PointLight")
+		luzBaston.Name = "ChispaElectrica"
+		luzBaston.Color = Color3.fromRGB(60, 200, 255)
+		luzBaston.Brightness = 3
+		luzBaston.Range = 16
+		luzBaston.Parent = baston
+
+		local piernas = Instance.new("Part")
+		piernas.Name = "Piernas"
+		piernas.Size = Vector3.new(1.8, 2, 0.9)
+		piernas.Position = torso.Position + Vector3.new(0, -2, 0)
+		piernas.Color = Color3.fromRGB(15, 20, 28)
+		piernas.Material = Enum.Material.SmoothPlastic
+		piernas.Anchored = true
+		piernas.CanCollide = true
+		piernas.Parent = modelo
+
+		local bbg = Instance.new("BillboardGui")
+		bbg.Name = "RotuloChoque"
+		bbg.Size = UDim2.fromOffset(230, 48)
+		bbg.StudsOffset = Vector3.new(0, 3.4, 0)
+		bbg.AlwaysOnTop = true
+		bbg.MaxDistance = 50
+		bbg.Parent = cabeza
+
+		local lbl = Instance.new("TextLabel")
+		lbl.Name = "Texto"
+		lbl.Size = UDim2.fromScale(1, 1)
+		lbl.BackgroundTransparency = 1
+		lbl.Font = Enum.Font.FredokaOne
+		lbl.Text = "🚨 FUERZAS ESPECIALES\n(Operativo Cero Azúcar)"
+		lbl.TextColor3 = Color3.fromRGB(255, 60, 60)
+		lbl.TextSize = 13
+		lbl.Parent = bbg
+
+		-- IA de persecución y ataque del oficial antidisturbios
+		task.spawn(function()
+			local cooldownAtaque: { [Player]: number } = {}
+			local ultimoTick = os.clock()
+
+			while modelo.Parent and redadaEnCurso do
+				task.wait(0.2)
+				local ahora = os.clock()
+				local dt = ahora - ultimoTick
+				ultimoTick = ahora
+
+				if modelo:GetAttribute("Aturdido") then
+					continue
+				end
+
+				-- Buscar al jugador más cercano fuera de escondite
+				local jugadorObjetivo: Player? = nil
+				local posObjetivo: Vector3? = nil
+				local distMin = 45
+
+				for _, player in ipairs(Players:GetPlayers()) do
+					local char = player.Character
+					local pHrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+					local hum = char and char:FindFirstChildOfClass("Humanoid")
+					if pHrp and hum and hum.Health > 0 then
+						local dist = (pHrp.Position - hrp.Position).Magnitude
+						if dist <= distMin then
+							local estaEscondido = buscarEsconditeCercano(pHrp.Position)
+							if not estaEscondido then
+								distMin = dist
+								jugadorObjetivo = player
+								posObjetivo = pHrp.Position
+							end
+						end
+					end
+				end
+
+				if jugadorObjetivo and posObjetivo then
+					local dir = (posObjetivo - hrp.Position) * Vector3.new(1, 0, 1)
+					local dist = dir.Magnitude
+
+					if dist < 4.8 then
+						-- ¡ATAQUE DE LA FUERZA ESPECIAL!
+						local cd = cooldownAtaque[jugadorObjetivo] or 0
+						if ahora >= cd then
+							cooldownAtaque[jugadorObjetivo] = ahora + 1.2
+							local char = jugadorObjetivo.Character
+							local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+							if hum and hum.Health > 0 then
+								local sonidoGolpe = Instance.new("Sound")
+								sonidoGolpe.SoundId = "rbxasset://sounds/uuhhh.mp3"
+								sonidoGolpe.Volume = 0.9
+								sonidoGolpe.Parent = hrp
+								sonidoGolpe:Play()
+								task.delay(1.5, function()
+									sonidoGolpe:Destroy()
+								end)
+
+								hum:TakeDamage(25)
+
+								if hum.Health <= 0 then
+									-- ¡DERROTA DEL JUGADOR!
+									local perdidos = GestorDatos.VaciarCargaDulces(jugadorObjetivo)
+									EventosRemotos.MostrarDialogoNPC:FireClient(jugadorObjetivo, {
+										Nombre = "Enfermería Municipal",
+										Titulo = "💀 ¡DERROTADO EN LA REDADA DENTAL!",
+										Icono = "🚑",
+										Mensaje = string.format(
+											"¡Caíste ante las Fuerzas Especiales de la Policía Dental!\n\nTe decomisaron %d dulces de tu cargamento. Fuiste atendido en la enfermería municipal.",
+											perdidos
+										),
+									})
+								else
+									EventosRemotos.MostrarDialogoNPC:FireClient(jugadorObjetivo, {
+										Nombre = "Fuerzas Especiales Dentales",
+										Titulo = "⚡ ¡IMPACTO DE BASTÓN ELÉCTRICO! (-25 HP)",
+										Icono = "⚡",
+										Mensaje = "¡Alto a la distribución ilegal! ¡Ríndete o terminarás en el Internado!",
+									})
+								end
+							end
+						end
+					else
+						-- Carrera rápida de asalto a 14.5 studs/s
+						local paso = dir.Unit * math.min(dist, 14.5 * dt)
+						local nuevaPos = hrp.Position + paso
+						local lookTarget = nuevaPos + dir.Unit
+						modelo:PivotTo(
+							CFrame.lookAt(
+								nuevaPos,
+								Vector3.new(lookTarget.X, nuevaPos.Y, lookTarget.Z)
+							)
+						)
+					end
+				end
+			end
+		end)
+	end
+
+	-- Duración de la Redada: 45 segundos
+	task.delay(45, function()
+		redadaEnCurso = false
+		if folderChoque and folderChoque.Parent then
+			folderChoque:Destroy()
+		end
+
+		EventosRemotos.RedadaTerminada:FireAllClients()
+
+		-- Premiar a los jugadores que sobrevivieron
+		for _, player in ipairs(Players:GetPlayers()) do
+			local char = player.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Health > 0 then
+				GestorDatos.AgregarPesos(player, 50)
+				local datos = GestorDatos.ObtenerDatos(player)
+				if datos then
+					datos.Fama += 5
+				end
+
+				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+					Nombre = "Doña Melcocha",
+					Titulo = "🎉 ¡BURLASTE LA REDADA DENTAL!",
+					Icono = "👵",
+					Mensaje = "¡Eso mijo! Sobreviviste al operativo del Alcalde Apio sin que te atraparan. ¡Toma $50 pesos dulces y +5 de Fama como premio!",
+				})
+			end
+		end
+
+		print("El Patrón del Dulce: Redada Dental finalizada con éxito")
+	end)
+end
+
+-- Ciclo periódico de Redadas Dentales (Cada 210 segundos / 3.5 minutos)
+task.spawn(function()
+	while true do
+		task.wait(210)
+		iniciarRedadaDental()
+	end
+end)
+
 task.spawn(configurarEscondites)
 task.spawn(configurar12PoliciasDentales)
 task.spawn(configurarInteraccionesInternado)
-print("El Patrón del Dulce: Sistema de Persecución y Policía Dental (12 Oficiales) inicializado")
+print("El Patrón del Dulce: Sistema de Persecución, 12 Policías y Redadas inicializado")

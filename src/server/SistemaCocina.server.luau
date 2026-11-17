@@ -147,14 +147,53 @@ local function configurarPromptCocina(paila: BasePart)
 		prompt.Parent = paila
 	end
 
+	local listaRecetas =
+		{ "Dulce_Bombon", "Dulce_Gomita", "Dulce_Panelita", "Dulce_Arequipe", "Dulce_Chicle" }
+	local recetasJugador: { [Player]: string } = {}
+
+	local promptCambiar = paila:FindFirstChild("PromptCambiarReceta") :: ProximityPrompt?
+	if not promptCambiar then
+		promptCambiar = Instance.new("ProximityPrompt")
+		promptCambiar.Name = "PromptCambiarReceta"
+		promptCambiar.ObjectText = "Paila de Melcocha"
+		promptCambiar.ActionText = "Cambiar Receta"
+		promptCambiar.HoldDuration = 0.2
+		promptCambiar.MaxActivationDistance = 14
+		promptCambiar.RequiresLineOfSight = false
+		promptCambiar.Parent = paila
+
+		promptCambiar.Triggered:Connect(function(player: Player)
+			local recetaActual = recetasJugador[player] or "Dulce_Bombon"
+			local idxActual = table.find(listaRecetas, recetaActual) or 1
+			local siguienteIdx = (idxActual % #listaRecetas) + 1
+			local nuevaReceta = listaRecetas[siguienteIdx]
+			recetasJugador[player] = nuevaReceta
+
+			local info = Datos.Dulces[nuevaReceta]
+			local nom = if info then info.Nombre else nuevaReceta
+			prompt.ActionText =
+				string.format("Cocinar %s (%ds)", nom, if info then info.TiempoProduccion else 5)
+			estadoLabel.Text = string.format("Receta: %s (Pulsa E)", nom)
+			estadoLabel.TextColor3 = Color3.fromRGB(255, 215, 120)
+
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = "Paila Clandestina",
+				Titulo = "Receta Seleccionada",
+				Icono = "🍳",
+				Mensaje = string.format("Cambiado a: %s. ¡Pulsa E para empezar a cocinar!", nom),
+			})
+		end)
+	end
+
 	prompt.Triggered:Connect(function(player: Player)
 		local estadoActual = coccionesActivas[player]
 
 		if not estadoActual then
-			local idDulceDefault = "Dulce_Bombon"
-			local infoDulce = Datos.Dulces[idDulceDefault]
+			local idDulceSeleccionado = recetasJugador[player] or "Dulce_Bombon"
+			local infoDulce = Datos.Dulces[idDulceSeleccionado]
 			if not infoDulce then
-				return
+				idDulceSeleccionado = "Dulce_Bombon"
+				infoDulce = Datos.Dulces[idDulceSeleccionado]
 			end
 
 			local duracion = math.round(
@@ -162,7 +201,7 @@ local function configurarPromptCocina(paila: BasePart)
 			)
 
 			coccionesActivas[player] = {
-				IdDulce = idDulceDefault,
+				IdDulce = idDulceSeleccionado,
 				Inicio = os.time(),
 				Duracion = duracion,
 				Listo = false,
@@ -184,7 +223,7 @@ local function configurarPromptCocina(paila: BasePart)
 			tweenBarra:Play()
 
 			EventosRemotos.CocinaActualizada:FireClient(player, {
-				IdDulce = idDulceDefault,
+				IdDulce = idDulceSeleccionado,
 				Duracion = duracion,
 				Listo = false,
 			})
@@ -192,18 +231,18 @@ local function configurarPromptCocina(paila: BasePart)
 			task.delay(duracion, function()
 				if
 					coccionesActivas[player]
-					and coccionesActivas[player].IdDulce == idDulceDefault
+					and coccionesActivas[player].IdDulce == idDulceSeleccionado
 				then
 					coccionesActivas[player].Listo = true
 
-					prompt.ActionText = "¡Recoger Bombones!"
+					prompt.ActionText = string.format("¡Recoger %s!", infoDulce.Nombre)
 					estadoLabel.Text = "✨ ¡LISTO PARA RECOGER! ✨"
 					estadoLabel.TextColor3 = Color3.fromRGB(100, 255, 140)
 					stroke.Color = Color3.fromRGB(90, 240, 120)
 					barraFondo.Visible = false
 
 					EventosRemotos.CocinaActualizada:FireClient(player, {
-						IdDulce = idDulceDefault,
+						IdDulce = idDulceSeleccionado,
 						Duracion = 0,
 						Listo = true,
 					})
@@ -387,9 +426,122 @@ local function configurarDonaMelcocha()
 	end
 end
 
+local function configurarTiaCocinera(paila: BasePart)
+	local mapa = Workspace:FindFirstChild("Mapa")
+	local decoracion = mapa and mapa:FindFirstChild("Decoracion")
+	local npcs = decoracion and decoracion:FindFirstChild("NPCs_Interactivos")
+	if not npcs then
+		return
+	end
+
+	local existente = npcs:FindFirstChild("NPC_TiaCocinera")
+	if existente then
+		existente:Destroy()
+	end
+
+	local tia = Instance.new("Model")
+	tia.Name = "NPC_TiaCocinera"
+	tia.Parent = npcs
+
+	local pos = paila.Position + Vector3.new(4, 0, 0)
+	local hrp = Instance.new("Part")
+	hrp.Name = "HumanoidRootPart"
+	hrp.Size = Vector3.new(2, 2, 1)
+	hrp.Position = pos
+	hrp.Transparency = 1
+	hrp.CanCollide = false
+	hrp.Anchored = true
+	hrp.Parent = tia
+	tia.PrimaryPart = hrp
+
+	local torso = Instance.new("Part")
+	torso.Name = "Torso"
+	torso.Size = Vector3.new(1.8, 2, 0.9)
+	torso.Position = pos
+	torso.Color = Color3.fromRGB(245, 180, 80) -- Vestido amarillo
+	torso.Material = Enum.Material.SmoothPlastic
+	torso.Anchored = true
+	torso.CanCollide = true
+	torso.Parent = tia
+
+	local delantal = Instance.new("Part")
+	delantal.Name = "Delantal"
+	delantal.Size = Vector3.new(1.4, 1.6, 0.2)
+	delantal.Position = pos + Vector3.new(0, -0.2, -0.5)
+	delantal.Color = Color3.fromRGB(245, 245, 250)
+	delantal.Material = Enum.Material.SmoothPlastic
+	delantal.Anchored = true
+	delantal.CanCollide = false
+	delantal.Parent = tia
+
+	local cabeza = Instance.new("Part")
+	cabeza.Name = "Head"
+	cabeza.Size = Vector3.new(1.1, 1.1, 1.1)
+	cabeza.Position = pos + Vector3.new(0, 1.55, 0)
+	cabeza.Color = Color3.fromRGB(240, 205, 175)
+	cabeza.Material = Enum.Material.SmoothPlastic
+	cabeza.Anchored = true
+	cabeza.CanCollide = false
+	cabeza.Parent = tia
+
+	local bbg = Instance.new("BillboardGui")
+	bbg.Name = "Rotulo"
+	bbg.Size = UDim2.fromOffset(200, 48)
+	bbg.StudsOffset = Vector3.new(0, 2.8, 0)
+	bbg.AlwaysOnTop = true
+	bbg.MaxDistance = 35
+	bbg.Parent = cabeza
+
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.fromScale(1, 1)
+	lbl.BackgroundTransparency = 1
+	lbl.Font = Enum.Font.FredokaOne
+	lbl.Text = "👩‍🍳 Tía Rosa\n(Asistente de Cocina)"
+	lbl.TextColor3 = Color3.fromRGB(255, 235, 150)
+	lbl.TextSize = 13
+	lbl.Parent = bbg
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "PromptTia"
+	prompt.ObjectText = "Tía Rosa"
+	prompt.ActionText = "Hablar con Tía Rosa"
+	prompt.HoldDuration = 0.3
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = torso
+
+	prompt.Triggered:Connect(function(player: Player)
+		EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+			Nombre = "Tía Rosa",
+			Titulo = "Asistente Clandestina",
+			Icono = "👩‍🍳",
+			Mensaje = "¡Hola mijo! Yo le ayudo meneando la paila para que el dulce no se pegue. ¡Cada 25 segundos le horneo 2 bombones de regalo mientras usted reparte por el barrio!",
+		})
+	end)
+
+	-- Ciclo de horneado pasivo automático de la Tía Rosa (Mecánica Tycoon)
+	task.spawn(function()
+		while tia.Parent do
+			task.wait(25)
+			for _, player in ipairs(Players:GetPlayers()) do
+				GestorDatos.AgregarDulce(player, "Dulce_Bombon", 2)
+				lbl.Text = "✨ +2 Bombones Horneados ✨"
+				lbl.TextColor3 = Color3.fromRGB(120, 255, 160)
+				task.delay(3, function()
+					if lbl then
+						lbl.Text = "👩‍🍳 Tía Rosa\n(Asistente de Cocina)"
+						lbl.TextColor3 = Color3.fromRGB(255, 235, 150)
+					end
+				end)
+			end
+		end
+	end)
+end
+
 local paila = obtenerPaila()
 if paila then
 	configurarPromptCocina(paila)
+	configurarTiaCocinera(paila)
 	print("El Patrón del Dulce: Sistema de Cocina conectado con efectos visuales")
 else
 	task.spawn(function()
@@ -400,6 +552,7 @@ else
 			local pailaTardia = obtenerPaila()
 			if pailaTardia then
 				configurarPromptCocina(pailaTardia)
+				configurarTiaCocinera(pailaTardia)
 				print("El Patrón del Dulce: Sistema de Cocina conectado (tardío)")
 				break
 			end

@@ -421,6 +421,72 @@ function GestorDatos.ConfiscarCargaPorcentaje(player: Player, porcentaje: number
 	return totalConfiscado
 end
 
+function GestorDatos.ConquistarTienda(player: Player, idTienda: string): boolean
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return false
+	end
+	if not perfil.Data.TiendasConquistadas then
+		perfil.Data.TiendasConquistadas = {}
+	end
+	if not perfil.Data.TiendasConquistadas[idTienda] then
+		perfil.Data.TiendasConquistadas[idTienda] = true
+		sincronizarCliente(player)
+		return true
+	end
+	return false
+end
+
+function GestorDatos.ObtenerTiendasConquistadas(player: Player): { [string]: boolean }
+	local perfil = perfilesCargados[player]
+	if not perfil or not perfil.Data.TiendasConquistadas then
+		return {}
+	end
+	return perfil.Data.TiendasConquistadas
+end
+
+function GestorDatos.DesbloquearReceta(player: Player, idReceta: string): boolean
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return false
+	end
+	if not perfil.Data.RecetasDesbloqueadas then
+		perfil.Data.RecetasDesbloqueadas = { ["Dulce_Bombon"] = true }
+	end
+	if not perfil.Data.RecetasDesbloqueadas[idReceta] then
+		perfil.Data.RecetasDesbloqueadas[idReceta] = true
+		sincronizarCliente(player)
+		return true
+	end
+	return false
+end
+
+function GestorDatos.TieneReceta(player: Player, idReceta: string): boolean
+	local perfil = perfilesCargados[player]
+	if not perfil or not perfil.Data.RecetasDesbloqueadas then
+		return idReceta == "Dulce_Bombon"
+	end
+	return perfil.Data.RecetasDesbloqueadas[idReceta] == true
+end
+
+function GestorDatos.VaciarCargaDulces(player: Player): number
+	local perfil = perfilesCargados[player]
+	if not perfil or not perfil.Data.Inventario then
+		return 0
+	end
+	local total = 0
+	for idDulce, cantidad in pairs(perfil.Data.Inventario) do
+		if cantidad > 0 then
+			total += cantidad
+			perfil.Data.Inventario[idDulce] = 0
+		end
+	end
+	if total > 0 then
+		sincronizarCliente(player)
+	end
+	return total
+end
+
 function GestorDatos.EstaEnInternado(player: Player): boolean
 	local perfil = perfilesCargados[player]
 	return (perfil and (perfil.Data.CondenaInternado or 0) > 0) or false

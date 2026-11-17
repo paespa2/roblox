@@ -132,6 +132,20 @@ local function procesarVenta(player: Player, idTienda: string, puntoPart: BasePa
 		-- Disparar efectos visuales y sonoros en 3D
 		crearEfectoVenta(puntoPart, totalPesos)
 
+		-- Afiliar / Conquistar la tienda para generar ingreso pasivo (Mecánica Tycoon)
+		local primeraVez = GestorDatos.ConquistarTienda(player, idTienda)
+		if primeraVez then
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = tiendaInfo.Nombre,
+				Titulo = "¡Nueva Tienda Aliada!",
+				Icono = "🤝",
+				Mensaje = string.format(
+					"¡Trato hecho, patrón! Desde hoy %s es tu punto de venta oficial. Te generaremos ganancias pasivas cada 30 segundos.",
+					tiendaInfo.Nombre
+				),
+			})
+		end
+
 		EventosRemotos.VentaCompletada:FireClient(player, {
 			Tienda = tiendaInfo.Nombre,
 			PesosGanados = totalPesos,
@@ -348,3 +362,36 @@ end
 
 task.spawn(configurarPuntosDeVenta)
 task.spawn(configurarNPCsInteractivos)
+
+-- ====================================================================
+-- CICLO TYCOON: INGRESO PASIVO DE TIENDAS AFILIADAS (CADA 30 SEGUNDOS)
+-- ====================================================================
+task.spawn(function()
+	local Players = game:GetService("Players")
+	while true do
+		task.wait(30)
+		for _, player in ipairs(Players:GetPlayers()) do
+			local tiendas = GestorDatos.ObtenerTiendasConquistadas(player)
+			local conteo = 0
+			for _ in pairs(tiendas) do
+				conteo += 1
+			end
+
+			if conteo > 0 then
+				local gananciaPasiva = conteo * 3 -- $3 pesos por cada tienda aliada
+				GestorDatos.AgregarPesos(player, gananciaPasiva)
+
+				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+					Nombre = "Red de Tiendas del Barrio",
+					Titulo = "💰 Recaudo Pasivo Tycoon",
+					Icono = "🏪",
+					Mensaje = string.format(
+						"¡Ganancias recibidas! Tus %d tiendas aliadas te generaron +$%d Pesos Dulces.",
+						conteo,
+						gananciaPasiva
+					),
+				})
+			end
+		end
+	end
+end)

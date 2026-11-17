@@ -7,9 +7,9 @@ local Workspace = game:GetService("Workspace")
 
 local localPlayer = Players.LocalPlayer
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
+local Datos = require(ReplicatedStorage.Shared.Datos)
 
 local enCooldown = false
-local velocidadActual = 0
 
 local raycastParams = RaycastParams.new()
 raycastParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -52,12 +52,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
--- 2. Conducción fluida del lado del cliente (propietario de la red física)
-RunService.RenderStepped:Connect(function(dt: number)
+-- 2. Detección y calibración de superficies en tiempo real (Físicas y realismo)
+RunService.RenderStepped:Connect(function(_dt: number)
 	local char = localPlayer.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if not hum or not hum.Sit or not hum.SeatPart or not hum.SeatPart:IsA("VehicleSeat") then
-		velocidadActual = 0
 		return
 	end
 
@@ -72,39 +71,36 @@ RunService.RenderStepped:Connect(function(dt: number)
 		return
 	end
 
-	-- Eliminar UprightStabilizer si existe para dar libertad total de giro al manubrio
+	-- Limpiar cualquier remanente que cause elevación o congelamiento de giro
 	local ao = chasis:FindFirstChild("UprightStabilizer")
 	if ao then
 		ao:Destroy()
 	end
-
-	local lv = chasis:FindFirstChild("DriveVelocity") :: LinearVelocity?
-	local av = chasis:FindFirstChild("SteerVelocity") :: AngularVelocity?
-	if not lv or not av then
-		return
+	local lv = chasis:FindFirstChild("DriveVelocity")
+	if lv then
+		lv:Destroy()
+	end
+	local av = chasis:FindFirstChild("SteerVelocity")
+	if av then
+		av:Destroy()
 	end
 
-	-- Asegurar propiedades de física libre sin flotación
-	if lv.RelativeTo ~= Enum.ActuatorRelativeTo.World then
-		lv.RelativeTo = Enum.ActuatorRelativeTo.World
-		lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-		lv.MaxAxesForce = Vector3.new(35000, 0, 35000) -- Cero en Y: la gravedad manda
-	end
-	if av.RelativeTo ~= Enum.ActuatorRelativeTo.World then
-		av.RelativeTo = Enum.ActuatorRelativeTo.World
-		av.MaxTorque = 45000
+	-- Asiento nunca colisionable
+	if asiento.CanCollide then
+		asiento.CanCollide = false
 	end
 
-	local throttle = asiento.ThrottleFloat
-	local steer = asiento.SteerFloat
+	-- Identificar vehículo equipado y estadísticas base
+	local idVehiculo = if string.find(modelo.Name, "Moto")
+		then "Vehiculo_Moto"
+		else "Vehiculo_Bicicleta"
+	local stats = Datos.Vehiculos[idVehiculo] or { VelocidadMax = 22, Torque = 45, TurnSpeed = 2.4 }
+	local velBase = stats.VelocidadMax or 22
+	local torqueBase = stats.Torque or 45
 
-	-- Detección de suelo por raycast
+	-- Detección de superficie bajo el vehículo
 	raycastParams.FilterDescendantsInstances = { modelo, char }
-	local hit = Workspace:Raycast(chasis.Position, Vector3.new(0, -4.5, 0), raycastParams)
-
-	local factorSuperficie = 1.0
-	local tasaAceleracion = 28
-	local velocidadBase = 22
+	local hit = Workspace:Raycast(chasis.Position, Vector3.new(0, -5, 0), raycastParams)
 
 	if hit then
 		local mat = hit.Material
@@ -113,53 +109,20 @@ RunService.RenderStepped:Connect(function(dt: number)
 			or mat == Enum.Material.LeafyGrass
 			or mat == Enum.Material.Ground
 		then
-			factorSuperficie = 0.75 -- Césped: pedaleo más pesado
-			tasaAceleracion = 18
+			-- Césped: pedaleo más pesado (75% velocidad, 80% torque)
+			asiento.MaxSpeed = velBase * 0.75
+			asiento.Torque = torqueBase * 0.8
 		elseif mat == Enum.Material.Sand or mat == Enum.Material.Mud then
-			factorSuperficie = 0.55 -- Arena/Lodo: mucha fricción
-			tasaAceleracion = 12
+			-- Arena o barro: alta fricción (55% velocidad, 60% torque)
+			asiento.MaxSpeed = velBase * 0.55
+			asiento.Torque = torqueBase * 0.6
 		else
-			factorSuperficie = 1.0 -- Asfalto y Concreto: agarre total
-			tasaAceleracion = 32
+			-- Asfalto, concreto, adoquín: agarre total
+			asiento.MaxSpeed = velBase
+			asiento.Torque = torqueBase
 		end
 	else
-		-- En el aire (saltando): sin tracción de pedales
-		factorSuperficie = 0.15
-		tasaAceleracion = 6
+		-- En el aire (saltando o descolgándose): sin torque de pedaleo para caída limpia por gravedad
+		asiento.Torque = 0
 	end
-
-	local velMax = velocidadBase * factorSuperficie
-	local velMeta = throttle * velMax
-
-	if math.abs(throttle) > 0.05 then
-		local diff = velMeta - velocidadActual
-		velocidadActual += math.sign(diff) * math.min(math.abs(diff), tasaAceleracion * dt)
-	else
-		-- Desaceleración por fricción al soltar pedales
-		local friccion = if hit then 20 * dt else 4 * dt
-		if math.abs(velocidadActual) <= friccion then
-			velocidadActual = 0
-		else
-			velocidadActual -= math.sign(velocidadActual) * friccion
-		end
-	end
-
-	-- Dirección horizontal de avance (W = adelante, S = reversa)
-	local look = chasis.CFrame.LookVector
-	local fwdHoriz = Vector3.new(look.X, 0, look.Z)
-	if fwdHoriz.Magnitude > 0.01 then
-		fwdHoriz = fwdHoriz.Unit
-	else
-		fwdHoriz = Vector3.new(0, 0, -1)
-	end
-
-	-- Aplicar velocidad horizontal (Y = 0 para que la gravedad actúe natural)
-	local velVec = fwdHoriz * velocidadActual
-	lv.VectorVelocity = Vector3.new(velVec.X, 0, velVec.Z)
-
-	-- Giro limpio y libre sobre el eje Y mundial:
-	-- A (steer = -1) -> gira a la izquierda (+Y)
-	-- D (steer = +1) -> gira a la derecha (-Y)
-	local factorGiro = math.clamp(math.abs(velocidadActual) / 4, 0.4, 1.0)
-	av.AngularVelocity = Vector3.new(0, -steer * 2.8 * factorGiro, 0)
 end)
