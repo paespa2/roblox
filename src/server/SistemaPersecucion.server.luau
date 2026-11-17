@@ -4,9 +4,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local GestorDatos = require(script.Parent.GestorDatos)
+local Datos = require(ReplicatedStorage.Shared.Datos)
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 
-local TIEMPO_ENFRIAMIENTO_POR_ESTRELLA = 3.5
 local RADIO_ESCONDITE = 16
 local RADIO_DETECCION_RETEN = 16
 
@@ -14,6 +14,7 @@ type EstadoJugadorPersecucion = {
 	TiempoEnEscondite: number,
 	Enfriando: boolean,
 	UltimaNotificacionReten: number,
+	UltimoTickSegundo: number,
 }
 
 local estadosPersecucion: { [Player]: EstadoJugadorPersecucion } = {}
@@ -29,7 +30,17 @@ local function obtenerPuntoSpawnSeguro(): Vector3
 			end
 		end
 	end
-	return Vector3.new(0, 5, 0)
+	return Vector3.new(97, 63, -119)
+end
+
+local function obtenerPuntoInternado(): Vector3
+	local mapa = Workspace:FindFirstChild("Mapa")
+	local internado = mapa and mapa:FindFirstChild("Zona_InternadoSinAzucar")
+	local punto = internado and internado:FindFirstChild("Punto_Internado") :: BasePart?
+	if punto then
+		return punto.Position + Vector3.new(0, 3, 0)
+	end
+	return Vector3.new(0, 118, 520)
 end
 
 local function configurarEscondites()
@@ -86,7 +97,7 @@ local function configurarEscondites()
 				subtitulo.Position = UDim2.fromScale(0, 0.55)
 				subtitulo.BackgroundTransparency = 1
 				subtitulo.Font = Enum.Font.GothamMedium
-				subtitulo.Text = "Escondite de Callejón"
+				subtitulo.Text = "Escondite (-15 pts/s)"
 				subtitulo.TextColor3 = Color3.fromRGB(200, 240, 210)
 				subtitulo.TextSize = 12
 				subtitulo.Parent = fondo
@@ -154,7 +165,6 @@ local function configurarRetenes()
 				subtitulo.TextSize = 12
 				subtitulo.Parent = fondo
 
-				-- Luz de advertencia policial
 				local sirenaLuz = Instance.new("PointLight")
 				sirenaLuz.Name = "SirenaLuz"
 				sirenaLuz.Color = Color3.fromRGB(255, 40, 40)
@@ -163,6 +173,70 @@ local function configurarRetenes()
 				sirenaLuz.Parent = reten
 			end
 		end
+	end
+end
+
+local function configurarInteraccionesInternado()
+	local mapa = Workspace:WaitForChild("Mapa", 10)
+	if not mapa then
+		return
+	end
+	local internado = mapa:WaitForChild("Zona_InternadoSinAzucar", 10)
+	if not internado then
+		return
+	end
+
+	local muela = internado:FindFirstChild("MuelaGigante")
+	local promptMuela = muela and muela:FindFirstChild("PromptCepillar") :: ProximityPrompt?
+	if promptMuela then
+		promptMuela.Triggered:Connect(function(player: Player)
+			if GestorDatos.EstaEnInternado(player) then
+				local reduccion = Datos.Persecucion.Internado.ReduccionPorCepilladoSegundos or 20
+				local restante = GestorDatos.ReducirCondenaInternado(player, reduccion)
+				if restante <= 0 then
+					local character = player.Character
+					local hrp = character
+						and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+					if hrp then
+						hrp.CFrame = CFrame.new(obtenerPuntoSpawnSeguro())
+					end
+					EventosRemotos.LiberadoDelInternado:FireClient(player)
+					print(
+						string.format(
+							"El Patrón del Dulce: %s completó su condena y fue liberado.",
+							player.Name
+						)
+					)
+				end
+			end
+		end)
+	end
+
+	local enfermero = internado:FindFirstChild("EnfermeroDental")
+	local promptFianza = enfermero and enfermero:FindFirstChild("PromptFianza") :: ProximityPrompt?
+	if promptFianza then
+		promptFianza.Triggered:Connect(function(player: Player)
+			if GestorDatos.EstaEnInternado(player) then
+				local exito, msg = GestorDatos.PagarFianza(player)
+				if exito then
+					local character = player.Character
+					local hrp = character
+						and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+					if hrp then
+						hrp.CFrame = CFrame.new(obtenerPuntoSpawnSeguro())
+					end
+					EventosRemotos.LiberadoDelInternado:FireClient(player)
+					print(
+						string.format(
+							"El Patrón del Dulce: %s pagó fianza y fue liberado.",
+							player.Name
+						)
+					)
+				else
+					EventosRemotos.AlertaPolicia:FireClient(player, msg, 0)
+				end
+			end
+		end)
 	end
 end
 
@@ -219,6 +293,7 @@ RunService.Heartbeat:Connect(function(dt: number)
 	if acumuladorTiempo < intervaloChequeo then
 		return
 	end
+	local dtEfectivo = acumuladorTiempo
 	acumuladorTiempo = 0
 
 	for _, player in ipairs(Players:GetPlayers()) do
@@ -236,86 +311,136 @@ RunService.Heartbeat:Connect(function(dt: number)
 				TiempoEnEscondite = 0,
 				Enfriando = false,
 				UltimaNotificacionReten = 0,
+				UltimoTickSegundo = os.clock(),
 			}
 		end
 
 		local estado = estadosPersecucion[player]
-		local estrellas = GestorDatos.ObtenerEstrellas(player)
 
-		-- 1. Verificar Escondites (Enfriar estrellas)
-		local estaEscondido = buscarEsconditeCercano(hrp.Position)
-		if estaEscondido and estrellas > 0 then
-			estado.Enfriando = true
-			estado.TiempoEnEscondite += intervaloChequeo
-
-			local progreso =
-				math.clamp(estado.TiempoEnEscondite / TIEMPO_ENFRIAMIENTO_POR_ESTRELLA, 0, 1)
-
-			if estado.TiempoEnEscondite >= TIEMPO_ENFRIAMIENTO_POR_ESTRELLA then
-				estado.TiempoEnEscondite = 0
-				local nuevasEstrellas = GestorDatos.ModificarEstrellas(player, -1)
-				estrellas = nuevasEstrellas
-				progreso = 0
+		-- A. Manejo de Condena en el Internado Sin Azúcar
+		if GestorDatos.EstaEnInternado(player) then
+			local restante = GestorDatos.ReducirCondenaInternado(player, dtEfectivo)
+			if restante <= 0 then
+				hrp.CFrame = CFrame.new(obtenerPuntoSpawnSeguro())
+				EventosRemotos.LiberadoDelInternado:FireClient(player)
 				print(
 					string.format(
-						"El Patrón del Dulce: %s enfrió 1 estrella en el escondite. Estrellas actuales: %d",
-						player.Name,
-						nuevasEstrellas
+						"El Patrón del Dulce: %s cumplió su tiempo de condena y salió libre.",
+						player.Name
 					)
 				)
 			end
+			continue
+		end
+
+		local puntosCalor = GestorDatos.ObtenerPuntosCalor(player)
+		local estrellas = GestorDatos.ObtenerEstrellas(player)
+
+		-- B. Enfriamiento en Escondites (-15 pts/s) vs Enfriamiento en Calle (-3 pts/s)
+		local estaEscondido = buscarEsconditeCercano(hrp.Position)
+		local cercaReten, retenPart = buscarRetenCercano(hrp.Position)
+
+		if estaEscondido and puntosCalor > 0 then
+			estado.Enfriando = true
+			local tasaEscondite = Datos.Persecucion.TasaEnfriamiento.Escondite or 15
+			local ptsAEnfriar = tasaEscondite * dtEfectivo
+			local nuevosPuntos, nuevasEstrellas = GestorDatos.EnfriarCalor(player, ptsAEnfriar)
+
+			local progreso = 0
+			if nuevasEstrellas > 0 then
+				local conf = Datos.Persecucion.Estrellas[nuevasEstrellas]
+				if conf then
+					progreso = math.clamp(nuevosPuntos / conf.UmbralPuntos, 0, 1)
+				end
+			end
 
 			EventosRemotos.EstrellasActualizadas:FireClient(player, {
-				Estrellas = estrellas,
+				Estrellas = nuevasEstrellas,
 				Enfriando = true,
 				ProgresoEnfriamiento = progreso,
+				PuntosCalor = nuevosPuntos,
+			})
+		elseif (not cercaReten) and puntosCalor > 0 then
+			-- Enfriamiento pasivo en calle (-3 pts/s)
+			local tasaCalle = Datos.Persecucion.TasaEnfriamiento.Calle or 3
+			local ptsAEnfriar = tasaCalle * dtEfectivo
+			local nuevosPuntos, nuevasEstrellas = GestorDatos.EnfriarCalor(player, ptsAEnfriar)
+
+			EventosRemotos.EstrellasActualizadas:FireClient(player, {
+				Estrellas = nuevasEstrellas,
+				Enfriando = false,
+				ProgresoEnfriamiento = 0,
+				PuntosCalor = nuevosPuntos,
 			})
 		else
 			if estado.Enfriando then
 				estado.Enfriando = false
-				estado.TiempoEnEscondite = 0
 				EventosRemotos.EstrellasActualizadas:FireClient(player, {
 					Estrellas = estrellas,
 					Enfriando = false,
 					ProgresoEnfriamiento = 0,
+					PuntosCalor = puntosCalor,
 				})
 			end
 		end
 
-		-- 2. Verificar Retenes (Detección y Confiscación con >= 2 estrellas)
-		if estrellas >= 2 then
-			local cercaReten, retenPart = buscarRetenCercano(hrp.Position)
-			if cercaReten and retenPart then
-				-- Verificar si el retén o agente está aturdido por cauchera de gomitas
-				local mapa = Workspace:FindFirstChild("Mapa")
-				local npcs = mapa
-					and mapa:FindFirstChild("Decoracion")
-					and mapa.Decoracion:FindFirstChild("NPCs_Interactivos")
-				local agente = npcs and npcs:FindFirstChild("Personaje_AgenteDental")
-				local estaAturdido = (agente and agente:GetAttribute("Aturdido") == true)
-					or (retenPart:GetAttribute("Aturdido") == true)
+		-- C. Intercepción en Retenes Policiales
+		if estrellas >= 1 and cercaReten and retenPart then
+			local mapa = Workspace:FindFirstChild("Mapa")
+			local npcs = mapa
+				and mapa:FindFirstChild("Decoracion")
+				and mapa.Decoracion:FindFirstChild("NPCs_Interactivos")
+			local agente = npcs and npcs:FindFirstChild("Personaje_AgenteDental")
+			local estaAturdido = (agente and agente:GetAttribute("Aturdido") == true)
+				or (retenPart:GetAttribute("Aturdido") == true)
 
-				if not estaAturdido then
-					local ahora = os.clock()
-					if ahora - estado.UltimaNotificacionReten > 3 then
-						estado.UltimaNotificacionReten = ahora
+			if not estaAturdido then
+				local ahora = os.clock()
+				if ahora - estado.UltimaNotificacionReten > 3 then
+					estado.UltimaNotificacionReten = ahora
 
-						-- Confiscación de mercancía
-						local cantidadConfiscada = GestorDatos.ConfiscarCarga(player)
-						if cantidadConfiscada > 0 then
-							-- Teletransportar al punto de spawn seguro (cocina / consultorio)
-							hrp.CFrame = CFrame.new(obtenerPuntoSpawnSeguro())
+					local reglaEstrella = Datos.Persecucion.Estrellas[estrellas]
+						or Datos.Persecucion.Estrellas[1]
+					local pctConfiscacion = reglaEstrella.PierdeCargaPorcentaje or 0.10
+					local confiscados =
+						GestorDatos.ConfiscarCargaPorcentaje(player, pctConfiscacion)
 
-							EventosRemotos.CargaConfiscada:FireClient(player, cantidadConfiscada)
+					if reglaEstrella.EnviaAlInternado then
+						-- Arresto completo y envío al Internado Sin Azúcar
+						local condena = reglaEstrella.CondenaSegundos or 60
+						local fianza = reglaEstrella.FianzaPesos or 50
+						GestorDatos.EstablecerCondenaInternado(player, condena)
 
-							print(
-								string.format(
-									"El Patrón del Dulce: ¡Policía Dental confiscó %d dulces a %s en el retén!",
-									cantidadConfiscada,
-									player.Name
-								)
+						hrp.CFrame = CFrame.new(obtenerPuntoInternado())
+
+						EventosRemotos.EnviadoAlInternado:FireClient(player, {
+							CondenaSegundos = condena,
+							FianzaPesos = fianza,
+							Estrellas = estrellas,
+						})
+						EventosRemotos.CargaConfiscada:FireClient(player, confiscados)
+
+						print(
+							string.format(
+								"El Patrón del Dulce: ¡%s fue arrestado en el retén con %d estrellas! Confiscados: %d dulces. Enviado al Internado por %ds (Fianza: $%d)",
+								player.Name,
+								estrellas,
+								confiscados,
+								condena,
+								fianza
 							)
+						)
+					else
+						-- Advertencia y confiscación parcial (Estrellas 1 o 2)
+						if confiscados > 0 then
+							EventosRemotos.CargaConfiscada:FireClient(player, confiscados)
 						end
+						local msg = string.format(
+							"¡Retén Policial! Te incautaron el %d%% de tu carga (%d dulces). ¡Cuidado!",
+							math.floor(pctConfiscacion * 100),
+							confiscados
+						)
+						EventosRemotos.AlertaPolicia:FireClient(player, msg, estrellas)
 					end
 				end
 			end
@@ -329,4 +454,5 @@ end)
 
 task.spawn(configurarEscondites)
 task.spawn(configurarRetenes)
-print("El Patrón del Dulce: Sistema de Persecución y Policía Dental inicializado")
+task.spawn(configurarInteraccionesInternado)
+print("El Patrón del Dulce: Sistema de Persecución y Policía Dental (Fase 2) inicializado")

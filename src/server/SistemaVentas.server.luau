@@ -116,16 +116,18 @@ local function procesarVenta(player: Player, idTienda: string, puntoPart: BasePa
 			end
 		end
 
-		-- Aumentar calor policial (Estrellas de búsqueda)
-		local estrellasActuales = GestorDatos.ObtenerEstrellas(player)
-		if estrellasActuales < 5 then
-			local nuevasEstrellas = GestorDatos.ModificarEstrellas(player, 1)
-			local mensaje = string.format(
-				"¡Alerta! Tienes %d estrella(s) de búsqueda. La patrulla dental vigila la zona.",
-				nuevasEstrellas
-			)
-			EventosRemotos.AlertaPolicia:FireClient(player, mensaje, nuevasEstrellas)
-		end
+		-- Aumentar calor policial (Estrellas de búsqueda según reglas de Santiago)
+		local esColegio = (idTienda == "Tienda_ColegioRecreo")
+		local calorAccion = if esColegio
+			then Datos.Persecucion.CalorPorAccion.VentaColegio
+			else Datos.Persecucion.CalorPorAccion.VentaComun
+		local puntosCalor, nuevasEstrellas = GestorDatos.AgregarCalor(player, calorAccion)
+		EventosRemotos.EstrellasActualizadas:FireClient(player, {
+			Estrellas = nuevasEstrellas,
+			Enfriando = false,
+			ProgresoEnfriamiento = 0,
+			PuntosCalor = puntosCalor,
+		})
 
 		-- Disparar efectos visuales y sonoros en 3D
 		crearEfectoVenta(puntoPart, totalPesos)

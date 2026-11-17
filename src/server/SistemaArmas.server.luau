@@ -107,6 +107,16 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 
 	GestorDatos.QuitarDulce(player, municionUsada, infoArma.GastoPorDisparo)
 
+	-- Generar calor por disparo de cauchera (+20 pts según reglas de Santiago)
+	local calorDisparo = Datos.Persecucion.CalorPorAccion.DisparoCauchera or 20
+	local puntosCalor, nuevasEstrellas = GestorDatos.AgregarCalor(player, calorDisparo)
+	EventosRemotos.EstrellasActualizadas:FireClient(player, {
+		Estrellas = nuevasEstrellas,
+		Enfriando = false,
+		ProgresoEnfriamiento = 0,
+		PuntosCalor = puntosCalor,
+	})
+
 	-- Crear proyectil gomita dulce
 	local origen = character.Head.Position + (direccion.Unit * 2)
 	local proyectil = Instance.new("Part")

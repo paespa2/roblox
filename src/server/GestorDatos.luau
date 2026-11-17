@@ -283,6 +283,25 @@ function GestorDatos.ObtenerCapacidadCarga(player: Player): number
 	return (vehiculo and vehiculo.CapacidadCarga) or 20
 end
 
+function GestorDatos.CalcularEstrellas(puntosCalor: number): number
+	local configPersecucion = Datos.Persecucion
+	if not configPersecucion or not configPersecucion.Estrellas then
+		return 0
+	end
+	for nivel = 5, 1, -1 do
+		local info = configPersecucion.Estrellas[nivel]
+		if info and puntosCalor >= info.UmbralPuntos then
+			return nivel
+		end
+	end
+	return 0
+end
+
+function GestorDatos.ObtenerPuntosCalor(player: Player): number
+	local perfil = perfilesCargados[player]
+	return (perfil and perfil.Data.PuntosCalor) or 0
+end
+
 function GestorDatos.ObtenerEstrellas(player: Player): number
 	local perfil = perfilesCargados[player]
 	return (perfil and perfil.Data.EstrellasBusqueda) or 0
@@ -299,6 +318,48 @@ function GestorDatos.EstablecerEstrellas(player: Player, estrellas: number): num
 	return nuevas
 end
 
+function GestorDatos.AgregarCalor(player: Player, deltaPuntos: number): (number, number)
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return 0, 0
+	end
+	local puntosActuales = perfil.Data.PuntosCalor or 0
+	local nuevosPuntos = math.clamp(puntosActuales + deltaPuntos, 0, 600)
+	perfil.Data.PuntosCalor = nuevosPuntos
+
+	local estrellasActuales = perfil.Data.EstrellasBusqueda or 0
+	local nuevasEstrellas = GestorDatos.CalcularEstrellas(nuevosPuntos)
+	perfil.Data.EstrellasBusqueda = nuevasEstrellas
+
+	sincronizarCliente(player)
+
+	if nuevasEstrellas > estrellasActuales then
+		local mensaje = string.format(
+			"¡Alerta! Subiste a %d estrella(s) de búsqueda. La patrulla dental vigila la zona.",
+			nuevasEstrellas
+		)
+		EventosRemotos.AlertaPolicia:FireClient(player, mensaje, nuevasEstrellas)
+	end
+
+	return nuevosPuntos, nuevasEstrellas
+end
+
+function GestorDatos.EnfriarCalor(player: Player, deltaPuntos: number): (number, number)
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return 0, 0
+	end
+	local puntosActuales = perfil.Data.PuntosCalor or 0
+	local nuevosPuntos = math.clamp(puntosActuales - deltaPuntos, 0, 600)
+	perfil.Data.PuntosCalor = nuevosPuntos
+
+	local nuevasEstrellas = GestorDatos.CalcularEstrellas(nuevosPuntos)
+	perfil.Data.EstrellasBusqueda = nuevasEstrellas
+
+	sincronizarCliente(player)
+	return nuevosPuntos, nuevasEstrellas
+end
+
 function GestorDatos.ModificarEstrellas(player: Player, delta: number): number
 	local perfil = perfilesCargados[player]
 	if not perfil then
@@ -307,6 +368,14 @@ function GestorDatos.ModificarEstrellas(player: Player, delta: number): number
 	local actuales = perfil.Data.EstrellasBusqueda or 0
 	local nuevas = math.clamp(actuales + delta, 0, 5)
 	perfil.Data.EstrellasBusqueda = nuevas
+	if nuevas == 0 then
+		perfil.Data.PuntosCalor = 0
+	else
+		local config = Datos.Persecucion.Estrellas[nuevas]
+		if config then
+			perfil.Data.PuntosCalor = config.UmbralPuntos
+		end
+	end
 	sincronizarCliente(player)
 	return nuevas
 end
@@ -322,8 +391,89 @@ function GestorDatos.ConfiscarCarga(player: Player): number
 	end
 	perfil.Data.Inventario = {}
 	perfil.Data.EstrellasBusqueda = 0
+	perfil.Data.PuntosCalor = 0
 	sincronizarCliente(player)
 	return total
+end
+
+function GestorDatos.ConfiscarCargaPorcentaje(player: Player, porcentaje: number): number
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return 0
+	end
+	local factor = math.clamp(porcentaje, 0, 1)
+	local totalConfiscado = 0
+	for idDulce, cantidad in pairs(perfil.Data.Inventario) do
+		local aQuitar = math.ceil(cantidad * factor)
+		if aQuitar > 0 then
+			local restante = math.max(0, cantidad - aQuitar)
+			totalConfiscado += (cantidad - restante)
+			if restante > 0 then
+				perfil.Data.Inventario[idDulce] = restante
+			else
+				perfil.Data.Inventario[idDulce] = nil
+			end
+		end
+	end
+	sincronizarCliente(player)
+	return totalConfiscado
+end
+
+function GestorDatos.EstaEnInternado(player: Player): boolean
+	local perfil = perfilesCargados[player]
+	return (perfil and (perfil.Data.CondenaInternado or 0) > 0) or false
+end
+
+function GestorDatos.ObtenerCondenaInternado(player: Player): number
+	local perfil = perfilesCargados[player]
+	return (perfil and perfil.Data.CondenaInternado) or 0
+end
+
+function GestorDatos.EstablecerCondenaInternado(player: Player, segundos: number)
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return
+	end
+	perfil.Data.CondenaInternado = math.max(0, segundos)
+	sincronizarCliente(player)
+end
+
+function GestorDatos.ReducirCondenaInternado(player: Player, segundos: number): number
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return 0
+	end
+	local actual = perfil.Data.CondenaInternado or 0
+	local nueva = math.max(0, actual - segundos)
+	perfil.Data.CondenaInternado = nueva
+	sincronizarCliente(player)
+	return nueva
+end
+
+function GestorDatos.PagarFianza(player: Player): (boolean, string)
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return false, "Perfil no disponible"
+	end
+	local condena = perfil.Data.CondenaInternado or 0
+	if condena <= 0 then
+		return false, "No estás cumpliendo condena"
+	end
+
+	local estrellas = perfil.Data.EstrellasBusqueda or 3
+	local infoEstrella = Datos.Persecucion.Estrellas[estrellas] or Datos.Persecucion.Estrellas[3]
+	local fianza = (infoEstrella and infoEstrella.FianzaPesos) or 50
+
+	if perfil.Data.PesosDulces < fianza then
+		return false, string.format("Necesitas $%d pesos para pagar la fianza", fianza)
+	end
+
+	perfil.Data.PesosDulces -= fianza
+	perfil.Data.CondenaInternado = 0
+	perfil.Data.PuntosCalor = 0
+	perfil.Data.EstrellasBusqueda = 0
+	sincronizarCliente(player)
+	return true, "Fianza pagada con éxito. ¡Quedas en libertad!"
 end
 
 function GestorDatos.Iniciar()
@@ -360,6 +510,20 @@ function GestorDatos.Iniciar()
 			return false, "Petición inválida"
 		end
 		return GestorDatos.EquiparVehiculo(player, idVehiculo)
+	end
+
+	EventosRemotos.SolicitarPagarFianza.OnServerInvoke = function(player: Player)
+		return GestorDatos.PagarFianza(player)
+	end
+
+	EventosRemotos.CepillarMuela.OnServerInvoke = function(player: Player)
+		if not GestorDatos.EstaEnInternado(player) then
+			return false, "No estás en el internado"
+		end
+		local reduccion = Datos.Persecucion.Internado.ReduccionPorCepilladoSegundos or 20
+		local restante = GestorDatos.ReducirCondenaInternado(player, reduccion)
+		return true,
+			string.format("¡Muela cepillada! Redujiste %ds. Restan %ds.", reduccion, restante)
 	end
 
 	for _, player in ipairs(Players:GetPlayers()) do

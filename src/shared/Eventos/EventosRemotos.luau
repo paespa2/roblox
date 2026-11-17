@@ -64,5 +64,9 @@ EventosRemotos.AlertaPolicia = obtenerOCrearEvento("AlertaPolicia")
 EventosRemotos.CargaConfiscada = obtenerOCrearEvento("CargaConfiscada")
 EventosRemotos.DispararArma = obtenerOCrearFuncion("DispararArma")
 EventosRemotos.SolicitarVehiculo = obtenerOCrearFuncion("SolicitarVehiculo")
+EventosRemotos.EnviadoAlInternado = obtenerOCrearEvento("EnviadoAlInternado")
+EventosRemotos.LiberadoDelInternado = obtenerOCrearEvento("LiberadoDelInternado")
+EventosRemotos.SolicitarPagarFianza = obtenerOCrearFuncion("SolicitarPagarFianza")
+EventosRemotos.CepillarMuela = obtenerOCrearFuncion("CepillarMuela")
 
 return EventosRemotos

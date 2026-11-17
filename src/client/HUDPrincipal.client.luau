@@ -127,7 +127,13 @@ strokeMejoras.Thickness = 1.5
 strokeMejoras.Parent = botonMejoras
 
 botonMejoras.MouseButton1Click:Connect(function()
-	EventosRemotos.AbrirTiendaMejoras:FireServer()
+	local uiMejoras = PlayerGui:FindFirstChild("UI_TiendaMejoras")
+	if uiMejoras then
+		local frame = uiMejoras:FindFirstChild("MarcoPrincipal")
+		if frame then
+			frame.Visible = not frame.Visible
+		end
+	end
 end)
 
 -- Contenedor Inferior (Inventario de carga)

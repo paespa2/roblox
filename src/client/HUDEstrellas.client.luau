@@ -261,6 +261,30 @@ EventosRemotos.CargaConfiscada.OnClientEvent:Connect(function(cantidad: number)
 	)
 end)
 
+-- Banner especial de Internado Sin Azúcar
+EventosRemotos.EnviadoAlInternado.OnClientEvent:Connect(function(info: {
+	CondenaSegundos: number,
+	FianzaPesos: number,
+	Estrellas: number,
+})
+	if not info then
+		return
+	end
+	reproducirSonido("rbxassetid://9069609268")
+	mostrarAlerta(
+		string.format(
+			"🦷 ¡PRESO EN EL INTERNADO SIN AZÚCAR! Condena: %ds | Fianza: $%d",
+			info.CondenaSegundos,
+			info.FianzaPesos
+		),
+		true
+	)
+end)
+
+EventosRemotos.LiberadoDelInternado.OnClientEvent:Connect(function()
+	mostrarAlerta("🕊️ ¡LIBERTAD CONCEDIDA! Vuelve al negocio con cautela.", false)
+end)
+
 EventosRemotos.DatosActualizados.OnClientEvent:Connect(function(nuevosDatos)
 	if nuevosDatos and nuevosDatos.EstrellasBusqueda ~= nil then
 		actualizarDientes(nuevosDatos.EstrellasBusqueda)

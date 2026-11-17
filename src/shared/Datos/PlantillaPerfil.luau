@@ -9,6 +9,8 @@ export type PerfilJugador = {
 	CapituloActual: number,
 	VehiculoEquipado: string,
 	EstrellasBusqueda: number,
+	PuntosCalor: number,
+	CondenaInternado: number,
 }
 
 local PlantillaPerfil: PerfilJugador = {
@@ -26,6 +28,8 @@ local PlantillaPerfil: PerfilJugador = {
 	CapituloActual = 1,
 	VehiculoEquipado = "Vehiculo_Bicicleta",
 	EstrellasBusqueda = 0,
+	PuntosCalor = 0,
+	CondenaInternado = 0,
 }
 
 return PlantillaPerfil

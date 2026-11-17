@@ -15,3 +15,7 @@
 | `CargaConfiscada` | Servidor -> Cliente | `cantidadConfiscada: number` | Notifica al jugador cuando la Policía Dental le decomisa los dulces transportados |
 | `DispararArma` | Cliente -> Servidor | `idArma: string, direccion: Vector3` | Solicita disparar una dulce-arma consumiendo munición de golosinas |
 | `SolicitarVehiculo` | Cliente -> Servidor | ninguno | Invoca el vehículo equipado cerca al jugador (atajo tecla V o Maestro Tuerca) |
+| `EnviadoAlInternado` | Servidor -> Cliente | `info: { CondenaSegundos: number, FianzaPesos: number, Estrellas: number }` | Notifica al cliente cuando es detenido y enviado al Internado Sin Azúcar |
+| `LiberadoDelInternado` | Servidor -> Cliente | ninguno | Notifica al cliente que cumplió su condena o pagó su fianza y queda en libertad |
+| `SolicitarPagarFianza` | Cliente -> Servidor | ninguno | Solicita pagar la fianza en pesos dulces para salir de inmediato del internado |
+| `CepillarMuela` | Cliente -> Servidor | ninguno | Trabajo comunitario: cepilla una muela gigante reduciendo 20s de condena |
