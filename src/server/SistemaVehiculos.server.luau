@@ -177,16 +177,62 @@ local function configurarFisicaConduccion(player: Player, modelo: Model, infoVeh
 
 	-- El asiento NUNCA debe colisionar para evitar fuerzas parásitas con el cuerpo del jugador
 	asiento.CanCollide = false
-	asiento.MaxSpeed = (infoVehiculo and infoVehiculo.VelocidadMax) or 22
-	asiento.Torque = 45
-	asiento.TurnSpeed = 2.4
+	asiento.MaxSpeed = (infoVehiculo and infoVehiculo.VelocidadMax) or 26
+	asiento.Torque = if string.find(modelo.Name, "Moto") then 38 else 28
+	asiento.TurnSpeed = 2.2
+
+	-- Contrapeso inferior para anclar el centro de gravedad debajo del eje de las ruedas (evita volcamientos)
+	local contrapeso = chasis:FindFirstChild("ContrapesoBajo") :: BasePart?
+	if not contrapeso then
+		contrapeso = Instance.new("Part")
+		contrapeso.Name = "ContrapesoBajo"
+		contrapeso.Size = Vector3.new(1.4, 0.4, 2.6)
+		contrapeso.CFrame = chasis.CFrame * CFrame.new(0, -0.65, 0)
+		contrapeso.Transparency = 1
+		contrapeso.CanCollide = false
+		contrapeso.Massless = false
+		contrapeso.CustomPhysicalProperties = PhysicalProperties.new(4.0, 0.1, 0, 1, 1)
+		contrapeso.Parent = chasis
+
+		local weldContra = Instance.new("WeldConstraint")
+		weldContra.Part0 = chasis
+		weldContra.Part1 = contrapeso
+		weldContra.Parent = chasis
+	end
+
+	-- Estabilizador vertical giroscópico (PrimaryAxisParallel)
+	-- Mantiene el eje UP perfectamente vertical, impidiendo 'giros de cabeza' o backflips,
+	-- pero dejando el giro horizontal (YAW / Steer) con 0% de restricción para girar libremente.
+	local att = chasis:FindFirstChild("EstabilizadorAttachment") :: Attachment?
+	if not att then
+		att = Instance.new("Attachment")
+		att.Name = "EstabilizadorAttachment"
+		att.Axis = Vector3.new(0, 1, 0)
+		att.SecondaryAxis = Vector3.new(0, 0, 1)
+		att.Parent = chasis
+	end
+
+	local ao = chasis:FindFirstChild("EstabilizadorVertical") :: AlignOrientation?
+	if not ao then
+		ao = Instance.new("AlignOrientation")
+		ao.Name = "EstabilizadorVertical"
+		ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
+		ao.Attachment0 = att
+		ao.AlignType = Enum.AlignType.PrimaryAxisParallel
+		ao.PrimaryAxisOnly = true
+		ao.PrimaryAxis = Vector3.new(0, 1, 0)
+		ao.MaxTorque = 30000
+		ao.Responsiveness = 30
+		ao.ReactionTorqueEnabled = false
+		ao.Parent = chasis
+	end
 
 	-- Configurar colisiones de partes: NO destruir los joints Rotate de las ruedas físicas
 	for _, desc in ipairs(modelo:GetDescendants()) do
-		if desc:IsA("BasePart") and desc ~= chasis and desc ~= asiento then
+		if desc:IsA("BasePart") and desc ~= chasis and desc ~= asiento and desc ~= contrapeso then
 			if desc.Name == "RuedaFisica" then
 				desc.CanCollide = true
-				desc.CustomPhysicalProperties = PhysicalProperties.new(0.8, 0.4, 0.1, 1, 1)
+				desc.CustomPhysicalProperties = PhysicalProperties.new(1.2, 0.75, 0.05, 1, 1)
 			else
 				desc.CanCollide = false
 				desc.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.05, 0.1, 1, 1)

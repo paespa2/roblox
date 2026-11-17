@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GestorDatos = require(script.Parent.GestorDatos)
+local _Datos = require(ReplicatedStorage.Shared.Datos)
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 
 type InfoCapitulo = {

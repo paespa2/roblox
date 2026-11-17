@@ -6,7 +6,63 @@ local GestorDatos = require(script.Parent.GestorDatos)
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 
 -- ====================================================================
--- CREACIÓN DE ESTUDIANTES VIVOS EN EL PATIO DEL COLEGIO
+-- UTILIDAD: RAYCAST CANÓNICO PARA ENRAIZAR NPCS Y OBJETOS AL SUELO
+-- ====================================================================
+local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Vector3
+	local offset = alturaOffset or 2.5
+	local rayOrigin = Vector3.new(posBase.X, posBase.Y + 20, posBase.Z)
+	local rayDir = Vector3.new(0, -60, 0)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+
+	local exclusions = {}
+	local mapa = Workspace:FindFirstChild("Mapa")
+	if mapa then
+		local dec = mapa:FindFirstChild("Decoracion")
+		if dec then
+			table.insert(exclusions, dec)
+		end
+	end
+	params.FilterDescendantsInstances = exclusions
+
+	local hit = Workspace:Raycast(rayOrigin, rayDir, params)
+	while hit do
+		local n = hit.Instance.Name:lower()
+		if
+			string.find(n, "techo")
+			or string.find(n, "roof")
+			or string.find(n, "banderin")
+			or string.find(n, "poste")
+			or string.find(n, "foco")
+			or string.find(n, "letrero")
+		then
+			table.insert(exclusions, hit.Instance)
+			params.FilterDescendantsInstances = exclusions
+			hit = Workspace:Raycast(
+				hit.Position - Vector3.new(0, 0.1, 0),
+				Vector3.new(0, -40, 0),
+				params
+			)
+		else
+			break
+		end
+	end
+
+	if hit then
+		return Vector3.new(posBase.X, hit.Position.Y + offset, posBase.Z)
+	end
+	return posBase
+end
+
+local function soldar(p0: BasePart, p1: BasePart)
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = p0
+	weld.Part1 = p1
+	weld.Parent = p0
+end
+
+-- ====================================================================
+-- 1. CREACIÓN DE ESTUDIANTES VIVOS EN EL PATIO DEL COLEGIO
 -- ====================================================================
 local function crearEstudianteVivo(
 	info: {
@@ -24,10 +80,12 @@ local function crearEstudianteVivo(
 	modelo.Name = info.Nombre
 	modelo.Parent = parentFolder
 
+	local posAlineada = obtenerPosicionSuelo(info.Posicion, 2.4)
+
 	local hrp = Instance.new("Part")
 	hrp.Name = "HumanoidRootPart"
 	hrp.Size = Vector3.new(1.6, 1.8, 0.8)
-	hrp.Position = info.Posicion
+	hrp.Position = posAlineada
 	hrp.Transparency = 1
 	hrp.CanCollide = false
 	hrp.Anchored = true
@@ -43,6 +101,7 @@ local function crearEstudianteVivo(
 	torso.Anchored = true
 	torso.CanCollide = true
 	torso.Parent = modelo
+	soldar(hrp, torso)
 
 	local cabeza = Instance.new("Part")
 	cabeza.Name = "Head"
@@ -53,16 +112,18 @@ local function crearEstudianteVivo(
 	cabeza.Anchored = true
 	cabeza.CanCollide = false
 	cabeza.Parent = modelo
+	soldar(hrp, cabeza)
 
 	local piernas = Instance.new("Part")
 	piernas.Name = "Piernas"
 	piernas.Size = Vector3.new(1.4, 1.6, 0.7)
-	piernas.Position = torso.Position + Vector3.new(0, -1.7, 0)
+	piernas.Position = torso.Position + Vector3.new(0, -1.6, 0)
 	piernas.Color = info.ColorPantalon
 	piernas.Material = Enum.Material.SmoothPlastic
 	piernas.Anchored = true
 	piernas.CanCollide = true
 	piernas.Parent = modelo
+	soldar(hrp, piernas)
 
 	-- Mochila escolar colorida
 	local mochila = Instance.new("Part")
@@ -74,6 +135,7 @@ local function crearEstudianteVivo(
 	mochila.Anchored = true
 	mochila.CanCollide = false
 	mochila.Parent = modelo
+	soldar(hrp, mochila)
 
 	-- Burbuja de Diálogo animada (Speech Bubble)
 	local bbg = Instance.new("BillboardGui")
@@ -145,7 +207,7 @@ local function crearEstudianteVivo(
 					Nombre = info.Apodo,
 					Titulo = "¡Gracias por el dulce!",
 					Icono = "😋",
-					Mensaje = "¡Qué delicia! Toma tus $10 pesos. ¡Ojo que no te vea el Coordinador Tiza!",
+					Mensaje = "¡Qué delicia! Toma tus $10 pesos. ¡Ojo que no te vea el Coordinador Tiza ni el Director!",
 				})
 			end
 		else
@@ -158,7 +220,7 @@ local function crearEstudianteVivo(
 		end
 	end)
 
-	-- Hilo de rotación de frases y movimiento ligero
+	-- Hilo de rotación de frases y patrullaje suave en el patio
 	task.spawn(function()
 		local idxFrase = 1
 		local puntos = info.PuntosMovimiento
@@ -166,23 +228,27 @@ local function crearEstudianteVivo(
 
 		while modelo.Parent do
 			task.wait(6.0)
-			-- Rotar frase
 			idxFrase = (idxFrase % #info.Frases) + 1
 			textoBurbuja.Text = info.Frases[idxFrase]
 
-			-- Movimiento si tiene puntos de patrulla
 			if puntos and #puntos > 1 then
 				idxPunto = (idxPunto % #puntos) + 1
-				local meta = puntos[idxPunto]
+				local meta = obtenerPosicionSuelo(puntos[idxPunto], 2.4)
 				local dir = (meta - hrp.Position) * Vector3.new(1, 0, 1)
 				if dir.Magnitude > 1.5 then
 					local nuevoCFrame = CFrame.lookAt(meta, meta + dir.Unit)
-					TweenService:Create(
+					local duracion = math.clamp(dir.Magnitude / 3.5, 1.5, 4.0)
+					local tween = TweenService:Create(
 						hrp,
-						TweenInfo.new(3, Enum.EasingStyle.Linear),
+						TweenInfo.new(duracion, Enum.EasingStyle.Linear),
 						{ CFrame = nuevoCFrame }
-					):Play()
-					modelo:PivotTo(nuevoCFrame)
+					)
+					tween:Play()
+					-- Mover piezas secundarias en sincronía
+					torso.CFrame = nuevoCFrame
+					cabeza.CFrame = nuevoCFrame * CFrame.new(0, 1.4, 0)
+					piernas.CFrame = nuevoCFrame * CFrame.new(0, -1.6, 0)
+					mochila.CFrame = nuevoCFrame * CFrame.new(0, 0, 0.55)
 				end
 			end
 		end
@@ -192,7 +258,7 @@ local function crearEstudianteVivo(
 end
 
 -- ====================================================================
--- CREACIÓN DE VECINOS Y PEATONES EN LAS ACERAS DEL BARRIO
+-- 2. CREACIÓN DE VECINOS Y PEATONES EN LAS ACERAS DEL BARRIO
 -- ====================================================================
 local function crearVecinoBarrio(
 	info: {
@@ -210,10 +276,12 @@ local function crearVecinoBarrio(
 	modelo.Name = info.Nombre
 	modelo.Parent = parentFolder
 
+	local posAlineada = obtenerPosicionSuelo(info.Posicion, 2.5)
+
 	local hrp = Instance.new("Part")
 	hrp.Name = "HumanoidRootPart"
 	hrp.Size = Vector3.new(1.8, 2, 0.9)
-	hrp.Position = info.Posicion
+	hrp.Position = posAlineada
 	hrp.Transparency = 1
 	hrp.CanCollide = false
 	hrp.Anchored = true
@@ -229,6 +297,7 @@ local function crearVecinoBarrio(
 	torso.Anchored = true
 	torso.CanCollide = true
 	torso.Parent = modelo
+	soldar(hrp, torso)
 
 	local cabeza = Instance.new("Part")
 	cabeza.Name = "Head"
@@ -239,16 +308,18 @@ local function crearVecinoBarrio(
 	cabeza.Anchored = true
 	cabeza.CanCollide = false
 	cabeza.Parent = modelo
+	soldar(hrp, cabeza)
 
 	local piernas = Instance.new("Part")
 	piernas.Name = "Piernas"
 	piernas.Size = Vector3.new(1.6, 1.8, 0.8)
-	piernas.Position = torso.Position + Vector3.new(0, -1.9, 0)
+	piernas.Position = torso.Position + Vector3.new(0, -1.8, 0)
 	piernas.Color = info.ColorPantalon
 	piernas.Material = Enum.Material.SmoothPlastic
 	piernas.Anchored = true
 	piernas.CanCollide = true
 	piernas.Parent = modelo
+	soldar(hrp, piernas)
 
 	-- Burbuja de Banter de barrio
 	local bbg = Instance.new("BillboardGui")
@@ -319,7 +390,379 @@ local function crearVecinoBarrio(
 end
 
 -- ====================================================================
--- DECORACIÓN AMBIENTAL COLOMBIANA: BANDERINES Y FAROLES LUMINOSOS
+-- 3. ANIMALES DE VILLA ALMÍBAR (PERRITO, GALLINAS Y PALOMAS)
+-- ====================================================================
+local function crearFirulaisElPerrito(parentFolder: Instance)
+	local modelo = Instance.new("Model")
+	modelo.Name = "Animal_Firulais"
+	modelo.Parent = parentFolder
+
+	local posInicial = obtenerPosicionSuelo(Vector3.new(5, 68, 80), 1.0)
+
+	local cuerpo = Instance.new("Part")
+	cuerpo.Name = "HumanoidRootPart"
+	cuerpo.Size = Vector3.new(1.2, 1.0, 2.2)
+	cuerpo.Position = posInicial
+	cuerpo.Color = Color3.fromRGB(195, 130, 70) -- Canela criollo
+	cuerpo.Material = Enum.Material.SmoothPlastic
+	cuerpo.Anchored = true
+	cuerpo.CanCollide = false
+	cuerpo.Parent = modelo
+	modelo.PrimaryPart = cuerpo
+
+	local cabeza = Instance.new("Part")
+	cabeza.Name = "Head"
+	cabeza.Size = Vector3.new(0.9, 0.9, 1.0)
+	cabeza.Position = cuerpo.Position + Vector3.new(0, 0.7, -1.2)
+	cabeza.Color = Color3.fromRGB(180, 115, 60)
+	cabeza.Material = Enum.Material.SmoothPlastic
+	cabeza.Anchored = true
+	cabeza.CanCollide = false
+	cabeza.Parent = modelo
+	soldar(cuerpo, cabeza)
+
+	local hocico = Instance.new("Part")
+	hocico.Name = "Hocico"
+	hocico.Size = Vector3.new(0.5, 0.4, 0.6)
+	hocico.Position = cabeza.Position + Vector3.new(0, -0.15, -0.6)
+	hocico.Color = Color3.fromRGB(40, 30, 25)
+	hocico.Material = Enum.Material.SmoothPlastic
+	hocico.Anchored = true
+	hocico.CanCollide = false
+	hocico.Parent = modelo
+	soldar(cuerpo, hocico)
+
+	-- Cola del perro (menea)
+	local cola = Instance.new("Part")
+	cola.Name = "Cola"
+	cola.Size = Vector3.new(0.25, 0.25, 1.1)
+	cola.Position = cuerpo.Position + Vector3.new(0, 0.4, 1.3)
+	cola.Color = Color3.fromRGB(160, 100, 50)
+	cola.Material = Enum.Material.SmoothPlastic
+	cola.Anchored = true
+	cola.CanCollide = false
+	cola.Parent = modelo
+	soldar(cuerpo, cola)
+
+	-- Rótulo amigable
+	local bbg = Instance.new("BillboardGui")
+	bbg.Name = "Rotulo"
+	bbg.Size = UDim2.fromOffset(160, 36)
+	bbg.StudsOffset = Vector3.new(0, 2.0, 0)
+	bbg.AlwaysOnTop = false
+	bbg.MaxDistance = 30
+	bbg.Parent = cabeza
+
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.fromScale(1, 1)
+	lbl.BackgroundTransparency = 1
+	lbl.Font = Enum.Font.FredokaOne
+	lbl.Text = "🐕 Firulais (Criollo)"
+	lbl.TextColor3 = Color3.fromRGB(255, 235, 160)
+	lbl.TextSize = 12
+	lbl.Parent = bbg
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "PromptAcariciar"
+	prompt.ObjectText = "Firulais"
+	prompt.ActionText = "Acariciar perrito"
+	prompt.HoldDuration = 0.2
+	prompt.MaxActivationDistance = 10
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = cuerpo
+
+	prompt.Triggered:Connect(function(player: Player)
+		local sonido = Instance.new("Sound")
+		sonido.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+		sonido.Volume = 0.6
+		sonido.Parent = cuerpo
+		sonido:Play()
+		task.delay(1, function()
+			sonido:Destroy()
+		end)
+
+		EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+			Nombre = "Firulais",
+			Titulo = "Perrito del Barrio",
+			Icono = "🐕",
+			Mensaje = "¡Guau, guau! *Menea la cola alegremente y te da la patita. ¡Parece que le gusta el olor a melcocha fresca!*",
+		})
+	end)
+
+	-- Paseo por la acera de la plaza
+	task.spawn(function()
+		local puntos = {
+			Vector3.new(5, 68, 75),
+			Vector3.new(5, 68, 95),
+			Vector3.new(5, 68, 65),
+		}
+		local idx = 1
+
+		while modelo.Parent do
+			task.wait(5.0)
+			idx = (idx % #puntos) + 1
+			local meta = obtenerPosicionSuelo(puntos[idx], 1.0)
+			local dir = (meta - cuerpo.Position) * Vector3.new(1, 0, 1)
+			if dir.Magnitude > 1.5 then
+				local cframeObj = CFrame.lookAt(meta, meta + dir.Unit)
+				local tween = TweenService:Create(
+					cuerpo,
+					TweenInfo.new(3.5, Enum.EasingStyle.Linear),
+					{ CFrame = cframeObj }
+				)
+				tween:Play()
+				cabeza.CFrame = cframeObj * CFrame.new(0, 0.7, -1.2)
+				hocico.CFrame = cframeObj * CFrame.new(0, 0.55, -1.8)
+				cola.CFrame = cframeObj * CFrame.new(0, 0.4, 1.3)
+			end
+		end
+	end)
+end
+
+local function crearGallinasMelcocha(parentFolder: Instance)
+	local puntosGallinas = {
+		Vector3.new(94, 61, -114),
+		Vector3.new(98, 61, -118),
+	}
+
+	for i, pos in ipairs(puntosGallinas) do
+		local nombre = if i == 1 then "Gallina_Clotilde" else "Gallina_Margarita"
+		local modelo = Instance.new("Model")
+		modelo.Name = nombre
+		modelo.Parent = parentFolder
+
+		local posSuelo = obtenerPosicionSuelo(pos, 0.6)
+
+		local cuerpo = Instance.new("Part")
+		cuerpo.Name = "HumanoidRootPart"
+		cuerpo.Size = Vector3.new(0.8, 0.8, 1.0)
+		cuerpo.Position = posSuelo
+		cuerpo.Color = if i == 1
+			then Color3.fromRGB(245, 245, 245)
+			else Color3.fromRGB(210, 105, 50)
+		cuerpo.Material = Enum.Material.SmoothPlastic
+		cuerpo.Anchored = true
+		cuerpo.CanCollide = false
+		cuerpo.Parent = modelo
+		modelo.PrimaryPart = cuerpo
+
+		local cabeza = Instance.new("Part")
+		cabeza.Name = "Cabeza"
+		cabeza.Size = Vector3.new(0.5, 0.5, 0.5)
+		cabeza.Position = cuerpo.Position + Vector3.new(0, 0.5, -0.5)
+		cabeza.Color = cuerpo.Color
+		cabeza.Material = Enum.Material.SmoothPlastic
+		cabeza.Anchored = true
+		cabeza.CanCollide = false
+		cabeza.Parent = modelo
+		soldar(cuerpo, cabeza)
+
+		local cresta = Instance.new("Part")
+		cresta.Name = "Cresta"
+		cresta.Size = Vector3.new(0.2, 0.3, 0.4)
+		cresta.Position = cabeza.Position + Vector3.new(0, 0.35, 0)
+		cresta.Color = Color3.fromRGB(220, 30, 30)
+		cresta.Material = Enum.Material.SmoothPlastic
+		cresta.Anchored = true
+		cresta.CanCollide = false
+		cresta.Parent = modelo
+		soldar(cuerpo, cresta)
+
+		local pico = Instance.new("Part")
+		pico.Name = "Pico"
+		pico.Size = Vector3.new(0.2, 0.2, 0.3)
+		pico.Position = cabeza.Position + Vector3.new(0, -0.1, -0.35)
+		pico.Color = Color3.fromRGB(255, 190, 40)
+		pico.Material = Enum.Material.SmoothPlastic
+		pico.Anchored = true
+		pico.CanCollide = false
+		pico.Parent = modelo
+		soldar(cuerpo, pico)
+
+		-- Animación de picoteo en el solar
+		task.spawn(function()
+			while modelo.Parent do
+				task.wait(math.random(25, 45) / 10)
+				-- Inclinarse a picotear
+				cabeza.CFrame = cuerpo.CFrame
+					* CFrame.new(0, 0.2, -0.6)
+					* CFrame.Angles(math.rad(30), 0, 0)
+				task.wait(0.3)
+				cabeza.CFrame = cuerpo.CFrame * CFrame.new(0, 0.5, -0.5)
+			end
+		end)
+	end
+end
+
+-- ====================================================================
+-- 4. LA CHIVA RUMBERA TRADICIONAL (BUS ESCALERA DE VILLA ALMÍBAR)
+-- ====================================================================
+local function crearChivaRumbera(parentFolder: Instance)
+	local modelo = Instance.new("Model")
+	modelo.Name = "Vehiculo_ChivaRumbera"
+	modelo.Parent = parentFolder
+
+	local posInicial = Vector3.new(0, 69.5, 20)
+
+	local chasis = Instance.new("Part")
+	chasis.Name = "Chasis"
+	chasis.Size = Vector3.new(5.0, 1.8, 12.0)
+	chasis.Position = posInicial
+	chasis.Color = Color3.fromRGB(240, 200, 30) -- Amarillo Chiva
+	chasis.Material = Enum.Material.Metal
+	chasis.Anchored = true
+	chasis.CanCollide = true
+	chasis.Parent = modelo
+	modelo.PrimaryPart = chasis
+
+	-- Franjas de color patriótico colombiano
+	local franjaAzul = Instance.new("Part")
+	franjaAzul.Name = "FranjaAzul"
+	franjaAzul.Size = Vector3.new(5.1, 0.5, 12.0)
+	franjaAzul.Position = chasis.Position + Vector3.new(0, 0.4, 0)
+	franjaAzul.Color = Color3.fromRGB(30, 70, 180)
+	franjaAzul.Material = Enum.Material.SmoothPlastic
+	franjaAzul.Anchored = true
+	franjaAzul.CanCollide = false
+	franjaAzul.Parent = modelo
+	soldar(chasis, franjaAzul)
+
+	local franjaRoja = Instance.new("Part")
+	franjaRoja.Name = "FranjaRoja"
+	franjaRoja.Size = Vector3.new(5.1, 0.5, 12.0)
+	franjaRoja.Position = chasis.Position + Vector3.new(0, -0.2, 0)
+	franjaRoja.Color = Color3.fromRGB(220, 40, 40)
+	franjaRoja.Material = Enum.Material.SmoothPlastic
+	franjaRoja.Anchored = true
+	franjaRoja.CanCollide = false
+	franjaRoja.Parent = modelo
+	soldar(chasis, franjaRoja)
+
+	-- Techo con portaequipaje
+	local techo = Instance.new("Part")
+	techo.Name = "TechoPortaequipaje"
+	techo.Size = Vector3.new(5.2, 0.6, 11.5)
+	techo.Position = chasis.Position + Vector3.new(0, 3.2, 0)
+	techo.Color = Color3.fromRGB(230, 230, 240)
+	techo.Material = Enum.Material.Metal
+	techo.Anchored = true
+	techo.CanCollide = false
+	techo.Parent = modelo
+	soldar(chasis, techo)
+
+	-- Farolas frontales iluminadas
+	local faroIzq = Instance.new("Part")
+	faroIzq.Name = "FaroIzq"
+	faroIzq.Size = Vector3.new(0.8, 0.8, 0.3)
+	faroIzq.Position = chasis.Position + Vector3.new(-1.8, 0.2, -6.1)
+	faroIzq.Color = Color3.fromRGB(255, 255, 200)
+	faroIzq.Material = Enum.Material.Neon
+	faroIzq.Anchored = true
+	faroIzq.CanCollide = false
+	faroIzq.Parent = modelo
+	soldar(chasis, faroIzq)
+
+	local faroDer = Instance.new("Part")
+	faroDer.Name = "FaroDer"
+	faroDer.Size = Vector3.new(0.8, 0.8, 0.3)
+	faroDer.Position = chasis.Position + Vector3.new(1.8, 0.2, -6.1)
+	faroDer.Color = Color3.fromRGB(255, 255, 200)
+	faroDer.Material = Enum.Material.Neon
+	faroDer.Anchored = true
+	faroDer.CanCollide = false
+	faroDer.Parent = modelo
+	soldar(chasis, faroDer)
+
+	local luzChiva = Instance.new("PointLight")
+	luzChiva.Name = "LuzFrontal"
+	luzChiva.Color = Color3.fromRGB(255, 245, 180)
+	luzChiva.Brightness = 3.0
+	luzChiva.Range = 28
+	luzChiva.Parent = faroIzq
+
+	-- Rótulo frontal de la chiva
+	local bbg = Instance.new("BillboardGui")
+	bbg.Name = "RotuloRuta"
+	bbg.Size = UDim2.fromOffset(220, 38)
+	bbg.StudsOffset = Vector3.new(0, 4.2, -5.5)
+	bbg.AlwaysOnTop = true
+	bbg.MaxDistance = 60
+	bbg.Parent = chasis
+
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.fromScale(1, 1)
+	lbl.BackgroundColor3 = Color3.fromRGB(24, 28, 38)
+	lbl.BackgroundTransparency = 0.2
+	lbl.Font = Enum.Font.FredokaOne
+	lbl.Text = "🚌 LA CHIVA ALMIBARADA"
+	lbl.TextColor3 = Color3.fromRGB(255, 220, 50)
+	lbl.TextSize = 12
+	lbl.Parent = bbg
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = lbl
+
+	-- Recorrido en bucle por la avenida principal
+	task.spawn(function()
+		local paradas = {
+			Vector3.new(0, 69.5, 20),
+			Vector3.new(0, 71.0, 80),
+			Vector3.new(0, 78.0, 160),
+			Vector3.new(0, 88.0, 260),
+			Vector3.new(0, 96.5, 360),
+			Vector3.new(0, 88.0, 260),
+			Vector3.new(0, 78.0, 160),
+			Vector3.new(0, 71.0, 80),
+		}
+
+		local idx = 1
+		while modelo.Parent do
+			idx = (idx % #paradas) + 1
+			local destino = paradas[idx]
+			local dir = destino - chasis.Position
+			local dist = dir.Magnitude
+
+			if dist > 1.5 then
+				local duracion = math.clamp(dist / 14, 2.5, 9.0)
+				local cframeObjetivo = CFrame.lookAt(destino, destino + dir.Unit)
+
+				local tweenChasis = TweenService:Create(
+					chasis,
+					TweenInfo.new(duracion, Enum.EasingStyle.Linear),
+					{ CFrame = cframeObjetivo }
+				)
+				tweenChasis:Play()
+
+				-- Acompañar piezas
+				franjaAzul.CFrame = cframeObjetivo * CFrame.new(0, 0.4, 0)
+				franjaRoja.CFrame = cframeObjetivo * CFrame.new(0, -0.2, 0)
+				techo.CFrame = cframeObjetivo * CFrame.new(0, 3.2, 0)
+				faroIzq.CFrame = cframeObjetivo * CFrame.new(-1.8, 0.2, -6.1)
+				faroDer.CFrame = cframeObjetivo * CFrame.new(1.8, 0.2, -6.1)
+
+				task.wait(duracion)
+
+				-- Tocar bocina en esquinas principales
+				if idx == 1 or idx == 3 or idx == 5 then
+					local bocina = Instance.new("Sound")
+					bocina.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+					bocina.Volume = 0.8
+					bocina.Parent = chasis
+					bocina:Play()
+					task.delay(1.5, function()
+						bocina:Destroy()
+					end)
+				end
+			else
+				task.wait(1.0)
+			end
+		end
+	end)
+end
+
+-- ====================================================================
+-- 5. DECORACIÓN AMBIENTAL COLOMBIANA: BANDERINES Y FAROLES LUMINOSOS
 -- ====================================================================
 local function decorarAmbienteBarrio(parentFolder: Instance)
 	local puntosFaroles = {
@@ -338,10 +781,11 @@ local function decorarAmbienteBarrio(parentFolder: Instance)
 	carpetaLuces.Parent = parentFolder
 
 	for i, pos in ipairs(puntosFaroles) do
+		local posSuelo = obtenerPosicionSuelo(pos, 0)
 		local poste = Instance.new("Part")
 		poste.Name = "PosteLuz_" .. i
 		poste.Size = Vector3.new(0.6, 9, 0.6)
-		poste.Position = pos + Vector3.new(0, 4.5, 0)
+		poste.Position = posSuelo + Vector3.new(0, 4.5, 0)
 		poste.Color = Color3.fromRGB(45, 50, 60)
 		poste.Material = Enum.Material.Metal
 		poste.Anchored = true
@@ -415,18 +859,18 @@ local function inicializarVidaMundo()
 	carpetaVida.Name = "VidaMundo"
 	carpetaVida.Parent = decoracion
 
-	-- 1. Estudiantes en el patio del colegio
+	-- 1. Estudiantes en el patio del colegio (con posiciones ajustadas)
 	local listaEstudiantesPatio = {
 		{
 			Nombre = "Estudiante_Mateo",
 			Apodo = "Mateo (El Pelota)",
-			Posicion = Vector3.new(-82, 61.5, -78),
+			Posicion = Vector3.new(-82, 60, -78),
 			ColorRopa = Color3.fromRGB(45, 110, 210),
 			ColorPantalon = Color3.fromRGB(30, 35, 50),
 			PuntosMovimiento = {
-				Vector3.new(-82, 61.5, -78),
-				Vector3.new(-74, 61.5, -88),
-				Vector3.new(-88, 61.5, -84),
+				Vector3.new(-82, 60, -78),
+				Vector3.new(-74, 60, -88),
+				Vector3.new(-88, 60, -84),
 			},
 			Frases = {
 				"¡Pásala, pásala que no hay portero!",
@@ -437,13 +881,13 @@ local function inicializarVidaMundo()
 		{
 			Nombre = "Estudiante_Valentina",
 			Apodo = "Valentina (Rayuela)",
-			Posicion = Vector3.new(-100, 61.5, -85),
+			Posicion = Vector3.new(-100, 60, -85),
 			ColorRopa = Color3.fromRGB(230, 75, 120),
 			ColorPantalon = Color3.fromRGB(40, 30, 45),
 			PuntosMovimiento = {
-				Vector3.new(-100, 61.5, -85),
-				Vector3.new(-106, 61.5, -92),
-				Vector3.new(-96, 61.5, -95),
+				Vector3.new(-100, 60, -85),
+				Vector3.new(-106, 60, -92),
+				Vector3.new(-96, 60, -95),
 			},
 			Frases = {
 				"¡Saltar rayuela da mucha hambre!",
@@ -454,7 +898,7 @@ local function inicializarVidaMundo()
 		{
 			Nombre = "Estudiante_Camilo",
 			Apodo = "Camilo (El Piloto)",
-			Posicion = Vector3.new(-72, 61.5, -105),
+			Posicion = Vector3.new(-72, 60, -100),
 			ColorRopa = Color3.fromRGB(50, 170, 90),
 			ColorPantalon = Color3.fromRGB(35, 45, 38),
 			Frases = {
@@ -466,7 +910,7 @@ local function inicializarVidaMundo()
 		{
 			Nombre = "Estudiante_Mariana",
 			Apodo = "Mariana (Cuaderno)",
-			Posicion = Vector3.new(-115, 61.5, -112),
+			Posicion = Vector3.new(-115, 60, -108),
 			ColorRopa = Color3.fromRGB(240, 160, 40),
 			ColorPantalon = Color3.fromRGB(45, 35, 30),
 			Frases = {
@@ -481,12 +925,12 @@ local function inicializarVidaMundo()
 		crearEstudianteVivo(est, carpetaVida)
 	end
 
-	-- 2. Vecinos en las aceras del barrio
+	-- 2. Vecinos en las aceras del barrio (posiciones corregidas en aceras reales)
 	local listaVecinosBarrio = {
 		{
 			Nombre = "Vecino_DonPacho",
 			Apodo = "Don Pacho (El del Tinto)",
-			Posicion = Vector3.new(48, 65, 75),
+			Posicion = Vector3.new(6, 68, 70),
 			ColorRopa = Color3.fromRGB(220, 215, 200),
 			ColorPantalon = Color3.fromRGB(70, 50, 35),
 			Icono = "☕",
@@ -499,7 +943,7 @@ local function inicializarVidaMundo()
 		{
 			Nombre = "Vecina_DonaLuz",
 			Apodo = "Doña Luz (La Chismosa)",
-			Posicion = Vector3.new(-75, 65, 60),
+			Posicion = Vector3.new(-6, 68, 60),
 			ColorRopa = Color3.fromRGB(240, 120, 160),
 			ColorPantalon = Color3.fromRGB(50, 40, 55),
 			Icono = "👀",
@@ -512,7 +956,7 @@ local function inicializarVidaMundo()
 		{
 			Nombre = "Vecino_DonRogelio",
 			Apodo = "Don Rogelio (Chófer de Chiva)",
-			Posicion = Vector3.new(18, 68, 140),
+			Posicion = Vector3.new(6, 68, 115),
 			ColorRopa = Color3.fromRGB(55, 95, 160),
 			ColorPantalon = Color3.fromRGB(30, 35, 45),
 			Icono = "🚌",
@@ -528,11 +972,18 @@ local function inicializarVidaMundo()
 		crearVecinoBarrio(vec, carpetaVida)
 	end
 
-	-- 3. Faroles, banderines y alumbrado
+	-- 3. Animales típicos (Firulais el perro criollo y las gallinas de la abuela)
+	crearFirulaisElPerrito(carpetaVida)
+	crearGallinasMelcocha(carpetaVida)
+
+	-- 4. Ruta de buses / La Chiva Rumbera Tradicional
+	crearChivaRumbera(carpetaVida)
+
+	-- 5. Faroles, banderines y alumbrado
 	decorarAmbienteBarrio(carpetaVida)
 
 	print(
-		"El Patrón del Dulce: Sistema de Vida del Mundo (Estudiantes, Vecinos y Banderines) Inicializado"
+		"El Patrón del Dulce: Sistema de Vida del Mundo (Estudiantes, Vecinos, Animales y Chiva) Inicializado"
 	)
 end
 

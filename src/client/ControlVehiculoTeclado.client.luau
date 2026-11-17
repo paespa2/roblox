@@ -94,9 +94,14 @@ RunService.RenderStepped:Connect(function(_dt: number)
 	local idVehiculo = if string.find(modelo.Name, "Moto")
 		then "Vehiculo_Moto"
 		else "Vehiculo_Bicicleta"
-	local stats = Datos.Vehiculos[idVehiculo] or { VelocidadMax = 22, Torque = 45, TurnSpeed = 2.4 }
-	local velBase = stats.VelocidadMax or 22
-	local torqueBase = stats.Torque or 45
+	local stats = Datos.Vehiculos[idVehiculo]
+		or (
+			if idVehiculo == "Vehiculo_Moto"
+				then { VelocidadMax = 38, Torque = 38, TurnSpeed = 2.4 }
+				else { VelocidadMax = 26, Torque = 28, TurnSpeed = 2.2 }
+		)
+	local velBase = stats.VelocidadMax or 26
+	local torqueBase = stats.Torque or 28
 
 	-- Detección de superficie bajo el vehículo
 	raycastParams.FilterDescendantsInstances = { modelo, char }

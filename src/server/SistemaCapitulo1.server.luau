@@ -236,11 +236,11 @@ local function crearAutoridadesEscolares()
 			ColorPelo = Color3.fromRGB(60, 40, 30),
 			TieneLentes = true,
 			TieneCorbata = true,
-			PosicionInicial = Vector3.new(-85, 62.5, -92),
+			PosicionInicial = Vector3.new(-85, 63.0, -85),
 			PuntosPatrulla = {
-				Vector3.new(-85, 62.5, -92),
-				Vector3.new(-102, 62.5, -92),
-				Vector3.new(-93, 62.5, -108),
+				Vector3.new(-85, 63.0, -85),
+				Vector3.new(-105, 63.0, -85),
+				Vector3.new(-95, 63.0, -100),
 			},
 			MensajeCaptura = "🚨 ¡SILBATO ROJO! ¡Te pillé con dulces en pleno recreo! Te decomiso la mercancía y quedas anotado en el observador.",
 			MensajeNormal = "¡Ehh jovencito! ¡Está terminantemente prohibido traficar dulces y chicles en mi patio! Si te pillo con la maleta llena, te decomiso la mercancía con el silbato.",
@@ -256,11 +256,11 @@ local function crearAutoridadesEscolares()
 			TieneLentes = true,
 			TieneCorbata = false,
 			TieneMaletin = true,
-			PosicionInicial = Vector3.new(-65, 62.5, -60),
+			PosicionInicial = Vector3.new(-100, 63.0, -112),
 			PuntosPatrulla = {
-				Vector3.new(-65, 62.5, -60),
-				Vector3.new(-78, 62.5, -62),
-				Vector3.new(-60, 62.5, -72),
+				Vector3.new(-100, 63.0, -112),
+				Vector3.new(-115, 63.0, -112),
+				Vector3.new(-85, 63.0, -112),
 			},
 			MensajeCaptura = "🚨 ¡A LA DIRECCIÓN! ¡En este colegio rige la disciplina y la salud bucal! Por infringir el Decreto 001, te decomiso esta golosina. ¡A estudiar!",
 			MensajeNormal = "Buenos días. En el Colegio República del Dulce defendemos la excelencia académica y la dentadura sana. ¡Cero azúcar!",
@@ -276,11 +276,11 @@ local function crearAutoridadesEscolares()
 			TieneLentes = false,
 			TieneCorbata = false,
 			TieneRegla = true,
-			PosicionInicial = Vector3.new(-105, 62.5, -120),
+			PosicionInicial = Vector3.new(-125, 63.0, -75),
 			PuntosPatrulla = {
-				Vector3.new(-105, 62.5, -120),
-				Vector3.new(-118, 62.5, -112),
-				Vector3.new(-95, 62.5, -125),
+				Vector3.new(-125, 63.0, -75),
+				Vector3.new(-125, 63.0, -60),
+				Vector3.new(-125, 63.0, -90),
 			},
 			MensajeCaptura = "🚨 ¡DETENTE! ¡Cero golosinas y chucherías en mi turno de patio! Me quedo con este dulce para la sala de profesores.",
 			MensajeNormal = "¡A estudiar! La educación es la base del éxito, no los bombones ni las melcochas clandestinas.",
@@ -614,16 +614,18 @@ local function crearEstudiantes()
 		{
 			Nombre = "Estudiante_Tito",
 			Apodo = "Tito (Estudiante)",
-			Posicion = Vector3.new(-76, 61.5, -84),
+			Posicion = Vector3.new(-76, 62.4, -84),
 			ColorUniforme = Color3.fromRGB(60, 120, 200),
+			ColorPantalon = Color3.fromRGB(30, 35, 50),
 			DulceDeseado = "Dulce_Bombon",
 			Pago = 10,
 		},
 		{
 			Nombre = "Estudiante_Sofi",
 			Apodo = "Sofi (Estudiante)",
-			Posicion = Vector3.new(-112, 61.5, -98),
+			Posicion = Vector3.new(-112, 62.4, -95),
 			ColorUniforme = Color3.fromRGB(220, 90, 130),
+			ColorPantalon = Color3.fromRGB(40, 30, 45),
 			DulceDeseado = "Dulce_Bombon",
 			Pago = 10,
 		},
@@ -656,6 +658,16 @@ local function crearEstudiantes()
 			cabeza.Anchored = true
 			cabeza.CanCollide = false
 			cabeza.Parent = modelo
+
+			local piernas = Instance.new("Part")
+			piernas.Name = "Piernas"
+			piernas.Size = Vector3.new(1.4, 1.6, 0.7)
+			piernas.Position = torso.Position + Vector3.new(0, -1.6, 0)
+			piernas.Color = info.ColorPantalon
+			piernas.Material = Enum.Material.SmoothPlastic
+			piernas.Anchored = true
+			piernas.CanCollide = true
+			piernas.Parent = modelo
 
 			local bbg = Instance.new("BillboardGui")
 			bbg.Name = "Rotulo"
