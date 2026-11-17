@@ -7,6 +7,8 @@ local Datos = {
 	Encargos = require(script.Encargos),
 	PlantillaPerfil = require(script.PlantillaPerfil),
 	Persecucion = require(script.Persecucion),
+	Rutina = require(script.Rutina),
+	Capitulos = require(script.Capitulos),
 }
 
 return Datos
