@@ -294,14 +294,24 @@ strokeCerrarBanner.Color = Color3.fromRGB(80, 88, 110)
 strokeCerrarBanner.Thickness = 1
 strokeCerrarBanner.Parent = botonCerrarBanner
 
+local timerCierreBanner: thread? = nil
+local tweenBannerActual: Tween? = nil
+
 local function cerrarBannerNotificacion()
-	local tweenSubir = TweenService:Create(
+	if timerCierreBanner then
+		task.cancel(timerCierreBanner)
+		timerCierreBanner = nil
+	end
+	if tweenBannerActual then
+		tweenBannerActual:Cancel()
+	end
+	tweenBannerActual = TweenService:Create(
 		bannerNotificacion,
 		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
 		{ Position = UDim2.new(0.5, 0, 0, -250) }
 	)
-	tweenSubir:Play()
-	tweenSubir.Completed:Connect(function()
+	tweenBannerActual:Play()
+	tweenBannerActual.Completed:Connect(function()
 		bannerNotificacion.Visible = false
 	end)
 end
@@ -309,28 +319,44 @@ end
 botonCerrarBanner.MouseButton1Click:Connect(cerrarBannerNotificacion)
 
 local function mostrarBanner(mensaje: string, colorStroke: Color3?)
+	if timerCierreBanner then
+		task.cancel(timerCierreBanner)
+		timerCierreBanner = nil
+	end
+	if tweenBannerActual then
+		tweenBannerActual:Cancel()
+	end
+
 	strokeBanner.Color = colorStroke or Color3.fromRGB(255, 215, 0)
 	textoBanner.Text = mensaje
 
 	bannerNotificacion.Visible = true
-	bannerNotificacion.Position = UDim2.new(0.5, 0, 0, -250)
-	local tweenBajar = TweenService:Create(
-		bannerNotificacion,
-		TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ Position = UDim2.new(0.5, 0, 0, 70) }
-	)
-	tweenBajar:Play()
-	-- Permanece estático con su botón [✕] hasta que el jugador decida cerrarlo
+	local posObjetivo = UDim2.new(0.5, 0, 0, 70)
+	if bannerNotificacion.Position.Y.Offset < 0 then
+		bannerNotificacion.Position = UDim2.new(0.5, 0, 0, -250)
+		tweenBannerActual = TweenService:Create(
+			bannerNotificacion,
+			TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			{ Position = posObjetivo }
+		)
+		tweenBannerActual:Play()
+	end
+
+	-- Notificación efímera: auto-cierre tras 3.8 segundos o descarte inmediato con [X]
+	timerCierreBanner = task.delay(3.8, function()
+		cerrarBannerNotificacion()
+	end)
 end
 
 -- ====================================================================
 -- SISTEMA DE DIÁLOGO DE PERSONAJES / NPCS (Doña Melcocha, Don Ábaco, etc.)
+-- Cuadro interactivo estático con lectura cómoda, paginación, skip y [X]
 -- ====================================================================
 local cuadroDialogo = Instance.new("Frame")
 cuadroDialogo.Name = "CuadroDialogoNPC"
-cuadroDialogo.Size = UDim2.fromOffset(480, 100)
+cuadroDialogo.Size = UDim2.fromOffset(520, 116)
 cuadroDialogo.AnchorPoint = Vector2.new(0.5, 1)
-cuadroDialogo.Position = UDim2.new(0.5, 0, 1, 120) -- Oculto abajo
+cuadroDialogo.Position = UDim2.new(0.5, 0, 1, 140) -- Oculto abajo
 cuadroDialogo.BackgroundColor3 = Color3.fromRGB(24, 28, 38)
 cuadroDialogo.ClipsDescendants = true
 cuadroDialogo.Visible = false
@@ -348,7 +374,7 @@ strokeDialogo.Parent = cuadroDialogo
 local iconoAvatar = Instance.new("TextLabel")
 iconoAvatar.Name = "IconoAvatar"
 iconoAvatar.Size = UDim2.fromOffset(60, 60)
-iconoAvatar.Position = UDim2.fromOffset(15, 20)
+iconoAvatar.Position = UDim2.fromOffset(14, 18)
 iconoAvatar.BackgroundTransparency = 1
 iconoAvatar.Font = Enum.Font.FredokaOne
 iconoAvatar.Text = "👵"
@@ -357,8 +383,8 @@ iconoAvatar.Parent = cuadroDialogo
 
 local nombreLabel = Instance.new("TextLabel")
 nombreLabel.Name = "NombreNPC"
-nombreLabel.Size = UDim2.new(1, -110, 0, 22)
-nombreLabel.Position = UDim2.fromOffset(85, 12)
+nombreLabel.Size = UDim2.new(1, -125, 0, 22)
+nombreLabel.Position = UDim2.fromOffset(84, 10)
 nombreLabel.BackgroundTransparency = 1
 nombreLabel.Font = Enum.Font.FredokaOne
 nombreLabel.Text = "Doña Melcocha"
@@ -369,8 +395,8 @@ nombreLabel.Parent = cuadroDialogo
 
 local mensajeLabel = Instance.new("TextLabel")
 mensajeLabel.Name = "MensajeNPC"
-mensajeLabel.Size = UDim2.new(1, -110, 0, 56)
-mensajeLabel.Position = UDim2.fromOffset(85, 34)
+mensajeLabel.Size = UDim2.new(1, -125, 0, 52)
+mensajeLabel.Position = UDim2.fromOffset(84, 32)
 mensajeLabel.BackgroundTransparency = 1
 mensajeLabel.Font = Enum.Font.GothamMedium
 mensajeLabel.Text =
@@ -382,11 +408,12 @@ mensajeLabel.TextXAlignment = Enum.TextXAlignment.Left
 mensajeLabel.TextYAlignment = Enum.TextYAlignment.Top
 mensajeLabel.Parent = cuadroDialogo
 
+-- Botón [X] superior de cierre instantáneo
 local botonCerrarDialogo = Instance.new("TextButton")
 botonCerrarDialogo.Name = "BotonCerrar"
-botonCerrarDialogo.Size = UDim2.fromOffset(28, 28)
+botonCerrarDialogo.Size = UDim2.fromOffset(26, 26)
 botonCerrarDialogo.AnchorPoint = Vector2.new(1, 0)
-botonCerrarDialogo.Position = UDim2.new(1, -12, 0, 10)
+botonCerrarDialogo.Position = UDim2.new(1, -10, 0, 8)
 botonCerrarDialogo.BackgroundColor3 = Color3.fromRGB(60, 68, 88)
 botonCerrarDialogo.Font = Enum.Font.GothamBold
 botonCerrarDialogo.Text = "X"
@@ -404,19 +431,70 @@ strokeCerrarDiag.Color = Color3.fromRGB(90, 100, 125)
 strokeCerrarDiag.Thickness = 1
 strokeCerrarDiag.Parent = botonCerrarDialogo
 
-local hintCerrar = Instance.new("TextLabel")
-hintCerrar.Name = "HintCerrar"
-hintCerrar.Size = UDim2.fromOffset(140, 16)
-hintCerrar.Position = UDim2.new(1, -150, 1, -18)
-hintCerrar.BackgroundTransparency = 1
-hintCerrar.Font = Enum.Font.GothamMedium
-hintCerrar.Text = "Pulsa [X] para continuar"
-hintCerrar.TextColor3 = Color3.fromRGB(160, 170, 190)
-hintCerrar.TextSize = 10
-hintCerrar.TextXAlignment = Enum.TextXAlignment.Right
-hintCerrar.Parent = cuadroDialogo
+-- Indicador de Página (ej. "Página 1 / 3")
+local indicadorPagina = Instance.new("TextLabel")
+indicadorPagina.Name = "IndicadorPagina"
+indicadorPagina.Size = UDim2.fromOffset(130, 20)
+indicadorPagina.Position = UDim2.fromOffset(84, 86)
+indicadorPagina.BackgroundTransparency = 1
+indicadorPagina.Font = Enum.Font.GothamBold
+indicadorPagina.Text = "Página 1 / 1"
+indicadorPagina.TextColor3 = Color3.fromRGB(160, 175, 200)
+indicadorPagina.TextSize = 11
+indicadorPagina.TextXAlignment = Enum.TextXAlignment.Left
+indicadorPagina.Visible = false
+indicadorPagina.Parent = cuadroDialogo
+
+-- Botón [Saltar >>] (Skip)
+local botonSkip = Instance.new("TextButton")
+botonSkip.Name = "BotonSkip"
+botonSkip.Size = UDim2.fromOffset(82, 22)
+botonSkip.AnchorPoint = Vector2.new(1, 1)
+botonSkip.Position = UDim2.new(1, -125, 1, -10)
+botonSkip.BackgroundColor3 = Color3.fromRGB(42, 50, 68)
+botonSkip.Font = Enum.Font.GothamBold
+botonSkip.Text = "Saltar >>"
+botonSkip.TextColor3 = Color3.fromRGB(180, 195, 225)
+botonSkip.TextSize = 11
+botonSkip.AutoButtonColor = true
+botonSkip.Visible = false
+botonSkip.Parent = cuadroDialogo
+
+local cornerSkip = Instance.new("UICorner")
+cornerSkip.CornerRadius = UDim.new(0, 6)
+cornerSkip.Parent = botonSkip
+
+local strokeSkip = Instance.new("UIStroke")
+strokeSkip.Color = Color3.fromRGB(65, 78, 105)
+strokeSkip.Thickness = 1
+strokeSkip.Parent = botonSkip
+
+-- Botón [Siguiente >] o [Entendido ✓]
+local botonSiguiente = Instance.new("TextButton")
+botonSiguiente.Name = "BotonSiguiente"
+botonSiguiente.Size = UDim2.fromOffset(105, 22)
+botonSiguiente.AnchorPoint = Vector2.new(1, 1)
+botonSiguiente.Position = UDim2.new(1, -12, 1, -10)
+botonSiguiente.BackgroundColor3 = Color3.fromRGB(35, 135, 75)
+botonSiguiente.Font = Enum.Font.GothamBold
+botonSiguiente.Text = "Entendido ✓"
+botonSiguiente.TextColor3 = Color3.fromRGB(245, 255, 245)
+botonSiguiente.TextSize = 11
+botonSiguiente.AutoButtonColor = true
+botonSiguiente.Parent = cuadroDialogo
+
+local cornerSig = Instance.new("UICorner")
+cornerSig.CornerRadius = UDim.new(0, 6)
+cornerSig.Parent = botonSiguiente
+
+local strokeSig = Instance.new("UIStroke")
+strokeSig.Color = Color3.fromRGB(60, 185, 110)
+strokeSig.Thickness = 1
+strokeSig.Parent = botonSiguiente
 
 local tweenDialogoSalida: Tween? = nil
+local paginasActuales: { string } = {}
+local indicePaginaActual: number = 1
 
 local function cerrarDialogo()
 	if tweenDialogoSalida then
@@ -425,7 +503,7 @@ local function cerrarDialogo()
 	tweenDialogoSalida = TweenService:Create(
 		cuadroDialogo,
 		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-		{ Position = UDim2.new(0.5, 0, 1, 120) }
+		{ Position = UDim2.new(0.5, 0, 1, 140) }
 	)
 	tweenDialogoSalida:Play()
 	tweenDialogoSalida.Completed:Connect(function()
@@ -433,20 +511,145 @@ local function cerrarDialogo()
 	end)
 end
 
+local function reproducirSonidoClick()
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+	sound.Volume = 0.4
+	sound.Parent = SoundService
+	pcall(function()
+		sound:Play()
+	end)
+	task.delay(1, function()
+		sound:Destroy()
+	end)
+end
+
+local function actualizarVistaPagina()
+	local texto = paginasActuales[indicePaginaActual] or ""
+	mensajeLabel.Text = texto
+
+	local totalPaginas = #paginasActuales
+	if totalPaginas > 1 then
+		indicadorPagina.Visible = true
+		indicadorPagina.Text = string.format("Página %d de %d", indicePaginaActual, totalPaginas)
+
+		if indicePaginaActual < totalPaginas then
+			botonSiguiente.Text = "Siguiente >"
+			botonSiguiente.BackgroundColor3 = Color3.fromRGB(45, 95, 175)
+			strokeSig.Color = Color3.fromRGB(75, 140, 235)
+			botonSkip.Visible = true
+		else
+			botonSiguiente.Text = "Entendido ✓"
+			botonSiguiente.BackgroundColor3 = Color3.fromRGB(35, 135, 75)
+			strokeSig.Color = Color3.fromRGB(60, 185, 110)
+			botonSkip.Visible = false
+		end
+	else
+		indicadorPagina.Visible = false
+		botonSkip.Visible = false
+		botonSiguiente.Text = "Entendido ✓"
+		botonSiguiente.BackgroundColor3 = Color3.fromRGB(35, 135, 75)
+		strokeSig.Color = Color3.fromRGB(60, 185, 110)
+	end
+end
+
+local function avanzarPagina()
+	if indicePaginaActual < #paginasActuales then
+		indicePaginaActual += 1
+		reproducirSonidoClick()
+		actualizarVistaPagina()
+	else
+		cerrarDialogo()
+	end
+end
+
 botonCerrarDialogo.MouseButton1Click:Connect(cerrarDialogo)
+botonSiguiente.MouseButton1Click:Connect(avanzarPagina)
+
+botonSkip.MouseButton1Click:Connect(function()
+	if #paginasActuales > 1 then
+		indicePaginaActual = #paginasActuales
+		reproducirSonidoClick()
+		actualizarVistaPagina()
+	end
+end)
+
+-- Permite hacer clic en cualquier área del texto para avanzar cómodamente
+local botonFondoAvance = Instance.new("TextButton")
+botonFondoAvance.Name = "BotonAvanceFondo"
+botonFondoAvance.Size = UDim2.new(1, -150, 0, 52)
+botonFondoAvance.Position = UDim2.fromOffset(84, 32)
+botonFondoAvance.BackgroundTransparency = 1
+botonFondoAvance.Text = ""
+botonFondoAvance.Parent = cuadroDialogo
+botonFondoAvance.MouseButton1Click:Connect(avanzarPagina)
+
+local function procesarMensajeEnPaginas(mensaje: any): { string }
+	if type(mensaje) == "table" then
+		local paginas = {}
+		for _, v in ipairs(mensaje) do
+			local str = tostring(v)
+			if #str > 0 then
+				table.insert(paginas, str)
+			end
+		end
+		if #paginas > 0 then
+			return paginas
+		end
+	end
+
+	local texto = tostring(mensaje or "")
+	if texto == "" then
+		return { "..." }
+	end
+
+	-- Si contiene saltos de párrafo dobles, dividirlos en páginas
+	if string.find(texto, "\n\n") then
+		local partes = string.split(texto, "\n\n")
+		local filtradas = {}
+		for _, p in ipairs(partes) do
+			local limpia = string.gsub(p, "^%s*(.-)%s*$", "%1")
+			if #limpia > 0 then
+				table.insert(filtradas, limpia)
+			end
+		end
+		if #filtradas > 0 then
+			return filtradas
+		end
+	end
+
+	-- Si es un texto largo mayor a 170 caracteres, dividir inteligentemente por puntos
+	if #texto > 170 then
+		local oraciones = string.split(texto, ". ")
+		if #oraciones >= 2 then
+			local mitad = math.ceil(#oraciones / 2)
+			local pag1 = table.concat(table.move(oraciones, 1, mitad, 1, {}), ". ")
+			local pag2 = table.concat(table.move(oraciones, mitad + 1, #oraciones, 1, {}), ". ")
+			if not string.find(pag1, "%.$") then
+				pag1 = pag1 .. "."
+			end
+			return { pag1, pag2 }
+		end
+	end
+
+	return { texto }
+end
 
 local function mostrarDialogoNPC(info: {
 	Nombre: string,
 	Titulo: string?,
 	Icono: string?,
-	Mensaje: string,
+	Mensaje: any,
 })
 	iconoAvatar.Text = info.Icono or "🗣️"
 	nombreLabel.Text = info.Nombre .. (if info.Titulo then " (" .. info.Titulo .. ")" else "")
-	mensajeLabel.Text = info.Mensaje
+
+	paginasActuales = procesarMensajeEnPaginas(info.Mensaje)
+	indicePaginaActual = 1
+	actualizarVistaPagina()
 
 	cuadroDialogo.Visible = true
-	cuadroDialogo.Position = UDim2.new(0.5, 0, 1, 120)
+	cuadroDialogo.Position = UDim2.new(0.5, 0, 1, 140)
 	local tweenEntrada = TweenService:Create(
 		cuadroDialogo,
 		TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
@@ -465,7 +668,7 @@ local function mostrarDialogoNPC(info: {
 	task.delay(1.5, function()
 		sound:Destroy()
 	end)
-	-- Diálogo estático: se mantiene en pantalla hasta que el jugador pulse ✕
+	-- DIÁLOGO MODAL ESTÁTICO: No se cierra automáticamente. El jugador lee a su tiempo.
 end
 
 EventosRemotos.MostrarDialogoNPC.OnClientEvent:Connect(mostrarDialogoNPC)

@@ -171,14 +171,24 @@ strokeCerrarAlerta.Color = Color3.fromRGB(120, 45, 55)
 strokeCerrarAlerta.Thickness = 1
 strokeCerrarAlerta.Parent = botonCerrarAlerta
 
+local timerCierreAlerta: thread? = nil
+local tweenAlertaActual: Tween? = nil
+
 local function cerrarBannerAlerta()
-	local tweenSalida = TweenService:Create(
+	if timerCierreAlerta then
+		task.cancel(timerCierreAlerta)
+		timerCierreAlerta = nil
+	end
+	if tweenAlertaActual then
+		tweenAlertaActual:Cancel()
+	end
+	tweenAlertaActual = TweenService:Create(
 		bannerAlerta,
 		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
 		{ Position = UDim2.new(0.5, 0, 0, -250) }
 	)
-	tweenSalida:Play()
-	tweenSalida.Completed:Connect(function()
+	tweenAlertaActual:Play()
+	tweenAlertaActual.Completed:Connect(function()
 		bannerAlerta.Visible = false
 	end)
 end
@@ -197,6 +207,14 @@ local function reproducirSonido(idSonido: string)
 end
 
 local function mostrarAlerta(mensaje: string, esGrave: boolean)
+	if timerCierreAlerta then
+		task.cancel(timerCierreAlerta)
+		timerCierreAlerta = nil
+	end
+	if tweenAlertaActual then
+		tweenAlertaActual:Cancel()
+	end
+
 	textoAlerta.Text = mensaje
 	strokeBanner.Color = if esGrave
 		then Color3.fromRGB(255, 40, 40)
@@ -206,13 +224,22 @@ local function mostrarAlerta(mensaje: string, esGrave: boolean)
 		else Color3.fromRGB(38, 25, 12)
 
 	bannerAlerta.Visible = true
-	local tweenEntrada = TweenService:Create(
-		bannerAlerta,
-		TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ Position = UDim2.new(0.5, 0, 0, 15) }
-	)
-	tweenEntrada:Play()
-	-- Permanece estático hasta que el jugador pulse ✕
+	local posObjetivo = UDim2.new(0.5, 0, 0, 15)
+	if bannerAlerta.Position.Y.Offset < 0 then
+		bannerAlerta.Position = UDim2.new(0.5, 0, 0, -250)
+		tweenAlertaActual = TweenService:Create(
+			bannerAlerta,
+			TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			{ Position = posObjetivo }
+		)
+		tweenAlertaActual:Play()
+	end
+
+	-- Notificación efímera: desaparece automáticamente a los 4.0s o al pulsar [X]
+	local tiempoAutoCierre = if esGrave then 4.5 else 3.5
+	timerCierreAlerta = task.delay(tiempoAutoCierre, function()
+		cerrarBannerAlerta()
+	end)
 end
 
 local function actualizarDientes(estrellas: number)
