@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GestorDatos = require(script.Parent.GestorDatos)
 local Datos = require(ReplicatedStorage.Shared.Datos)
+local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 
 local vehiculosActivos: { [Player]: Model } = {}
 
@@ -101,7 +102,11 @@ local function crearModeloMotoFallback(): Model
 	return modelo
 end
 
-local function aparecerVehiculo(player: Player, idVehiculo: string): Model?
+local function aparecerVehiculo(
+	player: Player,
+	idVehiculo: string,
+	posPersonalizada: Vector3?
+): Model?
 	local vehiculoExistente = vehiculosActivos[player]
 	if vehiculoExistente and vehiculoExistente.Parent then
 		vehiculoExistente:Destroy()
@@ -132,7 +137,7 @@ local function aparecerVehiculo(player: Player, idVehiculo: string): Model?
 		end
 	end
 
-	local posAparicion = obtenerPuntoAparicion()
+	local posAparicion = posPersonalizada or obtenerPuntoAparicion()
 	modeloBase:PivotTo(CFrame.new(posAparicion))
 	modeloBase.Parent = Workspace
 	vehiculosActivos[player] = modeloBase
@@ -220,6 +225,57 @@ local function configurarSpawnBicicleta()
 	end
 end
 
+local function configurarMaestroTuerca()
+	local mapa = Workspace:WaitForChild("Mapa", 10)
+	if not mapa then
+		return
+	end
+	local decoracion = mapa:WaitForChild("Decoracion", 10)
+	if not decoracion then
+		return
+	end
+	local npcs = decoracion:WaitForChild("NPCs_Interactivos", 10)
+	if not npcs then
+		return
+	end
+	local tuerca = npcs:FindFirstChild("Personaje_MaestroTuerca")
+	if tuerca then
+		local part = tuerca.PrimaryPart or tuerca:FindFirstChildWhichIsA("BasePart")
+		if part then
+			local prompt = part:FindFirstChildOfClass("ProximityPrompt")
+			if not prompt then
+				prompt = Instance.new("ProximityPrompt")
+				prompt.Name = "PromptMaestroTuerca"
+				prompt.ObjectText = "Maestro Tuerca (Mecánico)"
+				prompt.ActionText = "Abrir Taller de Vehículos"
+				prompt.HoldDuration = 0.3
+				prompt.MaxActivationDistance = 12
+				prompt.RequiresLineOfSight = false
+				prompt.Parent = part
+			end
+			prompt.Triggered:Connect(function(player: Player)
+				EventosRemotos.AbrirTiendaMejoras:FireClient(player)
+			end)
+		end
+	end
+end
+
+EventosRemotos.SolicitarVehiculo.OnServerInvoke = function(player: Player)
+	local character = player.Character
+	if not character or not character:FindFirstChild("HumanoidRootPart") then
+		return false, "Personaje no disponible"
+	end
+	local hrp = character.HumanoidRootPart :: BasePart
+	local datos = GestorDatos.ObtenerDatos(player)
+	local vehiculoEquipado = if datos then datos.VehiculoEquipado else "Vehiculo_Bicicleta"
+	local pos = hrp.Position + (hrp.CFrame.LookVector * 5)
+	local modelo = aparecerVehiculo(player, vehiculoEquipado, pos)
+	if modelo then
+		return true, string.format("¡%s invocado!", vehiculoEquipado)
+	end
+	return false, "No se pudo invocar el vehículo"
+end
+
 Players.PlayerRemoving:Connect(function(player: Player)
 	local v = vehiculosActivos[player]
 	if v and v.Parent then
@@ -229,4 +285,5 @@ Players.PlayerRemoving:Connect(function(player: Player)
 end)
 
 task.spawn(configurarSpawnBicicleta)
+task.spawn(configurarMaestroTuerca)
 print("El Patrón del Dulce: Sistema de Vehículos y Carga inicializado")

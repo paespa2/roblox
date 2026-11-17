@@ -310,6 +310,51 @@ Players.PlayerRemoving:Connect(function(player: Player)
 	coccionesActivas[player] = nil
 end)
 
+local DIALOGOS_MELCOCHA = {
+	"¡Mijo! Si el alcalde Apio cree que nos va a dejar sin dulce, está muy equivocado. Venga le enseño a hacer los primeros bombones en la olla vieja. Nadie se mete con la receta de la abuela.",
+	"Eso es, mijo. No deje quemar el melao. Espere unos segundos a que cuaje y empaque los bombones antes de que llegue la patrulla con el cepillo gigante.",
+	"Cargue la canasta de la bicicleta. Ni se le ocurra llenar demasiado el morral que después no puede pedalear en la subida.",
+}
+
+local indiceDialogo = 1
+
+local function configurarDonaMelcocha()
+	local mapa = Workspace:WaitForChild("Mapa", 10)
+	if not mapa then
+		return
+	end
+	local decoracion = mapa:WaitForChild("Decoracion", 10)
+	if not decoracion then
+		return
+	end
+	local npcs = decoracion:WaitForChild("NPCs_Interactivos", 10)
+	if not npcs then
+		return
+	end
+	local melcocha = npcs:FindFirstChild("Personaje_DonaMelcocha")
+	if melcocha then
+		local part = melcocha.PrimaryPart or melcocha:FindFirstChildWhichIsA("BasePart")
+		if part then
+			local prompt = part:FindFirstChildOfClass("ProximityPrompt")
+			if not prompt then
+				prompt = Instance.new("ProximityPrompt")
+				prompt.Name = "PromptDonaMelcocha"
+				prompt.ObjectText = "Doña Melcocha (La Abuela)"
+				prompt.ActionText = "Pedir Consejo"
+				prompt.HoldDuration = 0.3
+				prompt.MaxActivationDistance = 12
+				prompt.RequiresLineOfSight = false
+				prompt.Parent = part
+			end
+			prompt.Triggered:Connect(function(player: Player)
+				local dialogo = DIALOGOS_MELCOCHA[indiceDialogo]
+				indiceDialogo = (indiceDialogo % #DIALOGOS_MELCOCHA) + 1
+				EventosRemotos.AlertaPolicia:FireClient(player, dialogo, 0)
+			end)
+		end
+	end
+end
+
 local paila = obtenerPaila()
 if paila then
 	configurarPromptCocina(paila)
@@ -329,3 +374,5 @@ else
 		end
 	end)
 end
+
+task.spawn(configurarDonaMelcocha)

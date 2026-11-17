@@ -14,3 +14,4 @@
 | `AlertaPolicia` | Servidor -> Cliente | `mensaje: string, nivel: number` | Envía advertencias y anuncios de la Policía Dental al jugador |
 | `CargaConfiscada` | Servidor -> Cliente | `cantidadConfiscada: number` | Notifica al jugador cuando la Policía Dental le decomisa los dulces transportados |
 | `DispararArma` | Cliente -> Servidor | `idArma: string, direccion: Vector3` | Solicita disparar una dulce-arma consumiendo munición de golosinas |
+| `SolicitarVehiculo` | Cliente -> Servidor | ninguno | Invoca el vehículo equipado cerca al jugador (atajo tecla V o Maestro Tuerca) |

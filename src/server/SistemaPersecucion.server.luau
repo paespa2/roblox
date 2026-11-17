@@ -286,25 +286,36 @@ RunService.Heartbeat:Connect(function(dt: number)
 		if estrellas >= 2 then
 			local cercaReten, retenPart = buscarRetenCercano(hrp.Position)
 			if cercaReten and retenPart then
-				local ahora = os.clock()
-				if ahora - estado.UltimaNotificacionReten > 3 then
-					estado.UltimaNotificacionReten = ahora
+				-- Verificar si el retén o agente está aturdido por cauchera de gomitas
+				local mapa = Workspace:FindFirstChild("Mapa")
+				local npcs = mapa
+					and mapa:FindFirstChild("Decoracion")
+					and mapa.Decoracion:FindFirstChild("NPCs_Interactivos")
+				local agente = npcs and npcs:FindFirstChild("Personaje_AgenteDental")
+				local estaAturdido = (agente and agente:GetAttribute("Aturdido") == true)
+					or (retenPart:GetAttribute("Aturdido") == true)
 
-					-- Confiscación de mercancía
-					local cantidadConfiscada = GestorDatos.ConfiscarCarga(player)
-					if cantidadConfiscada > 0 then
-						-- Teletransportar al punto de spawn seguro (cocina / consultorio)
-						hrp.CFrame = CFrame.new(obtenerPuntoSpawnSeguro())
+				if not estaAturdido then
+					local ahora = os.clock()
+					if ahora - estado.UltimaNotificacionReten > 3 then
+						estado.UltimaNotificacionReten = ahora
 
-						EventosRemotos.CargaConfiscada:FireClient(player, cantidadConfiscada)
+						-- Confiscación de mercancía
+						local cantidadConfiscada = GestorDatos.ConfiscarCarga(player)
+						if cantidadConfiscada > 0 then
+							-- Teletransportar al punto de spawn seguro (cocina / consultorio)
+							hrp.CFrame = CFrame.new(obtenerPuntoSpawnSeguro())
 
-						print(
-							string.format(
-								"El Patrón del Dulce: ¡Policía Dental confiscó %d dulces a %s en el retén!",
-								cantidadConfiscada,
-								player.Name
+							EventosRemotos.CargaConfiscada:FireClient(player, cantidadConfiscada)
+
+							print(
+								string.format(
+									"El Patrón del Dulce: ¡Policía Dental confiscó %d dulces a %s en el retén!",
+									cantidadConfiscada,
+									player.Name
+								)
 							)
-						)
+						end
 					end
 				end
 			end

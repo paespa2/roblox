@@ -178,6 +178,35 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 			end
 		end
 
+		-- Aturdir al Personaje_AgenteDental si está cerca
+		local mapa = Workspace:FindFirstChild("Mapa")
+		local decoracion = mapa and mapa:FindFirstChild("Decoracion")
+		local npcs = decoracion and decoracion:FindFirstChild("NPCs_Interactivos")
+		if npcs then
+			local agente = npcs:FindFirstChild("Personaje_AgenteDental")
+			if agente and (agente:GetPivot().Position - proyectil.Position).Magnitude < 16 then
+				agente:SetAttribute("Aturdido", true)
+				local bbg = agente:FindFirstChildWhichIsA("BillboardGui", true)
+				local lbl = bbg and bbg:FindFirstChildWhichIsA("TextLabel", true)
+				local textoAnterior = lbl and lbl.Text
+				if lbl then
+					lbl.Text = "😵 ¡AGH! ¡EMPALAGADO CON DULCE! 🍬"
+				end
+				task.delay(infoArma.Duracion, function()
+					agente:SetAttribute("Aturdido", nil)
+					if lbl and textoAnterior then
+						lbl.Text = textoAnterior
+					end
+				end)
+				print(
+					string.format(
+						"El Patrón del Dulce: ¡Agente Dental aturdido por %s!",
+						player.Name
+					)
+				)
+			end
+		end
+
 		task.delay(0.6, function()
 			proyectil:Destroy()
 		end)

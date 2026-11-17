@@ -63,5 +63,6 @@ EventosRemotos.EstrellasActualizadas = obtenerOCrearEvento("EstrellasActualizada
 EventosRemotos.AlertaPolicia = obtenerOCrearEvento("AlertaPolicia")
 EventosRemotos.CargaConfiscada = obtenerOCrearEvento("CargaConfiscada")
 EventosRemotos.DispararArma = obtenerOCrearFuncion("DispararArma")
+EventosRemotos.SolicitarVehiculo = obtenerOCrearFuncion("SolicitarVehiculo")
 
 return EventosRemotos
