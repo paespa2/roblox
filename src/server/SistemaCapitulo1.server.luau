@@ -209,9 +209,10 @@ local function abrirPortonColegioPara(player: Player)
 end
 
 -- ====================================================================
--- 3. COORDINADOR TIZA (NPC PATRULLERO DEL PATIO)
 -- ====================================================================
-local function crearCoordinadorTiza()
+-- 3. AUTORIDADES ESCOLARES (DIRECTOR, COORDINADOR Y PROFESOR CON IA DE PERSECUCIÓN)
+-- ====================================================================
+local function crearAutoridadesEscolares()
 	local mapa = Workspace:WaitForChild("Mapa", 10)
 	if not mapa then
 		return
@@ -225,180 +226,371 @@ local function crearCoordinadorTiza()
 		return
 	end
 
-	local existente = npcsFolder:FindFirstChild("Personaje_Coordinador")
-	if existente then
-		return
-	end
+	local listaAutoridades = {
+		{
+			Nombre = "Personaje_Coordinador",
+			Titulo = "👔 Coordinador Tiza\n(Disciplina Escolar)",
+			Icono = "👔",
+			ColorTraje = Color3.fromRGB(30, 45, 80),
+			ColorPantalon = Color3.fromRGB(25, 30, 45),
+			ColorPelo = Color3.fromRGB(60, 40, 30),
+			TieneLentes = true,
+			TieneCorbata = true,
+			PosicionInicial = Vector3.new(-85, 62.5, -92),
+			PuntosPatrulla = {
+				Vector3.new(-85, 62.5, -92),
+				Vector3.new(-102, 62.5, -92),
+				Vector3.new(-93, 62.5, -108),
+			},
+			MensajeCaptura = "🚨 ¡SILBATO ROJO! ¡Te pillé con dulces en pleno recreo! Te decomiso la mercancía y quedas anotado en el observador.",
+			MensajeNormal = "¡Ehh jovencito! ¡Está terminantemente prohibido traficar dulces y chicles en mi patio! Si te pillo con la maleta llena, te decomiso la mercancía con el silbato.",
+			MensajeSalida = "Ya sonó la campana de salida. Tienes permiso de cruzar el portón hacia el barrio, pero que no te vea corriendo por los pasillos.",
+		},
+		{
+			Nombre = "Personaje_Director",
+			Titulo = "🎩 Director Don Severo\n(Rectoría Escolar)",
+			Icono = "🎩",
+			ColorTraje = Color3.fromRGB(45, 48, 55),
+			ColorPantalon = Color3.fromRGB(35, 38, 45),
+			ColorPelo = Color3.fromRGB(220, 220, 225),
+			TieneLentes = true,
+			TieneCorbata = false,
+			TieneMaletin = true,
+			PosicionInicial = Vector3.new(-65, 62.5, -60),
+			PuntosPatrulla = {
+				Vector3.new(-65, 62.5, -60),
+				Vector3.new(-78, 62.5, -62),
+				Vector3.new(-60, 62.5, -72),
+			},
+			MensajeCaptura = "🚨 ¡A LA DIRECCIÓN! ¡En este colegio rige la disciplina y la salud bucal! Por infringir el Decreto 001, te decomiso esta golosina. ¡A estudiar!",
+			MensajeNormal = "Buenos días. En el Colegio República del Dulce defendemos la excelencia académica y la dentadura sana. ¡Cero azúcar!",
+			MensajeSalida = "Veo que tienes tus permisos en regla para salir al barrio. Ve con cuidado por las avenidas.",
+		},
+		{
+			Nombre = "Personaje_Profesor",
+			Titulo = "📐 Profesor Regla\n(Docente y Vigilancia)",
+			Icono = "📐",
+			ColorTraje = Color3.fromRGB(110, 75, 45),
+			ColorPantalon = Color3.fromRGB(40, 50, 45),
+			ColorPelo = Color3.fromRGB(45, 35, 25),
+			TieneLentes = false,
+			TieneCorbata = false,
+			TieneRegla = true,
+			PosicionInicial = Vector3.new(-105, 62.5, -120),
+			PuntosPatrulla = {
+				Vector3.new(-105, 62.5, -120),
+				Vector3.new(-118, 62.5, -112),
+				Vector3.new(-95, 62.5, -125),
+			},
+			MensajeCaptura = "🚨 ¡DETENTE! ¡Cero golosinas y chucherías en mi turno de patio! Me quedo con este dulce para la sala de profesores.",
+			MensajeNormal = "¡A estudiar! La educación es la base del éxito, no los bombones ni las melcochas clandestinas.",
+			MensajeSalida = "Terminó la jornada de clases. Aprovecha para repasar las tablas de multiplicar.",
+		},
+	}
 
-	local coord = Instance.new("Model")
-	coord.Name = "Personaje_Coordinador"
-	coord.Parent = npcsFolder
-
-	local hrp = Instance.new("Part")
-	hrp.Name = "HumanoidRootPart"
-	hrp.Size = Vector3.new(2, 2, 1)
-	hrp.Position = Vector3.new(-85, 62.5, -92)
-	hrp.Transparency = 1
-	hrp.CanCollide = false
-	hrp.Anchored = true
-	hrp.Parent = coord
-	coord.PrimaryPart = hrp
-
-	local torso = Instance.new("Part")
-	torso.Name = "Torso"
-	torso.Size = Vector3.new(2, 2, 1)
-	torso.Position = hrp.Position
-	torso.Color = Color3.fromRGB(30, 45, 80) -- Traje azul oscuro
-	torso.Material = Enum.Material.SmoothPlastic
-	torso.Anchored = true
-	torso.CanCollide = true
-	torso.Parent = coord
-
-	local corbata = Instance.new("Part")
-	corbata.Name = "Corbata"
-	corbata.Size = Vector3.new(0.4, 1.4, 0.2)
-	corbata.Position = torso.Position + Vector3.new(0, 0.1, -0.55)
-	corbata.Color = Color3.fromRGB(190, 40, 40)
-	corbata.Material = Enum.Material.SmoothPlastic
-	corbata.Anchored = true
-	corbata.CanCollide = false
-	corbata.Parent = coord
-
-	local cabeza = Instance.new("Part")
-	cabeza.Name = "Head"
-	cabeza.Size = Vector3.new(1.2, 1.2, 1.2)
-	cabeza.Position = torso.Position + Vector3.new(0, 1.6, 0)
-	cabeza.Color = Color3.fromRGB(235, 195, 160)
-	cabeza.Material = Enum.Material.SmoothPlastic
-	cabeza.Anchored = true
-	cabeza.CanCollide = false
-	cabeza.Parent = coord
-
-	local lentes = Instance.new("Part")
-	lentes.Name = "Lentes"
-	lentes.Size = Vector3.new(0.9, 0.3, 0.2)
-	lentes.Position = cabeza.Position + Vector3.new(0, 0.1, -0.62)
-	lentes.Color = Color3.fromRGB(40, 40, 40)
-	lentes.Material = Enum.Material.Metal
-	lentes.Anchored = true
-	lentes.CanCollide = false
-	lentes.Parent = coord
-
-	local piernas = Instance.new("Part")
-	piernas.Name = "Piernas"
-	piernas.Size = Vector3.new(1.8, 2, 0.9)
-	piernas.Position = torso.Position + Vector3.new(0, -2, 0)
-	piernas.Color = Color3.fromRGB(25, 30, 45)
-	piernas.Material = Enum.Material.SmoothPlastic
-	piernas.Anchored = true
-	piernas.CanCollide = true
-	piernas.Parent = coord
-
-	-- BillboardGui con nombre y rol
-	local bbg = Instance.new("BillboardGui")
-	bbg.Name = "RotuloCoordinador"
-	bbg.Size = UDim2.fromOffset(220, 50)
-	bbg.StudsOffset = Vector3.new(0, 3.2, 0)
-	bbg.AlwaysOnTop = true
-	bbg.MaxDistance = 45
-	bbg.Parent = cabeza
-
-	local lbl = Instance.new("TextLabel")
-	lbl.Size = UDim2.fromScale(1, 1)
-	lbl.BackgroundTransparency = 1
-	lbl.Font = Enum.Font.FredokaOne
-	lbl.Text = "👔 Coordinador Tiza\n(Disciplina Escolar)"
-	lbl.TextColor3 = Color3.fromRGB(255, 230, 140)
-	lbl.TextSize = 14
-	lbl.Parent = bbg
-
-	-- ProximityPrompt para interactuar
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = "PromptCoordinador"
-	prompt.ObjectText = "Coordinador Tiza"
-	prompt.ActionText = "Escuchar / Hablar"
-	prompt.HoldDuration = 0.3
-	prompt.MaxActivationDistance = 12
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = torso
-
-	prompt.Triggered:Connect(function(player: Player)
-		local aturdido = coord:GetAttribute("Aturdido")
-		if aturdido then
-			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
-				Nombre = "Coordinador Tiza",
-				Titulo = "Aturdido por Gomita",
-				Icono = "😵",
-				Mensaje = "¡Auch! ¡Me cayó una gomita en los lentes... no veo nada... aprovecha antes de que me limpie!",
-			})
-			return
+	for _, config in ipairs(listaAutoridades) do
+		local existente = npcsFolder:FindFirstChild(config.Nombre)
+		if existente then
+			existente:Destroy()
 		end
 
-		local cap = GestorDatos.ObtenerCapitulo(player)
-		if cap >= 2 then
-			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
-				Nombre = "Coordinador Tiza",
-				Titulo = "Fin del Recreo",
-				Icono = "👔",
-				Mensaje = "Ya sonó la campana de salida. Tienes permiso de cruzar el portón hacia el barrio, pero que no te vea corriendo por los pasillos.",
-			})
-		else
-			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
-				Nombre = "Coordinador Tiza",
-				Titulo = "Disciplina Escolar",
-				Icono = "👔",
-				Mensaje = "¡Ehh jovencito! ¡Está terminantemente prohibido traficar dulces y chicles en mi patio! Si te pillo con la maleta llena, te decomiso la mercancía con el silbato.",
-			})
+		local modelo = Instance.new("Model")
+		modelo.Name = config.Nombre
+		modelo.Parent = npcsFolder
+
+		local hrp = Instance.new("Part")
+		hrp.Name = "HumanoidRootPart"
+		hrp.Size = Vector3.new(2, 2, 1)
+		hrp.Position = config.PosicionInicial
+		hrp.Transparency = 1
+		hrp.CanCollide = false
+		hrp.Anchored = true
+		hrp.Parent = modelo
+		modelo.PrimaryPart = hrp
+
+		local torso = Instance.new("Part")
+		torso.Name = "Torso"
+		torso.Size = Vector3.new(2, 2, 1)
+		torso.Position = hrp.Position
+		torso.Color = config.ColorTraje
+		torso.Material = Enum.Material.SmoothPlastic
+		torso.Anchored = true
+		torso.CanCollide = true
+		torso.Parent = modelo
+
+		local cabeza = Instance.new("Part")
+		cabeza.Name = "Head"
+		cabeza.Size = Vector3.new(1.2, 1.2, 1.2)
+		cabeza.Position = torso.Position + Vector3.new(0, 1.6, 0)
+		cabeza.Color = Color3.fromRGB(235, 195, 160)
+		cabeza.Material = Enum.Material.SmoothPlastic
+		cabeza.Anchored = true
+		cabeza.CanCollide = false
+		cabeza.Parent = modelo
+
+		if config.ColorPelo then
+			local pelo = Instance.new("Part")
+			pelo.Name = "Pelo"
+			pelo.Size = Vector3.new(1.3, 0.4, 1.3)
+			pelo.Position = cabeza.Position + Vector3.new(0, 0.65, 0)
+			pelo.Color = config.ColorPelo
+			pelo.Material = Enum.Material.SmoothPlastic
+			pelo.Anchored = true
+			pelo.CanCollide = false
+			pelo.Parent = modelo
 		end
-	end)
 
-	-- Rutina de patrullaje ligero en el patio
-	task.spawn(function()
-		local puntosPatrulla = {
-			Vector3.new(-85, 62.5, -92),
-			Vector3.new(-102, 62.5, -92),
-			Vector3.new(-93, 62.5, -108),
-		}
-		local idx = 1
-		while coord.Parent do
-			task.wait(4.5)
-			if not coord:GetAttribute("Aturdido") then
-				idx = (idx % #puntosPatrulla) + 1
-				local metaPos = puntosPatrulla[idx]
-				local delta = metaPos - hrp.Position
-				local nuevoCFrame = CFrame.lookAt(metaPos, metaPos + delta.Unit)
+		if config.TieneCorbata then
+			local corbata = Instance.new("Part")
+			corbata.Name = "Corbata"
+			corbata.Size = Vector3.new(0.4, 1.4, 0.2)
+			corbata.Position = torso.Position + Vector3.new(0, 0.1, -0.55)
+			corbata.Color = Color3.fromRGB(190, 40, 40)
+			corbata.Material = Enum.Material.SmoothPlastic
+			corbata.Anchored = true
+			corbata.CanCollide = false
+			corbata.Parent = modelo
+		end
 
-				TweenService
-					:Create(
-						torso,
-						TweenInfo.new(3, Enum.EasingStyle.Linear),
-						{ CFrame = nuevoCFrame }
-					)
-					:Play()
-				TweenService:Create(
-					corbata,
-					TweenInfo.new(3, Enum.EasingStyle.Linear),
-					{ CFrame = nuevoCFrame + Vector3.new(0, 0.1, -0.55) }
-				):Play()
-				TweenService:Create(
-					cabeza,
-					TweenInfo.new(3, Enum.EasingStyle.Linear),
-					{ CFrame = nuevoCFrame + Vector3.new(0, 1.6, 0) }
-				):Play()
-				TweenService:Create(
-					lentes,
-					TweenInfo.new(3, Enum.EasingStyle.Linear),
-					{ CFrame = nuevoCFrame + Vector3.new(0, 1.7, -0.62) }
-				):Play()
-				TweenService:Create(
-					piernas,
-					TweenInfo.new(3, Enum.EasingStyle.Linear),
-					{ CFrame = nuevoCFrame + Vector3.new(0, -2, 0) }
-				):Play()
-				hrp.CFrame = nuevoCFrame
+		if config.TieneLentes then
+			local lentes = Instance.new("Part")
+			lentes.Name = "Lentes"
+			lentes.Size = Vector3.new(0.9, 0.3, 0.2)
+			lentes.Position = cabeza.Position + Vector3.new(0, 0.1, -0.62)
+			lentes.Color = Color3.fromRGB(40, 40, 40)
+			lentes.Material = Enum.Material.Metal
+			lentes.Anchored = true
+			lentes.CanCollide = false
+			lentes.Parent = modelo
+		end
+
+		if config.TieneRegla then
+			local regla = Instance.new("Part")
+			regla.Name = "Regla"
+			regla.Size = Vector3.new(0.3, 2.2, 0.2)
+			regla.Position = torso.Position + Vector3.new(1.2, -0.2, -0.3)
+			regla.Color = Color3.fromRGB(220, 180, 110)
+			regla.Material = Enum.Material.Wood
+			regla.Anchored = true
+			regla.CanCollide = false
+			regla.Parent = modelo
+		end
+
+		if config.TieneMaletin then
+			local maletin = Instance.new("Part")
+			maletin.Name = "Maletin"
+			maletin.Size = Vector3.new(0.5, 1.4, 1.6)
+			maletin.Position = torso.Position + Vector3.new(-1.3, -0.5, 0)
+			maletin.Color = Color3.fromRGB(70, 45, 30)
+			maletin.Material = Enum.Material.SmoothPlastic
+			maletin.Anchored = true
+			maletin.CanCollide = false
+			maletin.Parent = modelo
+		end
+
+		local piernas = Instance.new("Part")
+		piernas.Name = "Piernas"
+		piernas.Size = Vector3.new(1.8, 2, 0.9)
+		piernas.Position = torso.Position + Vector3.new(0, -2, 0)
+		piernas.Color = config.ColorPantalon
+		piernas.Material = Enum.Material.SmoothPlastic
+		piernas.Anchored = true
+		piernas.CanCollide = true
+		piernas.Parent = modelo
+
+		-- BillboardGui con nombre y rol
+		local bbg = Instance.new("BillboardGui")
+		bbg.Name = "RotuloAutoridad"
+		bbg.Size = UDim2.fromOffset(230, 52)
+		bbg.StudsOffset = Vector3.new(0, 3.4, 0)
+		bbg.AlwaysOnTop = true
+		bbg.MaxDistance = 45
+		bbg.Parent = cabeza
+
+		local lbl = Instance.new("TextLabel")
+		lbl.Name = "TextoRotulo"
+		lbl.Size = UDim2.fromScale(1, 1)
+		lbl.BackgroundTransparency = 1
+		lbl.Font = Enum.Font.FredokaOne
+		lbl.Text = config.Titulo
+		lbl.TextColor3 = Color3.fromRGB(255, 230, 140)
+		lbl.TextSize = 13
+		lbl.Parent = bbg
+
+		-- ProximityPrompt para interactuar pacíficamente
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "PromptAutoridad"
+		prompt.ObjectText = config.Nombre:gsub("Personaje_", "")
+		prompt.ActionText = "Hablar"
+		prompt.HoldDuration = 0.3
+		prompt.MaxActivationDistance = 12
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = torso
+
+		prompt.Triggered:Connect(function(player: Player)
+			local aturdido = modelo:GetAttribute("Aturdido")
+			if aturdido then
+				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+					Nombre = config.Nombre:gsub("Personaje_", ""),
+					Titulo = "¡Aturdido por Dulce!",
+					Icono = "😵",
+					Mensaje = "¡Auch! ¡Me cayó dulce en la cara y no veo nada! ¡Aprovecha antes de que me limpie!",
+				})
+				return
 			end
-		end
-	end)
+
+			local cap = GestorDatos.ObtenerCapitulo(player)
+			if cap >= 2 then
+				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+					Nombre = config.Nombre:gsub("Personaje_", ""),
+					Titulo = "Permiso de Salida",
+					Icono = config.Icono,
+					Mensaje = config.MensajeSalida,
+				})
+			else
+				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+					Nombre = config.Nombre:gsub("Personaje_", ""),
+					Titulo = "Vigilancia Escolar",
+					Icono = config.Icono,
+					Mensaje = config.MensajeNormal,
+				})
+			end
+		end)
+
+		-- IA de Patrullaje y Persecución Activa en el Colegio
+		task.spawn(function()
+			local puntosPatrulla = config.PuntosPatrulla
+			local idxPatrulla = 1
+			local cooldownsJugador: { [Player]: number } = {}
+			local ultimoTick = os.clock()
+
+			while modelo.Parent do
+				task.wait(0.2)
+				local ahora = os.clock()
+				local dt = ahora - ultimoTick
+				ultimoTick = ahora
+
+				-- 1. Si está aturdido por gomita, no persigue
+				if modelo:GetAttribute("Aturdido") then
+					continue
+				end
+
+				-- 2. Buscar si hay algún jugador cercano con dulces en el patio
+				local jugadorObjetivo: Player? = nil
+				local posObjetivo: Vector3? = nil
+				local distanciaMinima = 32
+
+				for _, player in ipairs(Players:GetPlayers()) do
+					local cd = cooldownsJugador[player]
+					if cd and ahora < cd then
+						continue
+					end
+
+					local char = player.Character
+					local playerHrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+					if playerHrp then
+						local dist = (playerHrp.Position - hrp.Position).Magnitude
+						if dist <= distanciaMinima then
+							local datos = GestorDatos.ObtenerDatos(player)
+							local tieneDulces = datos
+								and (
+									(datos.Inventario["Dulce_Bombon"] or 0) > 0
+									or (datos.Inventario["Dulce_Gomita"] or 0) > 0
+									or (datos.PuntosCalor or 0) > 0
+								)
+							if tieneDulces then
+								distanciaMinima = dist
+								jugadorObjetivo = player
+								posObjetivo = playerHrp.Position
+							end
+						end
+					end
+				end
+
+				-- 3. Modo Persecución activa o Modo Patrulla
+				if jugadorObjetivo and posObjetivo then
+					-- En Persecución
+					lbl.Text = "🚨 ¡DETENTE AHÍ!\n¡TRAES DULCES!"
+					lbl.TextColor3 = Color3.fromRGB(255, 90, 90)
+
+					local dir = (posObjetivo - hrp.Position) * Vector3.new(1, 0, 1)
+					local dist = dir.Magnitude
+
+					if dist < 4.8 then
+						-- ¡Atrapó al jugador! Confiscar 1 dulce y mostrar diálogo estático con [X]
+						cooldownsJugador[jugadorObjetivo] = ahora + 7.0 -- Cooldown de 7s para escapar
+
+						local dulceConfiscado = nil
+						if GestorDatos.QuitarDulce(jugadorObjetivo, "Dulce_Bombon", 1) then
+							dulceConfiscado = "Bombón de Melcocha"
+						elseif GestorDatos.QuitarDulce(jugadorObjetivo, "Dulce_Gomita", 1) then
+							dulceConfiscado = "Gomita Ácida"
+						end
+
+						-- Silbato de alerta
+						local pito = Instance.new("Sound")
+						pito.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+						pito.Volume = 0.85
+						pito.Parent = hrp
+						pito:Play()
+						task.delay(1.5, function()
+							pito:Destroy()
+						end)
+
+						local msg = config.MensajeCaptura
+						if dulceConfiscado then
+							msg = msg
+								.. string.format("\n\n(Te decomisaron: 1x %s)", dulceConfiscado)
+						end
+
+						EventosRemotos.MostrarDialogoNPC:FireClient(jugadorObjetivo, {
+							Nombre = config.Nombre:gsub("Personaje_", ""),
+							Titulo = "🚨 ¡CONFISCACIÓN EN EL PATIO!",
+							Icono = config.Icono,
+							Mensaje = msg,
+						})
+
+						-- Pequeño retroceso para no estancarse
+						task.wait(1.5)
+					else
+						-- Avanzar hacia el jugador a velocidad moderada (11 studs/s)
+						local paso = dir.Unit * math.min(dist, 11 * dt)
+						local nuevaPos = hrp.Position + paso
+						local lookTarget = nuevaPos + dir.Unit
+						modelo:PivotTo(
+							CFrame.lookAt(
+								nuevaPos,
+								Vector3.new(lookTarget.X, nuevaPos.Y, lookTarget.Z)
+							)
+						)
+					end
+				else
+					-- En Patrulla normal por el colegio
+					lbl.Text = config.Titulo
+					lbl.TextColor3 = Color3.fromRGB(255, 230, 140)
+
+					local metaPatrulla = puntosPatrulla[idxPatrulla]
+					local dirPatrulla = (metaPatrulla - hrp.Position) * Vector3.new(1, 0, 1)
+					local distPatrulla = dirPatrulla.Magnitude
+
+					if distPatrulla < 2.0 then
+						idxPatrulla = (idxPatrulla % #puntosPatrulla) + 1
+						task.wait(2.0)
+					else
+						local paso = dirPatrulla.Unit * math.min(distPatrulla, 6.5 * dt)
+						local nuevaPos = hrp.Position + paso
+						local lookTarget = nuevaPos + dirPatrulla.Unit
+						modelo:PivotTo(
+							CFrame.lookAt(
+								nuevaPos,
+								Vector3.new(lookTarget.X, nuevaPos.Y, lookTarget.Z)
+							)
+						)
+					end
+				end
+			end
+		end)
+	end
 end
 
 -- ====================================================================
@@ -685,7 +877,7 @@ end)
 
 task.spawn(construirPortonColegio)
 task.spawn(construirAnuncioAlcalde)
-task.spawn(crearCoordinadorTiza)
+task.spawn(crearAutoridadesEscolares)
 task.spawn(crearEstudiantes)
 print(
 	"El Patrón del Dulce: Sistema de Capítulo 1 (Tutorial, Recreo y Portón del Colegio) Inicializado"

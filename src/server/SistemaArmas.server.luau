@@ -274,60 +274,85 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 			end
 		end
 
-		-- Efecto contra Agente Dental NPC
+		-- Helper para aturdir cualquier NPC o policía alcanzado por proyectil dulce
+		local function aturdirModelo(modelo: Model, nombreEfecto: string, duracion: number)
+			if modelo:GetAttribute("Aturdido") then
+				return
+			end
+			modelo:SetAttribute("Aturdido", true)
+			local bbg = modelo:FindFirstChildWhichIsA("BillboardGui", true)
+			local lbl = bbg and bbg:FindFirstChildWhichIsA("TextLabel", true)
+			local textoAnterior = lbl and lbl.Text
+			if lbl then
+				lbl.Text = string.format("😵 ¡EMPALAGADO! (%s) 🍬", nombreEfecto)
+			end
+			local sirena = modelo:FindFirstChildWhichIsA("PointLight", true)
+			if sirena then
+				sirena.Enabled = false
+			end
+			task.delay(duracion, function()
+				if modelo and modelo.Parent then
+					modelo:SetAttribute("Aturdido", nil)
+					if lbl and textoAnterior then
+						lbl.Text = textoAnterior
+					end
+					if sirena then
+						sirena.Enabled = true
+					end
+				end
+			end)
+		end
+
+		-- Efecto contra Autoridades Escolares y NPCs hostiles
 		local mapa = Workspace:FindFirstChild("Mapa")
 		local decoracion = mapa and mapa:FindFirstChild("Decoracion")
 		local npcs = decoracion and decoracion:FindFirstChild("NPCs_Interactivos")
 		if npcs then
-			local agente = npcs:FindFirstChild("Personaje_AgenteDental")
-			if agente and (agente:GetPivot().Position - proyectil.Position).Magnitude < 18 then
-				agente:SetAttribute("Aturdido", true)
-				local bbg = agente:FindFirstChildWhichIsA("BillboardGui", true)
-				local lbl = bbg and bbg:FindFirstChildWhichIsA("TextLabel", true)
-				local textoAnterior = lbl and lbl.Text
-				if lbl then
-					lbl.Text = string.format("😵 ¡EMPALAGADO! (%s) 🍬", infoArma.Efecto)
-				end
-				task.delay(infoArma.Duracion, function()
-					agente:SetAttribute("Aturdido", nil)
-					if lbl and textoAnterior then
-						lbl.Text = textoAnterior
-					end
-				end)
-				print(
-					string.format(
-						"El Patrón del Dulce: ¡Agente Dental aturdido por %s con %s!",
-						player.Name,
-						infoArma.Nombre
+			for _, npc in ipairs(npcs:GetChildren()) do
+				if
+					npc:IsA("Model")
+					and (
+						npc.Name:match("^Personaje_Coordinador")
+						or npc.Name:match("^Personaje_Director")
+						or npc.Name:match("^Personaje_Profesor")
+						or npc.Name:match("^Personaje_AgenteDental")
 					)
-				)
+				then
+					if (npc:GetPivot().Position - proyectil.Position).Magnitude < 18 then
+						aturdirModelo(npc, infoArma.Efecto, infoArma.Duracion or 4)
+						print(
+							string.format(
+								"El Patrón del Dulce: %s aturdido por %s con %s!",
+								npc.Name,
+								player.Name,
+								infoArma.Nombre
+							)
+						)
+					end
+				end
 			end
+		end
 
-			-- Efecto contra Coordinador Tiza del Colegio (Capítulo 1)
-			local coordinador = npcs:FindFirstChild("Personaje_Coordinador")
-			if
-				coordinador
-				and (coordinador:GetPivot().Position - proyectil.Position).Magnitude < 18
-			then
-				coordinador:SetAttribute("Aturdido", true)
-				local bbg = coordinador:FindFirstChildWhichIsA("BillboardGui", true)
-				local lbl = bbg and bbg:FindFirstChildWhichIsA("TextLabel", true)
-				local textoAnterior = lbl and lbl.Text
-				if lbl then
-					lbl.Text = "😵 ¡EMPALAGADO CON GOMITA! (4s)"
-				end
-				task.delay(infoArma.Duracion or 4, function()
-					coordinador:SetAttribute("Aturdido", nil)
-					if lbl and textoAnterior then
-						lbl.Text = textoAnterior
+		-- Efecto contra los 12 Policías Dentales (Retenes y Patrulleros)
+		local policiasFolder = decoracion and decoracion:FindFirstChild("PoliciasDentales")
+		if policiasFolder then
+			for _, grupo in ipairs(policiasFolder:GetChildren()) do
+				for _, poli in ipairs(grupo:GetChildren()) do
+					if
+						poli:IsA("Model")
+						and (poli:GetPivot().Position - proyectil.Position).Magnitude < 18
+					then
+						aturdirModelo(poli, infoArma.Efecto, infoArma.Duracion or 4)
+						print(
+							string.format(
+								"El Patrón del Dulce: Policía %s aturdido por %s con %s!",
+								poli.Name,
+								player.Name,
+								infoArma.Nombre
+							)
+						)
 					end
-				end)
-				print(
-					string.format(
-						"El Patrón del Dulce: ¡Coordinador Tiza aturdido por %s con gomita!",
-						player.Name
-					)
-				)
+				end
 			end
 		end
 

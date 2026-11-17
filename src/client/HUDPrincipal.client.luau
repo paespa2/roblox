@@ -239,11 +239,12 @@ barraProgreso.TextSize = 11
 barraProgreso.TextXAlignment = Enum.TextXAlignment.Left
 barraProgreso.Parent = marcoObjetivo
 
--- Notificación Banner (Posicionado debajo del banner de alertas de policía a Y=75 para evitar solapamiento)
+-- Notificación Banner (Posicionado debajo del banner de alertas de policía a Y=70 con botón X estático)
 local bannerNotificacion = Instance.new("Frame")
 bannerNotificacion.Name = "BannerNotificacion"
-bannerNotificacion.Size = UDim2.fromOffset(380, 46)
-bannerNotificacion.Position = UDim2.new(0.5, -190, 0, -80) -- Oculto arriba
+bannerNotificacion.Size = UDim2.fromOffset(420, 48)
+bannerNotificacion.AnchorPoint = Vector2.new(0.5, 0)
+bannerNotificacion.Position = UDim2.new(0.5, 0, 0, -80) -- Oculto arriba
 bannerNotificacion.BackgroundColor3 = Color3.fromRGB(26, 30, 40)
 bannerNotificacion.BackgroundTransparency = 0.1
 bannerNotificacion.ClipsDescendants = true
@@ -261,40 +262,65 @@ strokeBanner.Parent = bannerNotificacion
 
 local textoBanner = Instance.new("TextLabel")
 textoBanner.Name = "Texto"
-textoBanner.Size = UDim2.new(1, -20, 1, 0)
-textoBanner.Position = UDim2.fromOffset(10, 0)
+textoBanner.Size = UDim2.new(1, -54, 1, 0)
+textoBanner.Position = UDim2.fromOffset(14, 0)
 textoBanner.BackgroundTransparency = 1
 textoBanner.Font = Enum.Font.FredokaOne
 textoBanner.Text = ""
 textoBanner.TextColor3 = Color3.fromRGB(255, 255, 255)
-textoBanner.TextSize = 15
+textoBanner.TextSize = 14
 textoBanner.TextWrapped = true
+textoBanner.TextXAlignment = Enum.TextXAlignment.Left
 textoBanner.Parent = bannerNotificacion
+
+local botonCerrarBanner = Instance.new("TextButton")
+botonCerrarBanner.Name = "BotonCerrar"
+botonCerrarBanner.Size = UDim2.fromOffset(24, 24)
+botonCerrarBanner.Position = UDim2.new(1, -34, 0.5, -12)
+botonCerrarBanner.BackgroundColor3 = Color3.fromRGB(50, 55, 70)
+botonCerrarBanner.Font = Enum.Font.GothamBold
+botonCerrarBanner.Text = "✕"
+botonCerrarBanner.TextColor3 = Color3.fromRGB(240, 240, 250)
+botonCerrarBanner.TextSize = 13
+botonCerrarBanner.AutoButtonColor = true
+botonCerrarBanner.Parent = bannerNotificacion
+
+local cornerCerrarBanner = Instance.new("UICorner")
+cornerCerrarBanner.CornerRadius = UDim.new(0, 6)
+cornerCerrarBanner.Parent = botonCerrarBanner
+
+local strokeCerrarBanner = Instance.new("UIStroke")
+strokeCerrarBanner.Color = Color3.fromRGB(80, 88, 110)
+strokeCerrarBanner.Thickness = 1
+strokeCerrarBanner.Parent = botonCerrarBanner
+
+local function cerrarBannerNotificacion()
+	local tweenSubir = TweenService:Create(
+		bannerNotificacion,
+		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ Position = UDim2.new(0.5, 0, 0, -80) }
+	)
+	tweenSubir:Play()
+	tweenSubir.Completed:Connect(function()
+		bannerNotificacion.Visible = false
+	end)
+end
+
+botonCerrarBanner.MouseButton1Click:Connect(cerrarBannerNotificacion)
 
 local function mostrarBanner(mensaje: string, colorStroke: Color3?)
 	strokeBanner.Color = colorStroke or Color3.fromRGB(255, 215, 0)
 	textoBanner.Text = mensaje
 
 	bannerNotificacion.Visible = true
-	bannerNotificacion.Position = UDim2.new(0.5, -190, 0, -80)
+	bannerNotificacion.Position = UDim2.new(0.5, 0, 0, -80)
 	local tweenBajar = TweenService:Create(
 		bannerNotificacion,
-		TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ Position = UDim2.new(0.5, -190, 0, 75) }
+		TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{ Position = UDim2.new(0.5, 0, 0, 70) }
 	)
 	tweenBajar:Play()
-
-	task.delay(3.5, function()
-		local tweenSubir = TweenService:Create(
-			bannerNotificacion,
-			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-			{ Position = UDim2.new(0.5, -190, 0, -80) }
-		)
-		tweenSubir:Play()
-		tweenSubir.Completed:Connect(function()
-			bannerNotificacion.Visible = false
-		end)
-	end)
+	-- Permanece estático hasta que el jugador pulse [X]
 end
 
 -- ====================================================================
@@ -358,19 +384,37 @@ mensajeLabel.Parent = cuadroDialogo
 
 local botonCerrarDialogo = Instance.new("TextButton")
 botonCerrarDialogo.Name = "BotonCerrar"
-botonCerrarDialogo.Size = UDim2.fromOffset(26, 26)
+botonCerrarDialogo.Size = UDim2.fromOffset(28, 28)
 botonCerrarDialogo.AnchorPoint = Vector2.new(1, 0)
-botonCerrarDialogo.Position = UDim2.new(1, -10, 0, 10)
-botonCerrarDialogo.BackgroundColor3 = Color3.fromRGB(50, 55, 70)
+botonCerrarDialogo.Position = UDim2.new(1, -12, 0, 10)
+botonCerrarDialogo.BackgroundColor3 = Color3.fromRGB(60, 68, 88)
 botonCerrarDialogo.Font = Enum.Font.GothamBold
-botonCerrarDialogo.Text = "X"
-botonCerrarDialogo.TextColor3 = Color3.fromRGB(200, 200, 210)
-botonCerrarDialogo.TextSize = 12
+botonCerrarDialogo.Text = "✕"
+botonCerrarDialogo.TextColor3 = Color3.fromRGB(240, 240, 255)
+botonCerrarDialogo.TextSize = 14
+botonCerrarDialogo.AutoButtonColor = true
 botonCerrarDialogo.Parent = cuadroDialogo
 
 local cornerCerrarDiag = Instance.new("UICorner")
 cornerCerrarDiag.CornerRadius = UDim.new(0, 6)
 cornerCerrarDiag.Parent = botonCerrarDialogo
+
+local strokeCerrarDiag = Instance.new("UIStroke")
+strokeCerrarDiag.Color = Color3.fromRGB(90, 100, 125)
+strokeCerrarDiag.Thickness = 1
+strokeCerrarDiag.Parent = botonCerrarDialogo
+
+local hintCerrar = Instance.new("TextLabel")
+hintCerrar.Name = "HintCerrar"
+hintCerrar.Size = UDim2.fromOffset(140, 16)
+hintCerrar.Position = UDim2.new(1, -150, 1, -18)
+hintCerrar.BackgroundTransparency = 1
+hintCerrar.Font = Enum.Font.GothamMedium
+hintCerrar.Text = "Pulsa ✕ para continuar"
+hintCerrar.TextColor3 = Color3.fromRGB(160, 170, 190)
+hintCerrar.TextSize = 10
+hintCerrar.TextXAlignment = Enum.TextXAlignment.Right
+hintCerrar.Parent = cuadroDialogo
 
 local tweenDialogoSalida: Tween? = nil
 
@@ -421,10 +465,7 @@ local function mostrarDialogoNPC(info: {
 	task.delay(1.5, function()
 		sound:Destroy()
 	end)
-
-	task.delay(5.0, function()
-		cerrarDialogo()
-	end)
+	-- Diálogo estático: se mantiene en pantalla hasta que el jugador pulse ✕
 end
 
 EventosRemotos.MostrarDialogoNPC.OnClientEvent:Connect(mostrarDialogoNPC)

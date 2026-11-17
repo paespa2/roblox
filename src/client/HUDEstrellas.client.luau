@@ -139,13 +139,51 @@ strokeBanner.Parent = bannerAlerta
 
 local textoAlerta = Instance.new("TextLabel")
 textoAlerta.Name = "TextoAlerta"
-textoAlerta.Size = UDim2.fromScale(1, 1)
+textoAlerta.Size = UDim2.new(1, -54, 1, 0)
+textoAlerta.Position = UDim2.fromOffset(14, 0)
 textoAlerta.BackgroundTransparency = 1
 textoAlerta.Font = Enum.Font.FredokaOne
 textoAlerta.Text = "¡Alerta de la Policía Dental!"
 textoAlerta.TextColor3 = Color3.fromRGB(255, 220, 220)
 textoAlerta.TextSize = 14
+textoAlerta.TextWrapped = true
+textoAlerta.TextXAlignment = Enum.TextXAlignment.Left
 textoAlerta.Parent = bannerAlerta
+
+local botonCerrarAlerta = Instance.new("TextButton")
+botonCerrarAlerta.Name = "BotonCerrar"
+botonCerrarAlerta.Size = UDim2.fromOffset(24, 24)
+botonCerrarAlerta.Position = UDim2.new(1, -34, 0.5, -12)
+botonCerrarAlerta.BackgroundColor3 = Color3.fromRGB(70, 25, 30)
+botonCerrarAlerta.Font = Enum.Font.GothamBold
+botonCerrarAlerta.Text = "✕"
+botonCerrarAlerta.TextColor3 = Color3.fromRGB(255, 220, 220)
+botonCerrarAlerta.TextSize = 13
+botonCerrarAlerta.AutoButtonColor = true
+botonCerrarAlerta.Parent = bannerAlerta
+
+local cornerCerrarAlerta = Instance.new("UICorner")
+cornerCerrarAlerta.CornerRadius = UDim.new(0, 6)
+cornerCerrarAlerta.Parent = botonCerrarAlerta
+
+local strokeCerrarAlerta = Instance.new("UIStroke")
+strokeCerrarAlerta.Color = Color3.fromRGB(120, 45, 55)
+strokeCerrarAlerta.Thickness = 1
+strokeCerrarAlerta.Parent = botonCerrarAlerta
+
+local function cerrarBannerAlerta()
+	local tweenSalida = TweenService:Create(
+		bannerAlerta,
+		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ Position = UDim2.new(0.5, 0, 0, -80) }
+	)
+	tweenSalida:Play()
+	tweenSalida.Completed:Connect(function()
+		bannerAlerta.Visible = false
+	end)
+end
+
+botonCerrarAlerta.MouseButton1Click:Connect(cerrarBannerAlerta)
 
 local function reproducirSonido(idSonido: string)
 	local sound = Instance.new("Sound")
@@ -174,18 +212,7 @@ local function mostrarAlerta(mensaje: string, esGrave: boolean)
 		{ Position = UDim2.new(0.5, 0, 0, 15) }
 	)
 	tweenEntrada:Play()
-
-	task.delay(3.5, function()
-		local tweenSalida = TweenService:Create(
-			bannerAlerta,
-			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-			{ Position = UDim2.new(0.5, 0, 0, -80) }
-		)
-		tweenSalida:Play()
-		tweenSalida.Completed:Connect(function()
-			bannerAlerta.Visible = false
-		end)
-	end)
+	-- Permanece estático hasta que el jugador pulse ✕
 end
 
 local function actualizarDientes(estrellas: number)
