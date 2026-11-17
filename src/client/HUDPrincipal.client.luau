@@ -23,10 +23,10 @@ screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = PlayerGui
 
--- Contenedor Superior Izquierdo (Billetera, Fama y Botón Mejoras)
+-- Contenedor Superior Izquierdo (Billetera, Fama, Botón Mejoras y Reloj Día/Noche)
 local marcoSuperior = Instance.new("Frame")
 marcoSuperior.Name = "MarcoSuperior"
-marcoSuperior.Size = UDim2.fromOffset(280, 130)
+marcoSuperior.Size = UDim2.fromOffset(280, 168)
 marcoSuperior.Position = UDim2.fromOffset(20, 20)
 marcoSuperior.BackgroundTransparency = 1
 marcoSuperior.Parent = screenGui
@@ -138,6 +138,46 @@ botonMejoras.MouseButton1Click:Connect(function()
 		uiMejoras.Enabled = not uiMejoras.Enabled
 	end
 end)
+
+-- Pill de Ciclo Día y Noche
+local pillReloj = Instance.new("Frame")
+pillReloj.Name = "PillReloj"
+pillReloj.Size = UDim2.new(1, 0, 0, 26)
+pillReloj.Position = UDim2.fromOffset(0, 128)
+pillReloj.BackgroundColor3 = Color3.fromRGB(20, 24, 32)
+pillReloj.BackgroundTransparency = 0.35
+pillReloj.Parent = marcoSuperior
+
+local cornerReloj = Instance.new("UICorner")
+cornerReloj.CornerRadius = UDim.new(0, 6)
+cornerReloj.Parent = pillReloj
+
+local textoReloj = Instance.new("TextLabel")
+textoReloj.Name = "TextoReloj"
+textoReloj.Size = UDim2.new(1, -12, 1, 0)
+textoReloj.Position = UDim2.fromOffset(8, 0)
+textoReloj.BackgroundTransparency = 1
+textoReloj.Font = Enum.Font.FredokaOne
+textoReloj.Text = "☀️ 02:00 PM • Día"
+textoReloj.TextColor3 = Color3.fromRGB(220, 230, 245)
+textoReloj.TextSize = 13
+textoReloj.TextXAlignment = Enum.TextXAlignment.Left
+textoReloj.Parent = pillReloj
+
+local Lighting = game:GetService("Lighting")
+local function actualizarReloj()
+	local hora = Lighting:GetAttribute("HoraTexto") or "02:00 PM"
+	local periodo = Lighting:GetAttribute("PeriodoDia") or "Día"
+	local icono = if periodo == "Noche"
+		then "🌙"
+		elseif periodo == "Atardecer" then "🌇"
+		elseif periodo == "Amanecer" then "🌅"
+		else "☀️"
+	textoReloj.Text = string.format("%s %s • %s", icono, hora, periodo)
+end
+Lighting:GetAttributeChangedSignal("HoraTexto"):Connect(actualizarReloj)
+Lighting:GetAttributeChangedSignal("PeriodoDia"):Connect(actualizarReloj)
+task.spawn(actualizarReloj)
 
 -- Contenedor Inferior (Inventario de carga y botón para abrir pantalla de inventario)
 local marcoInventario = Instance.new("Frame")

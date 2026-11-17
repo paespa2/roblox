@@ -149,7 +149,7 @@ local function crearModeloMotoFallback(): Model
 	return modelo
 end
 
-local function configurarFisicaConduccion(player: Player, modelo: Model, infoVehiculo: any)
+local function configurarFisicaConduccion(player: Player, modelo: Model, _infoVehiculo: any)
 	local chasis = modelo.PrimaryPart or modelo:FindFirstChild("Chasis") :: BasePart?
 	local asiento = modelo:FindFirstChildOfClass("VehicleSeat")
 	if not chasis or not asiento then
@@ -175,11 +175,11 @@ local function configurarFisicaConduccion(player: Player, modelo: Model, infoVeh
 		aoViejo:Destroy()
 	end
 
-	-- El asiento NUNCA debe colisionar para evitar fuerzas parásitas con el cuerpo del jugador
+	-- El asiento NUNCA debe colisionar y deshabilitamos el skid-steer nativo invertido de Roblox
 	asiento.CanCollide = false
-	asiento.MaxSpeed = (infoVehiculo and infoVehiculo.VelocidadMax) or 26
-	asiento.Torque = if string.find(modelo.Name, "Moto") then 38 else 28
-	asiento.TurnSpeed = 2.2
+	asiento.MaxSpeed = 0
+	asiento.Torque = 0
+	asiento.TurnSpeed = 0
 
 	-- Contrapeso inferior para anclar el centro de gravedad debajo del eje de las ruedas (evita volcamientos)
 	local contrapeso = chasis:FindFirstChild("ContrapesoBajo") :: BasePart?
@@ -200,39 +200,65 @@ local function configurarFisicaConduccion(player: Player, modelo: Model, infoVeh
 		weldContra.Parent = chasis
 	end
 
+	-- Attachment principal para los actuadores físicos de conducción
+	local driveAtt = chasis:FindFirstChild("DriveAtt") :: Attachment?
+	if not driveAtt then
+		driveAtt = Instance.new("Attachment")
+		driveAtt.Name = "DriveAtt"
+		driveAtt.Axis = Vector3.new(1, 0, 0)
+		driveAtt.SecondaryAxis = Vector3.new(0, 1, 0)
+		driveAtt.Parent = chasis
+	end
+
+	-- Actuador de propulsión longitudinal (LinearVelocity en eje Z local)
+	-- MaxAxesForce en Y = 0 para permitir caída libre por gravedad en bajadas y laderas
+	local driveLV = chasis:FindFirstChild("DriveLV") :: LinearVelocity?
+	if not driveLV then
+		driveLV = Instance.new("LinearVelocity")
+		driveLV.Name = "DriveLV"
+		driveLV.Attachment0 = driveAtt
+		driveLV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+		driveLV.ForceLimitsEnabled = true
+		driveLV.MaxAxesForce = Vector3.new(0, 0, 28000)
+		driveLV.VectorVelocity = Vector3.zero
+		driveLV.Parent = chasis
+	end
+
+	-- Actuador de giro horizontal (AngularVelocity en eje Y mundial)
+	local steerAV = chasis:FindFirstChild("SteerAV") :: AngularVelocity?
+	if not steerAV then
+		steerAV = Instance.new("AngularVelocity")
+		steerAV.Name = "SteerAV"
+		steerAV.Attachment0 = driveAtt
+		steerAV.RelativeTo = Enum.ActuatorRelativeTo.World
+		steerAV.MaxTorque = 65000
+		steerAV.AngularVelocity = Vector3.zero
+		steerAV.Parent = chasis
+	end
+
 	-- Estabilizador vertical giroscópico (PrimaryAxisParallel)
 	-- Mantiene el eje UP perfectamente vertical, impidiendo 'giros de cabeza' o backflips,
 	-- pero dejando el giro horizontal (YAW / Steer) con 0% de restricción para girar libremente.
-	local att = chasis:FindFirstChild("EstabilizadorAttachment") :: Attachment?
-	if not att then
-		att = Instance.new("Attachment")
-		att.Name = "EstabilizadorAttachment"
-		att.Axis = Vector3.new(0, 1, 0)
-		att.SecondaryAxis = Vector3.new(0, 0, 1)
-		att.Parent = chasis
-	end
-
 	local ao = chasis:FindFirstChild("EstabilizadorVertical") :: AlignOrientation?
 	if not ao then
 		ao = Instance.new("AlignOrientation")
 		ao.Name = "EstabilizadorVertical"
 		ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
-		ao.Attachment0 = att
+		ao.Attachment0 = driveAtt
 		ao.AlignType = Enum.AlignType.PrimaryAxisParallel
-		ao.PrimaryAxisOnly = true
 		ao.PrimaryAxis = Vector3.new(0, 1, 0)
-		ao.MaxTorque = 30000
-		ao.Responsiveness = 30
+		ao.MaxTorque = 40000
+		ao.Responsiveness = 35
 		ao.ReactionTorqueEnabled = false
 		ao.Parent = chasis
 	end
 
-	-- Configurar colisiones de partes: NO destruir los joints Rotate de las ruedas físicas
+	-- Configurar colisiones de partes: ruedas con fricción lateral reducida para giros fluidos en movimiento
 	for _, desc in ipairs(modelo:GetDescendants()) do
 		if desc:IsA("BasePart") and desc ~= chasis and desc ~= asiento and desc ~= contrapeso then
 			if desc.Name == "RuedaFisica" then
 				desc.CanCollide = true
-				desc.CustomPhysicalProperties = PhysicalProperties.new(1.2, 0.75, 0.05, 1, 1)
+				desc.CustomPhysicalProperties = PhysicalProperties.new(1.0, 0.15, 0.0, 1, 1)
 			else
 				desc.CanCollide = false
 				desc.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.05, 0.1, 1, 1)
