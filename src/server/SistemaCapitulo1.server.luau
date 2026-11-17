@@ -21,8 +21,8 @@ end
 
 local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Vector3
 	local offset = alturaOffset or 3.0
-	local rayOrigin = Vector3.new(posBase.X, posBase.Y + 4.5, posBase.Z)
-	local rayDir = Vector3.new(0, -50, 0)
+	local rayOrigin = Vector3.new(posBase.X, posBase.Y + 12.0, posBase.Z)
+	local rayDir = Vector3.new(0, -75, 0)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 

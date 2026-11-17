@@ -30,8 +30,8 @@ end
 
 local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Vector3
 	local offset = alturaOffset or 3.0
-	local rayOrigin = Vector3.new(posBase.X, posBase.Y + 4.5, posBase.Z)
-	local rayDir = Vector3.new(0, -60, 0)
+	local rayOrigin = Vector3.new(posBase.X, posBase.Y + 12.0, posBase.Z)
+	local rayDir = Vector3.new(0, -75, 0)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 
@@ -274,6 +274,67 @@ local function crearModeloPoliciaBase(
 	hebilla.Parent = modelo
 	soldar(hrp, hebilla)
 
+	-- Chaleco Reflectivo de Tránsito de Alta Visibilidad
+	local chaleco = Instance.new("Part")
+	chaleco.Name = "ChalecoReflectivo"
+	chaleco.Size = Vector3.new(2.05, 1.3, 1.05)
+	chaleco.Position = torso.Position + Vector3.new(0, 0.25, 0)
+	chaleco.Color = Color3.fromRGB(220, 245, 35) -- Amarillo/Verde neón de tránsito
+	chaleco.Material = Enum.Material.SmoothPlastic
+	chaleco.Anchored = false
+	chaleco.CanCollide = false
+	chaleco.Parent = modelo
+	soldar(hrp, chaleco)
+
+	-- Franjas reflectivas plateadas que brillan en la oscuridad
+	for _, yFranja in ipairs({ -0.15, 0.25 }) do
+		local franjaPlateada = Instance.new("Part")
+		franjaPlateada.Name = "FranjaReflectiva"
+		franjaPlateada.Size = Vector3.new(2.1, 0.22, 1.1)
+		franjaPlateada.Position = chaleco.Position + Vector3.new(0, yFranja, 0)
+		franjaPlateada.Color = Color3.fromRGB(245, 250, 255)
+		franjaPlateada.Material = Enum.Material.Neon
+		franjaPlateada.Anchored = false
+		franjaPlateada.CanCollide = false
+		franjaPlateada.Parent = modelo
+		soldar(hrp, franjaPlateada)
+	end
+
+	-- Radio walkie-talkie en el hombro izquierdo
+	local radioHombro = Instance.new("Part")
+	radioHombro.Name = "RadioTransmisor"
+	radioHombro.Size = Vector3.new(0.35, 0.65, 0.35)
+	radioHombro.Position = torso.Position + Vector3.new(-0.85, 0.85, -0.1)
+	radioHombro.Color = Color3.fromRGB(25, 25, 30)
+	radioHombro.Material = Enum.Material.SmoothPlastic
+	radioHombro.Anchored = false
+	radioHombro.CanCollide = false
+	radioHombro.Parent = modelo
+	soldar(hrp, radioHombro)
+
+	local antena = Instance.new("Part")
+	antena.Name = "AntenaRadio"
+	antena.Size = Vector3.new(0.08, 0.7, 0.08)
+	antena.Position = radioHombro.Position + Vector3.new(0, 0.6, 0)
+	antena.Color = Color3.fromRGB(15, 15, 15)
+	antena.Material = Enum.Material.Metal
+	antena.Anchored = false
+	antena.CanCollide = false
+	antena.Parent = modelo
+	soldar(hrp, antena)
+
+	-- Bastón de mando / Porra policial en el cinto derecho
+	local porra = Instance.new("Part")
+	porra.Name = "PorraPolicial"
+	porra.Size = Vector3.new(0.25, 1.8, 0.25)
+	porra.Position = cinturon.Position + Vector3.new(1.15, -0.5, 0.1)
+	porra.Color = Color3.fromRGB(20, 20, 25)
+	porra.Material = Enum.Material.Metal
+	porra.Anchored = false
+	porra.CanCollide = false
+	porra.Parent = modelo
+	soldar(hrp, porra)
+
 	local placa = Instance.new("Part")
 	placa.Name = "Placa"
 	placa.Size = Vector3.new(0.35, 0.45, 0.1)
@@ -296,6 +357,66 @@ local function crearModeloPoliciaBase(
 	cabeza.Parent = modelo
 	soldar(hrp, cabeza)
 
+	-- Bigote policial de autoridad
+	local bigote = Instance.new("Part")
+	bigote.Name = "Bigote"
+	bigote.Size = Vector3.new(0.55, 0.15, 0.15)
+	bigote.Position = cabeza.Position + Vector3.new(0, -0.22, -0.6)
+	bigote.Color = Color3.fromRGB(40, 30, 25)
+	bigote.Material = Enum.Material.SmoothPlastic
+	bigote.Anchored = false
+	bigote.CanCollide = false
+	bigote.Parent = modelo
+	soldar(hrp, bigote)
+
+	if esPatrullero then
+		-- Gafas de sol tácticas para patrulleros
+		local gafas = Instance.new("Part")
+		gafas.Name = "GafasTacticas"
+		gafas.Size = Vector3.new(0.95, 0.25, 0.2)
+		gafas.Position = cabeza.Position + Vector3.new(0, 0.15, -0.62)
+		gafas.Color = Color3.fromRGB(20, 20, 25)
+		gafas.Material = Enum.Material.Glass
+		gafas.Anchored = false
+		gafas.CanCollide = false
+		gafas.Parent = modelo
+		soldar(hrp, gafas)
+	else
+		-- Paleta de PARE / ALTO POLICÍA DENTAL para oficiales de retén
+		local paletaPalo = Instance.new("Part")
+		paletaPalo.Name = "PaletaPalo"
+		paletaPalo.Size = Vector3.new(0.18, 1.8, 0.18)
+		paletaPalo.Position = torso.Position + Vector3.new(-1.3, -0.2, -0.6)
+		paletaPalo.Color = Color3.fromRGB(150, 150, 150)
+		paletaPalo.Material = Enum.Material.Metal
+		paletaPalo.Anchored = false
+		paletaPalo.CanCollide = false
+		paletaPalo.Parent = modelo
+		soldar(hrp, paletaPalo)
+
+		local paletaDisco = Instance.new("Part")
+		paletaDisco.Name = "PaletaDisco"
+		paletaDisco.Size = Vector3.new(1.3, 1.3, 0.15)
+		paletaDisco.Position = paletaPalo.Position + Vector3.new(0, 0.9, 0)
+		paletaDisco.Color = Color3.fromRGB(230, 35, 35) -- Octágono / disco rojo
+		paletaDisco.Material = Enum.Material.SmoothPlastic
+		paletaDisco.Anchored = false
+		paletaDisco.CanCollide = false
+		paletaDisco.Parent = modelo
+		soldar(hrp, paletaDisco)
+
+		local paletaCentro = Instance.new("Part")
+		paletaCentro.Name = "PaletaCentro"
+		paletaCentro.Size = Vector3.new(0.8, 0.8, 0.18)
+		paletaCentro.Position = paletaDisco.Position
+		paletaCentro.Color = Color3.fromRGB(255, 255, 255)
+		paletaCentro.Material = Enum.Material.Neon
+		paletaCentro.Anchored = false
+		paletaCentro.CanCollide = false
+		paletaCentro.Parent = modelo
+		soldar(hrp, paletaCentro)
+	end
+
 	local gorra = Instance.new("Part")
 	gorra.Name = "Gorra"
 	gorra.Size = Vector3.new(1.3, 0.5, 1.4)
@@ -306,6 +427,17 @@ local function crearModeloPoliciaBase(
 	gorra.CanCollide = false
 	gorra.Parent = modelo
 	soldar(hrp, gorra)
+
+	local viseraGorra = Instance.new("Part")
+	viseraGorra.Name = "ViseraGorra"
+	viseraGorra.Size = Vector3.new(1.2, 0.12, 0.65)
+	viseraGorra.Position = gorra.Position + Vector3.new(0, -0.15, -0.75)
+	viseraGorra.Color = Color3.fromRGB(10, 10, 12)
+	viseraGorra.Material = Enum.Material.Metal -- Visera charolada brillante
+	viseraGorra.Anchored = false
+	viseraGorra.CanCollide = false
+	viseraGorra.Parent = modelo
+	soldar(hrp, viseraGorra)
 
 	local placaGorra = Instance.new("Part")
 	placaGorra.Name = "PlacaGorra"

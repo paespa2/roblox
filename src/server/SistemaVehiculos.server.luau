@@ -224,16 +224,18 @@ local function configurarFisicaConduccion(player: Player, modelo: Model, _infoVe
 		driveLV.Parent = chasis
 	end
 
-	-- Actuador de giro horizontal (AngularVelocity en eje Y mundial)
+	-- Actuador de giro horizontal (AngularVelocity en eje Y local de Attachment0)
 	local steerAV = chasis:FindFirstChild("SteerAV") :: AngularVelocity?
 	if not steerAV then
 		steerAV = Instance.new("AngularVelocity")
 		steerAV.Name = "SteerAV"
 		steerAV.Attachment0 = driveAtt
-		steerAV.RelativeTo = Enum.ActuatorRelativeTo.World
+		steerAV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
 		steerAV.MaxTorque = 65000
 		steerAV.AngularVelocity = Vector3.zero
 		steerAV.Parent = chasis
+	else
+		steerAV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
 	end
 
 	-- Estabilizador vertical giroscópico (PrimaryAxisParallel)

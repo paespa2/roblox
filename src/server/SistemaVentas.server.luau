@@ -238,6 +238,73 @@ local MAPA_NPCS_TIENDAS = {
 	},
 }
 
+local function limpiarTarimasYAlinearSuelo(npcsFolder: Folder)
+	-- 1. Eliminar tarimas / cajas residuales si existieran
+	for _, child in ipairs(npcsFolder:GetChildren()) do
+		if child.Name:sub(1, 7) == "Tarima_" then
+			child:Destroy()
+		end
+	end
+
+	-- 2. Asegurar que los pies de cada NPC toquen exactamente la superficie del suelo real
+	local exclusions: { Instance } = { npcsFolder }
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+
+	for _, child in ipairs(npcsFolder:GetChildren()) do
+		if child:IsA("Model") then
+			local hrp = child:FindFirstChild("HumanoidRootPart") :: BasePart? or child.PrimaryPart
+			if hrp then
+				local rayOrigin = Vector3.new(hrp.Position.X, hrp.Position.Y + 2.0, hrp.Position.Z)
+				local hit = nil
+				for _ = 1, 10 do
+					params.FilterDescendantsInstances = exclusions
+					hit = Workspace:Raycast(rayOrigin, Vector3.new(0, -35, 0), params)
+					if not hit then
+						break
+					end
+					local n = hit.Instance.Name:lower()
+					if
+						string.find(n, "techo")
+						or string.find(n, "cubierta")
+						or string.find(n, "teja")
+						or string.find(n, "tarima")
+						or not hit.Instance.CanCollide
+					then
+						table.insert(exclusions, hit.Instance)
+					else
+						break
+					end
+				end
+
+				if hit then
+					local piernas = child:FindFirstChild("PiernaDer") :: BasePart?
+						or child:FindFirstChild("PiernaIzq") :: BasePart?
+						or child:FindFirstChild("Piernas") :: BasePart?
+					local offsetPie = 3.0
+					if piernas then
+						offsetPie = (hrp.Position.Y - piernas.Position.Y) + (piernas.Size.Y / 2)
+					end
+
+					local nuevaY = hit.Position.Y + offsetPie
+					local deltaY = nuevaY - hrp.Position.Y
+					if math.abs(deltaY) > 0.05 then
+						if child.PrimaryPart then
+							child:SetPrimaryPartCFrame(child.PrimaryPart.CFrame + Vector3.new(0, deltaY, 0))
+						else
+							for _, p in ipairs(child:GetDescendants()) do
+								if p:IsA("BasePart") then
+									p.Position += Vector3.new(0, deltaY, 0)
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
 local function configurarNPCsInteractivos()
 	local mapa = Workspace:WaitForChild("Mapa", 10)
 	if not mapa then
@@ -251,6 +318,9 @@ local function configurarNPCsInteractivos()
 	if not npcsFolder then
 		return
 	end
+
+	-- Limpieza de tarimas y alineación precisa con la superficie del suelo
+	limpiarTarimasYAlinearSuelo(npcsFolder)
 
 	-- 1. Tenderos y Don Ábaco
 	for npcName, info in pairs(MAPA_NPCS_TIENDAS) do

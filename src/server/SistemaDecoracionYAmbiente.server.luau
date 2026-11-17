@@ -1,4 +1,106 @@
 local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+
+local function soldar(p0: BasePart, p1: BasePart)
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = p0
+	weld.Part1 = p1
+	weld.Parent = p0
+end
+
+local function configurarFisicaVehiculoConducible(
+	modelo: Model,
+	chasis: BasePart,
+	asiento: VehicleSeat,
+	nombreVehiculo: string
+)
+	asiento.CanCollide = false
+	asiento.MaxSpeed = 0
+	asiento.Torque = 0
+	asiento.TurnSpeed = 0
+
+	-- Propiedades físicas optimizadas para deslizamiento suave sin fricción excesiva
+	chasis.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.05, 0.5, 0.05, 1)
+	for _, part in ipairs(modelo:GetDescendants()) do
+		if part:IsA("BasePart") and part ~= chasis then
+			part.Massless = true
+		end
+	end
+
+	local driveAtt = Instance.new("Attachment")
+	driveAtt.Name = "DriveAtt"
+	driveAtt.Parent = chasis
+
+	local driveLV = Instance.new("LinearVelocity")
+	driveLV.Name = "DriveLV"
+	driveLV.Attachment0 = driveAtt
+	driveLV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+	driveLV.ForceLimitsEnabled = true
+	driveLV.MaxAxesForce = Vector3.new(0, 0, 180000)
+	driveLV.VectorVelocity = Vector3.zero
+	driveLV.Parent = chasis
+
+	local steerAV = Instance.new("AngularVelocity")
+	steerAV.Name = "SteerAV"
+	steerAV.Attachment0 = driveAtt
+	steerAV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+	steerAV.MaxTorque = 300000
+	steerAV.AngularVelocity = Vector3.zero
+	steerAV.Parent = chasis
+
+	local ao = Instance.new("AlignOrientation")
+	ao.Name = "EstabilizadorVertical"
+	ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	ao.Attachment0 = driveAtt
+	ao.AlignType = Enum.AlignType.PrimaryAxisParallel
+	ao.PrimaryAxis = Vector3.new(0, 1, 0)
+	ao.MaxTorque = 120000
+	ao.Responsiveness = 35
+	ao.Parent = chasis
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "PromptConducir"
+	prompt.ObjectText = nombreVehiculo
+	prompt.ActionText = "Conducir " .. nombreVehiculo
+	prompt.HoldDuration = 0.2
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = chasis
+
+	prompt.Triggered:Connect(function(player: Player)
+		local char = player.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if hum and not asiento.Occupant then
+			asiento:Sit(hum)
+		end
+	end)
+
+	asiento:GetPropertyChangedSignal("Occupant"):Connect(function()
+		local occ = asiento.Occupant
+		if occ then
+			local player = Players:GetPlayerFromCharacter(occ.Parent)
+			if player then
+				pcall(function()
+					for _, part in ipairs(modelo:GetDescendants()) do
+						if part:IsA("BasePart") then
+							part:SetNetworkOwner(player)
+						end
+					end
+				end)
+			end
+			chasis.Anchored = false
+		else
+			chasis.Anchored = true
+			pcall(function()
+				for _, part in ipairs(modelo:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part:SetNetworkOwner(nil)
+					end
+				end
+			end)
+		end
+	end)
+end
 
 local function crearCarpetaSiNoExiste(parent: Instance, nombre: string): Folder
 	local f = parent:FindFirstChild(nombre)
@@ -182,7 +284,7 @@ local function crearGuayacanAmarillo(pos: Vector3, parent: Instance)
 end
 
 -- ====================================================================
--- 2. VEHÍCULOS ESTACIONADOS: TAXI AMARILLO Y CAMPERO DE ESTACAS
+-- 2. VEHÍCULOS ESTACIONADOS Y CONDUCIBLES: TAXI, CAMPERO Y MOTO REPARTOS
 -- ====================================================================
 local function crearTaxiAmarillo(pos: Vector3, rotY: number, parent: Instance)
 	local modelo = Instance.new("Model")
@@ -207,9 +309,10 @@ local function crearTaxiAmarillo(pos: Vector3, rotY: number, parent: Instance)
 	cabina.Color = Color3.fromRGB(40, 48, 60)
 	cabina.Material = Enum.Material.Glass
 	cabina.Transparency = 0.35
-	cabina.Anchored = true
+	cabina.Anchored = false
 	cabina.CanCollide = true
 	cabina.Parent = modelo
+	soldar(chasis, cabina)
 
 	-- Letrero TAXI iluminado en el techo
 	local cartelTaxi = Instance.new("Part")
@@ -218,9 +321,10 @@ local function crearTaxiAmarillo(pos: Vector3, rotY: number, parent: Instance)
 	cartelTaxi.CFrame = cabina.CFrame * CFrame.new(0, 1.5, 0)
 	cartelTaxi.Color = Color3.fromRGB(255, 245, 220)
 	cartelTaxi.Material = Enum.Material.Neon
-	cartelTaxi.Anchored = true
+	cartelTaxi.Anchored = false
 	cartelTaxi.CanCollide = false
 	cartelTaxi.Parent = modelo
+	soldar(chasis, cartelTaxi)
 
 	local bbg = Instance.new("BillboardGui")
 	bbg.Size = UDim2.fromOffset(80, 28)
@@ -245,9 +349,10 @@ local function crearTaxiAmarillo(pos: Vector3, rotY: number, parent: Instance)
 		farol.CFrame = chasis.CFrame * CFrame.new(x, 0.2, -6.4)
 		farol.Color = Color3.fromRGB(255, 255, 220)
 		farol.Material = Enum.Material.Neon
-		farol.Anchored = true
+		farol.Anchored = false
 		farol.CanCollide = false
 		farol.Parent = modelo
+		soldar(chasis, farol)
 	end
 
 	-- Ruedas
@@ -260,11 +365,24 @@ local function crearTaxiAmarillo(pos: Vector3, rotY: number, parent: Instance)
 			rueda.CFrame = chasis.CFrame * CFrame.new(x, -0.7, z) * CFrame.Angles(0, 0, math.rad(90))
 			rueda.Color = Color3.fromRGB(30, 30, 35)
 			rueda.Material = Enum.Material.Rubber
-			rueda.Anchored = true
+			rueda.Anchored = false
 			rueda.CanCollide = false
 			rueda.Parent = modelo
+			soldar(chasis, rueda)
 		end
 	end
+
+	-- Asiento de Conducción
+	local asiento = Instance.new("VehicleSeat")
+	asiento.Name = "VehicleSeat"
+	asiento.Size = Vector3.new(2, 1, 2)
+	asiento.CFrame = chasis.CFrame * CFrame.new(-1.4, 1.2, -0.6)
+	asiento.Transparency = 1
+	asiento.CanCollide = false
+	asiento.Parent = modelo
+	soldar(chasis, asiento)
+
+	configurarFisicaVehiculoConducible(modelo, chasis, asiento, "Taxi Clásico")
 
 	modelo.Parent = parent
 	return modelo
@@ -292,9 +410,10 @@ local function crearCamperoWillys(pos: Vector3, rotY: number, parent: Instance)
 	cabina.CFrame = chasis.CFrame * CFrame.new(0, 2.4, -2.5)
 	cabina.Color = Color3.fromRGB(55, 80, 50)
 	cabina.Material = Enum.Material.Metal
-	cabina.Anchored = true
+	cabina.Anchored = false
 	cabina.CanCollide = true
 	cabina.Parent = modelo
+	soldar(chasis, cabina)
 
 	-- Estacas traseras de madera
 	for _, x in ipairs({ -3.1, 3.1 }) do
@@ -304,9 +423,10 @@ local function crearCamperoWillys(pos: Vector3, rotY: number, parent: Instance)
 		estaca.CFrame = chasis.CFrame * CFrame.new(x, 2.2, 3.2)
 		estaca.Color = Color3.fromRGB(150, 105, 60)
 		estaca.Material = Enum.Material.WoodPlanks
-		estaca.Anchored = true
+		estaca.Anchored = false
 		estaca.CanCollide = true
 		estaca.Parent = modelo
+		soldar(chasis, estaca)
 	end
 
 	-- Bultos de café en el platón
@@ -317,10 +437,149 @@ local function crearCamperoWillys(pos: Vector3, rotY: number, parent: Instance)
 		bulto.CFrame = chasis.CFrame * CFrame.new((i % 2 == 0 and 1.3 or -1.3), 1.2, 1.5 + (i * 1.0))
 		bulto.Color = Color3.fromRGB(165, 140, 105)
 		bulto.Material = Enum.Material.Fabric
-		bulto.Anchored = true
+		bulto.Anchored = false
 		bulto.CanCollide = true
 		bulto.Parent = modelo
+		soldar(chasis, bulto)
 	end
+
+	-- Ruedas grandes 4x4
+	for _, x in ipairs({ -3.5, 3.5 }) do
+		for _, z in ipairs({ -4.5, 4.5 }) do
+			local rueda = Instance.new("Part")
+			rueda.Name = "RuedaCampero"
+			rueda.Shape = Enum.PartType.Cylinder
+			rueda.Size = Vector3.new(1.2, 2.8, 2.8)
+			rueda.CFrame = chasis.CFrame * CFrame.new(x, -0.6, z) * CFrame.Angles(0, 0, math.rad(90))
+			rueda.Color = Color3.fromRGB(25, 25, 25)
+			rueda.Material = Enum.Material.Rubber
+			rueda.Anchored = false
+			rueda.CanCollide = false
+			rueda.Parent = modelo
+			soldar(chasis, rueda)
+		end
+	end
+
+	-- Asiento de Conducción
+	local asiento = Instance.new("VehicleSeat")
+	asiento.Name = "VehicleSeat"
+	asiento.Size = Vector3.new(2, 1, 2)
+	asiento.CFrame = chasis.CFrame * CFrame.new(-1.6, 1.4, -2.0)
+	asiento.Transparency = 1
+	asiento.CanCollide = false
+	asiento.Parent = modelo
+	soldar(chasis, asiento)
+
+	configurarFisicaVehiculoConducible(modelo, chasis, asiento, "Campero Willys")
+
+	modelo.Parent = parent
+	return modelo
+end
+
+local function crearMotoMensajera125(pos: Vector3, rotY: number, parent: Instance)
+	local modelo = Instance.new("Model")
+	modelo.Name = "Vehiculo_MotoMensajera125"
+
+	local chasis = Instance.new("Part")
+	chasis.Name = "Chasis"
+	chasis.Size = Vector3.new(1.8, 1.6, 5.0)
+	chasis.CFrame = CFrame.new(pos + Vector3.new(0, 1.6, 0)) * CFrame.Angles(0, math.rad(rotY), 0)
+	chasis.Color = Color3.fromRGB(180, 30, 30) -- Rojo mensajería
+	chasis.Material = Enum.Material.Metal
+	chasis.Anchored = true
+	chasis.CanCollide = true
+	chasis.Parent = modelo
+	modelo.PrimaryPart = chasis
+
+	-- Tanque de gasolina
+	local tanque = Instance.new("Part")
+	tanque.Name = "Tanque"
+	tanque.Size = Vector3.new(1.4, 0.9, 1.6)
+	tanque.CFrame = chasis.CFrame * CFrame.new(0, 0.9, -0.8)
+	tanque.Color = Color3.fromRGB(180, 30, 30)
+	tanque.Material = Enum.Material.SmoothPlastic
+	tanque.Anchored = false
+	tanque.CanCollide = false
+	tanque.Parent = modelo
+	soldar(chasis, tanque)
+
+	-- Manubrio y farol redondo
+	local manubrio = Instance.new("Part")
+	manubrio.Name = "Manubrio"
+	manubrio.Size = Vector3.new(2.8, 0.25, 0.3)
+	manubrio.CFrame = chasis.CFrame * CFrame.new(0, 1.7, -1.8)
+	manubrio.Color = Color3.fromRGB(220, 220, 225)
+	manubrio.Material = Enum.Material.Metal
+	manubrio.Anchored = false
+	manubrio.CanCollide = false
+	manubrio.Parent = modelo
+	soldar(chasis, manubrio)
+
+	local farol = Instance.new("Part")
+	farol.Name = "FarolDelantero"
+	farol.Shape = Enum.PartType.Cylinder
+	farol.Size = Vector3.new(0.4, 0.9, 0.9)
+	farol.CFrame = chasis.CFrame * CFrame.new(0, 1.2, -2.4) * CFrame.Angles(0, 0, math.rad(90))
+	farol.Color = Color3.fromRGB(255, 255, 230)
+	farol.Material = Enum.Material.Neon
+	farol.Anchored = false
+	farol.CanCollide = false
+	farol.Parent = modelo
+	soldar(chasis, farol)
+
+	-- Ruedas delantera y trasera
+	for _, z in ipairs({ -2.1, 2.1 }) do
+		local rueda = Instance.new("Part")
+		rueda.Name = "RuedaMoto"
+		rueda.Shape = Enum.PartType.Cylinder
+		rueda.Size = Vector3.new(0.6, 2.2, 2.2)
+		rueda.CFrame = chasis.CFrame * CFrame.new(0, -0.5, z) * CFrame.Angles(0, 0, math.rad(90))
+		rueda.Color = Color3.fromRGB(25, 25, 25)
+		rueda.Material = Enum.Material.Rubber
+		rueda.Anchored = false
+		rueda.CanCollide = false
+		rueda.Parent = modelo
+		soldar(chasis, rueda)
+	end
+
+	-- Cajón de repartos trasero ("REPARTOS EL PATRÓN")
+	local cajon = Instance.new("Part")
+	cajon.Name = "CajonRepartos"
+	cajon.Size = Vector3.new(2.0, 1.8, 2.0)
+	cajon.CFrame = chasis.CFrame * CFrame.new(0, 1.4, 1.8)
+	cajon.Color = Color3.fromRGB(240, 240, 245)
+	cajon.Material = Enum.Material.SmoothPlastic
+	cajon.Anchored = false
+	cajon.CanCollide = true
+	cajon.Parent = modelo
+	soldar(chasis, cajon)
+
+	local bbgCajon = Instance.new("BillboardGui")
+	bbgCajon.Size = UDim2.fromOffset(100, 30)
+	bbgCajon.AlwaysOnTop = true
+	bbgCajon.MaxDistance = 40
+	bbgCajon.Parent = cajon
+
+	local lblCajon = Instance.new("TextLabel")
+	lblCajon.Size = UDim2.fromScale(1, 1)
+	lblCajon.BackgroundTransparency = 1
+	lblCajon.Font = Enum.Font.FredokaOne
+	lblCajon.Text = "REPARTOS 125"
+	lblCajon.TextColor3 = Color3.fromRGB(180, 25, 25)
+	lblCajon.TextSize = 14
+	lblCajon.Parent = bbgCajon
+
+	-- Asiento VehicleSeat
+	local asiento = Instance.new("VehicleSeat")
+	asiento.Name = "VehicleSeat"
+	asiento.Size = Vector3.new(1.6, 0.8, 1.6)
+	asiento.CFrame = chasis.CFrame * CFrame.new(0, 1.0, 0.2)
+	asiento.Transparency = 1
+	asiento.CanCollide = false
+	asiento.Parent = modelo
+	soldar(chasis, asiento)
+
+	configurarFisicaVehiculoConducible(modelo, chasis, asiento, "Moto Repartos 125")
 
 	modelo.Parent = parent
 	return modelo
@@ -561,11 +820,15 @@ local function inicializarDecoracionYAmbiente()
 	crearGuayacanAmarillo(Vector3.new(28, 60, -45), parqueFolder)
 	crearGuayacanAmarillo(Vector3.new(28, 60, 45), parqueFolder)
 
-	-- 2. Vehículos Estacionados Típicos Colombianos
+	-- 2. Vehículos Estacionados y Conducibles Típicos Colombianos
 	-- Taxi tradicional en la bahía de la plaza
 	crearTaxiAmarillo(Vector3.new(14, 60, -28), 90, vehiculosEstacionados)
 	-- Campero Willys cafetero en la esquina comercial
 	crearCamperoWillys(Vector3.new(-48, 60, 50), -90, vehiculosEstacionados)
+	-- Moto Mensajera 125cc en el parque frente al colegio
+	crearMotoMensajera125(Vector3.new(-28, 60, -30), 45, vehiculosEstacionados)
+	-- Moto Mensajera 125cc de entregas en la tienda de Don Chucho
+	crearMotoMensajera125(Vector3.new(88, 60, 160), -90, vehiculosEstacionados)
 
 	-- 3. Interiores
 	decorarInteriorCocinaAbuela(interioresFolder)

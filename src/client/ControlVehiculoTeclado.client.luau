@@ -86,17 +86,38 @@ RunService.RenderStepped:Connect(function(dt: number)
 	end
 
 	-- Identificar vehículo equipado y estadísticas base
-	local idVehiculo = if string.find(modelo.Name, "Moto")
-		then "Vehiculo_Moto"
-		else "Vehiculo_Bicicleta"
-	local stats = Datos.Vehiculos[idVehiculo]
-		or (
-			if idVehiculo == "Vehiculo_Moto"
-				then { VelocidadMax = 48, Torque = 52, TurnSpeed = 2.6 }
-				else { VelocidadMax = 34, Torque = 36, TurnSpeed = 2.4 }
-		)
-	local velBase = stats.VelocidadMax or 34
-	local turnSpeed = stats.TurnSpeed or 2.4
+	local nombreMod = modelo.Name:lower()
+	local tipoVehiculo = "Bicicleta"
+	local velBase = 34
+	local turnSpeed = 2.4
+	local maxForceZ = 28000
+	local maxTorqueGiro = 70000
+
+	if string.find(nombreMod, "moto") then
+		tipoVehiculo = "Moto"
+		velBase = 48
+		turnSpeed = 2.7
+		maxForceZ = 45000
+		maxTorqueGiro = 95000
+	elseif string.find(nombreMod, "taxi") then
+		tipoVehiculo = "Taxi"
+		velBase = 44
+		turnSpeed = 2.2
+		maxForceZ = 160000
+		maxTorqueGiro = 280000
+	elseif string.find(nombreMod, "campero") or string.find(nombreMod, "willys") then
+		tipoVehiculo = "Campero"
+		velBase = 40
+		turnSpeed = 2.0
+		maxForceZ = 200000
+		maxTorqueGiro = 320000
+	else
+		local stats = Datos.Vehiculos["Vehiculo_Bicicleta"]
+		if stats then
+			velBase = stats.VelocidadMax or 34
+			turnSpeed = stats.TurnSpeed or 2.4
+		end
+	end
 
 	-- Detección de superficie bajo el vehículo para física realista
 	raycastParams.FilterDescendantsInstances = { modelo, char }
@@ -151,9 +172,13 @@ RunService.RenderStepped:Connect(function(dt: number)
 		steerAV = Instance.new("AngularVelocity")
 		steerAV.Name = "SteerAV"
 		steerAV.Attachment0 = driveAtt
-		steerAV.RelativeTo = Enum.ActuatorRelativeTo.World
+		steerAV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
 		steerAV.MaxTorque = 70000
 		steerAV.Parent = chasis
+	else
+		if steerAV.RelativeTo ~= Enum.ActuatorRelativeTo.Attachment0 then
+			steerAV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+		end
 	end
 
 	local ao = chasis:FindFirstChild("EstabilizadorVertical") :: AlignOrientation?
@@ -225,30 +250,29 @@ RunService.RenderStepped:Connect(function(dt: number)
 		-- 2. Propulsión longitudinal únicamente en el eje Z local
 		-- Nota: En el modelo de la bicicleta, -Z local apunta hacia el manubrio (adelante).
 		-- Por lo tanto: velocidad hacia adelante (positiva) requiere empuje en -Z.
-		driveLV.MaxAxesForce = Vector3.new(0, 0, 28000)
+		driveLV.MaxAxesForce = Vector3.new(0, 0, maxForceZ)
 		driveLV.VectorVelocity = Vector3.new(0, 0, -velocidadActual)
 
 		-- 3. Giro Horizontal (Yaw) en Movimiento y Estático:
-		-- A (steer = -1): giro hacia la IZQUIERDA (+Y en rotación mundial)
-		-- D (steer = 1): giro hacia la DERECHA (-Y en rotación mundial)
-		-- Cuando va en movimiento hacia adelante o atrás, el giro es suave y continuo;
-		-- cuando está detenido, permite girar o acomodarse.
+		-- En el sistema de coordenadas mundial de Roblox (+Y hacia arriba):
+		-- Una velocidad angular Y negativa (-Y) rota en sentido horario / hacia la DERECHA (+X).
+		-- Una velocidad angular Y positiva (+Y) rota en sentido antihorario / hacia la IZQUIERDA (-X).
+		-- Por lo tanto:
+		-- D / Derecha (steer = +1) -> velocidadAngularY negativa para girar a la DERECHA.
+		-- A / Izquierda (steer = -1) -> velocidadAngularY positiva para girar a la IZQUIERDA.
 		local factorGiro = 1.0
 		if math.abs(velocidadActual) > 0.5 then
-			-- En movimiento a velocidad alta, modula el giro para trazar arcos limpios
 			factorGiro = math.clamp(1.2 - (math.abs(velocidadActual) / velBase) * 0.3, 0.7, 1.2)
 		end
 
-		local velocidadAngularY = steer * turnSpeed * factorGiro
-		steerAV.MaxTorque = 70000
+		local velocidadAngularY = -steer * turnSpeed * factorGiro
+		steerAV.MaxTorque = maxTorqueGiro
 		steerAV.AngularVelocity = Vector3.new(0, velocidadAngularY, 0)
 
-		-- 4. Inclinación Dinámica Realista (Banking) en Curvas
-		-- Cuando gira a la derecha (D), la bicicleta y el avatar se inclinan hacia la derecha.
-		-- Cuando gira a la izquierda (A), se inclinan hacia la izquierda.
+		-- 4. Inclinación Dinámica Realista (Banking) únicamente en vehículos de dos ruedas (Bici y Moto)
 		if ao then
 			local leanAngle = 0
-			if math.abs(velocidadActual) > 3 then
+			if (tipoVehiculo == "Bicicleta" or tipoVehiculo == "Moto") and math.abs(velocidadActual) > 3 then
 				local dirAvance = math.sign(velocidadActual)
 				leanAngle = steer * 0.14 * dirAvance
 			end
@@ -258,9 +282,9 @@ RunService.RenderStepped:Connect(function(dt: number)
 		end
 	end
 
-	-- 5. Animación Procedural del Avatar (Pedaleo de piernas y Manos al Manubrio)
+	-- 5. Animación Procedural del Avatar (Pedaleo únicamente en Bicicleta)
 	local rootPart = char:FindFirstChild("HumanoidRootPart")
-	if rootPart and math.abs(velocidadActual) > 0.5 and not enElAire then
+	if tipoVehiculo == "Bicicleta" and rootPart and math.abs(velocidadActual) > 0.5 and not enElAire then
 		pedalAngle = (pedalAngle + (dt * velocidadActual * 0.45)) % (math.pi * 2)
 
 		-- Motores R15 de caderas y rodillas
