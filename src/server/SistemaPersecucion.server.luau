@@ -21,6 +21,70 @@ local estadosPersecucion: { [Player]: EstadoJugadorPersecucion } = {}
 local redadaEnCurso = false
 local iniciarRedadaDental: () -> ()
 
+local function soldar(p0: BasePart, p1: BasePart)
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = p0
+	weld.Part1 = p1
+	weld.Parent = p0
+end
+
+local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Vector3
+	local offset = alturaOffset or 3.0
+	local rayOrigin = Vector3.new(posBase.X, posBase.Y + 4.5, posBase.Z)
+	local rayDir = Vector3.new(0, -60, 0)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+
+	local exclusions: { Instance } = {}
+	local mapa = Workspace:FindFirstChild("Mapa")
+	if mapa then
+		local dec = mapa:FindFirstChild("Decoracion")
+		if dec then
+			table.insert(exclusions, dec)
+		end
+	end
+
+	local maxPasos = 10
+	local paso = 0
+	while paso < maxPasos do
+		paso += 1
+		params.FilterDescendantsInstances = exclusions
+		local hit = Workspace:Raycast(rayOrigin, rayDir, params)
+		if not hit then
+			break
+		end
+
+		local n = hit.Instance.Name:lower()
+		local esTechoOCielo = (
+			string.find(n, "techo")
+			or string.find(n, "teja")
+			or string.find(n, "cubierta")
+			or string.find(n, "dintel")
+			or string.find(n, "alero")
+			or string.find(n, "toldo")
+			or string.find(n, "cobertizo")
+			or string.find(n, "marquesina")
+			or string.find(n, "cielo")
+			or string.find(n, "losa")
+			or string.find(n, "banderin")
+			or string.find(n, "poste")
+			or string.find(n, "foco")
+			or string.find(n, "letrero")
+			or not hit.Instance.CanCollide
+			or (hit.Position.Y > posBase.Y + 2.0)
+		)
+
+		if esTechoOCielo then
+			table.insert(exclusions, hit.Instance)
+			rayOrigin = hit.Position - Vector3.new(0, 0.05, 0)
+		else
+			return Vector3.new(posBase.X, hit.Position.Y + offset, posBase.Z)
+		end
+	end
+
+	return posBase
+end
+
 local function obtenerPuntoSpawnSeguro(): Vector3
 	local puntos = Workspace:FindFirstChild("Puntos")
 	if puntos then
@@ -170,7 +234,7 @@ local function crearModeloPoliciaBase(
 	local hrp = Instance.new("Part")
 	hrp.Name = "HumanoidRootPart"
 	hrp.Size = Vector3.new(2, 2, 1)
-	hrp.Position = pos
+	hrp.Position = obtenerPosicionSuelo(pos, 3.0)
 	hrp.Transparency = 1
 	hrp.CanCollide = false
 	hrp.Anchored = true
@@ -183,9 +247,10 @@ local function crearModeloPoliciaBase(
 	torso.Position = hrp.Position
 	torso.Color = Color3.fromRGB(24, 34, 56) -- Uniforme policía azul oscuro
 	torso.Material = Enum.Material.SmoothPlastic
-	torso.Anchored = true
-	torso.CanCollide = true
+	torso.Anchored = false
+	torso.CanCollide = false
 	torso.Parent = modelo
+	soldar(hrp, torso)
 
 	local cinturon = Instance.new("Part")
 	cinturon.Name = "Cinturon"
@@ -193,9 +258,10 @@ local function crearModeloPoliciaBase(
 	cinturon.Position = torso.Position + Vector3.new(0, -0.85, 0)
 	cinturon.Color = Color3.fromRGB(15, 15, 18)
 	cinturon.Material = Enum.Material.SmoothPlastic
-	cinturon.Anchored = true
+	cinturon.Anchored = false
 	cinturon.CanCollide = false
 	cinturon.Parent = modelo
+	soldar(hrp, cinturon)
 
 	local hebilla = Instance.new("Part")
 	hebilla.Name = "Hebilla"
@@ -203,9 +269,10 @@ local function crearModeloPoliciaBase(
 	hebilla.Position = cinturon.Position + Vector3.new(0, 0, -0.55)
 	hebilla.Color = Color3.fromRGB(240, 200, 50)
 	hebilla.Material = Enum.Material.Metal
-	hebilla.Anchored = true
+	hebilla.Anchored = false
 	hebilla.CanCollide = false
 	hebilla.Parent = modelo
+	soldar(hrp, hebilla)
 
 	local placa = Instance.new("Part")
 	placa.Name = "Placa"
@@ -213,9 +280,10 @@ local function crearModeloPoliciaBase(
 	placa.Position = torso.Position + Vector3.new(0.5, 0.45, -0.55)
 	placa.Color = Color3.fromRGB(255, 215, 0)
 	placa.Material = Enum.Material.Metal
-	placa.Anchored = true
+	placa.Anchored = false
 	placa.CanCollide = false
 	placa.Parent = modelo
+	soldar(hrp, placa)
 
 	local cabeza = Instance.new("Part")
 	cabeza.Name = "Head"
@@ -223,9 +291,10 @@ local function crearModeloPoliciaBase(
 	cabeza.Position = torso.Position + Vector3.new(0, 1.6, 0)
 	cabeza.Color = Color3.fromRGB(235, 195, 160)
 	cabeza.Material = Enum.Material.SmoothPlastic
-	cabeza.Anchored = true
+	cabeza.Anchored = false
 	cabeza.CanCollide = false
 	cabeza.Parent = modelo
+	soldar(hrp, cabeza)
 
 	local gorra = Instance.new("Part")
 	gorra.Name = "Gorra"
@@ -233,9 +302,10 @@ local function crearModeloPoliciaBase(
 	gorra.Position = cabeza.Position + Vector3.new(0, 0.65, -0.1)
 	gorra.Color = Color3.fromRGB(20, 26, 42)
 	gorra.Material = Enum.Material.SmoothPlastic
-	gorra.Anchored = true
+	gorra.Anchored = false
 	gorra.CanCollide = false
 	gorra.Parent = modelo
+	soldar(hrp, gorra)
 
 	local placaGorra = Instance.new("Part")
 	placaGorra.Name = "PlacaGorra"
@@ -243,9 +313,10 @@ local function crearModeloPoliciaBase(
 	placaGorra.Position = gorra.Position + Vector3.new(0, 0, -0.72)
 	placaGorra.Color = Color3.fromRGB(255, 215, 0)
 	placaGorra.Material = Enum.Material.Metal
-	placaGorra.Anchored = true
+	placaGorra.Anchored = false
 	placaGorra.CanCollide = false
 	placaGorra.Parent = modelo
+	soldar(hrp, placaGorra)
 
 	local piernas = Instance.new("Part")
 	piernas.Name = "Piernas"
@@ -253,9 +324,10 @@ local function crearModeloPoliciaBase(
 	piernas.Position = torso.Position + Vector3.new(0, -2, 0)
 	piernas.Color = Color3.fromRGB(18, 24, 38)
 	piernas.Material = Enum.Material.SmoothPlastic
-	piernas.Anchored = true
-	piernas.CanCollide = true
+	piernas.Anchored = false
+	piernas.CanCollide = false
 	piernas.Parent = modelo
+	soldar(hrp, piernas)
 
 	local sirena = Instance.new("PointLight")
 	sirena.Name = "SirenaLuz"
@@ -721,12 +793,10 @@ local function configurar12PoliciasDentales()
 						-- Avanzar persiguiendo al jugador a 13.5 studs/s
 						local paso = dir.Unit * math.min(dist, 13.5 * dt)
 						local nuevaPos = hrp.Position + paso
-						local lookTarget = nuevaPos + dir.Unit
-						oficial:PivotTo(
-							CFrame.lookAt(
-								nuevaPos,
-								Vector3.new(lookTarget.X, nuevaPos.Y, lookTarget.Z)
-							)
+						local posSuelo = obtenerPosicionSuelo(nuevaPos, 3.0)
+						hrp.CFrame = CFrame.lookAt(
+							posSuelo,
+							posSuelo + dir.Unit
 						)
 					end
 				else
@@ -749,12 +819,10 @@ local function configurar12PoliciasDentales()
 					else
 						local paso = dirPatrulla.Unit * math.min(distPatrulla, 7.0 * dt)
 						local nuevaPos = hrp.Position + paso
-						local lookTarget = nuevaPos + dirPatrulla.Unit
-						oficial:PivotTo(
-							CFrame.lookAt(
-								nuevaPos,
-								Vector3.new(lookTarget.X, nuevaPos.Y, lookTarget.Z)
-							)
+						local posSuelo = obtenerPosicionSuelo(nuevaPos, 3.0)
+						hrp.CFrame = CFrame.lookAt(
+							posSuelo,
+							posSuelo + dirPatrulla.Unit
 						)
 					end
 				end

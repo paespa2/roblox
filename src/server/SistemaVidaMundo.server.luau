@@ -9,13 +9,13 @@ local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 -- UTILIDAD: RAYCAST CANÓNICO PARA ENRAIZAR NPCS Y OBJETOS AL SUELO
 -- ====================================================================
 local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Vector3
-	local offset = alturaOffset or 2.5
-	local rayOrigin = Vector3.new(posBase.X, posBase.Y + 20, posBase.Z)
-	local rayDir = Vector3.new(0, -60, 0)
+	local offset = alturaOffset or 2.7
+	local rayOrigin = Vector3.new(posBase.X, posBase.Y + 4.5, posBase.Z)
+	local rayDir = Vector3.new(0, -70, 0)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 
-	local exclusions = {}
+	local exclusions: { Instance } = {}
 	local mapa = Workspace:FindFirstChild("Mapa")
 	if mapa then
 		local dec = mapa:FindFirstChild("Decoracion")
@@ -23,34 +23,53 @@ local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Ve
 			table.insert(exclusions, dec)
 		end
 	end
-	params.FilterDescendantsInstances = exclusions
 
-	local hit = Workspace:Raycast(rayOrigin, rayDir, params)
-	while hit do
+	local maxPasos = 12
+	local paso = 0
+	while paso < maxPasos do
+		paso += 1
+		params.FilterDescendantsInstances = exclusions
+		local hit = Workspace:Raycast(rayOrigin, rayDir, params)
+		if not hit then
+			break
+		end
+
 		local n = hit.Instance.Name:lower()
-		if
+		local esTechoOCielo = (
 			string.find(n, "techo")
-			or string.find(n, "roof")
+			or string.find(n, "teja")
+			or string.find(n, "cubierta")
+			or string.find(n, "dintel")
+			or string.find(n, "alero")
+			or string.find(n, "toldo")
+			or string.find(n, "cobertizo")
+			or string.find(n, "marquesina")
+			or string.find(n, "cielo")
+			or string.find(n, "losa")
 			or string.find(n, "banderin")
 			or string.find(n, "poste")
 			or string.find(n, "foco")
 			or string.find(n, "letrero")
-		then
+			or string.find(n, "cartel")
+			or string.find(n, "lampara")
+			or string.find(n, "baranda")
+			or string.find(n, "valla")
+			or string.find(n, "banca")
+			or string.find(n, "asiento")
+			or string.find(n, "mesa")
+			or not hit.Instance.CanCollide
+			or (hit.Position.Y > posBase.Y + 2.0)
+		)
+
+		if esTechoOCielo then
 			table.insert(exclusions, hit.Instance)
-			params.FilterDescendantsInstances = exclusions
-			hit = Workspace:Raycast(
-				hit.Position - Vector3.new(0, 0.1, 0),
-				Vector3.new(0, -40, 0),
-				params
-			)
+			rayOrigin = hit.Position - Vector3.new(0, 0.05, 0)
+			rayDir = Vector3.new(0, -60, 0)
 		else
-			break
+			return Vector3.new(posBase.X, hit.Position.Y + offset, posBase.Z)
 		end
 	end
 
-	if hit then
-		return Vector3.new(posBase.X, hit.Position.Y + offset, posBase.Z)
-	end
 	return posBase
 end
 
@@ -392,7 +411,7 @@ local function crearFirulaisElPerrito(parentFolder: Instance)
 	modelo.Name = "Animal_Firulais"
 	modelo.Parent = parentFolder
 
-	local posInicial = obtenerPosicionSuelo(Vector3.new(5, 68, 80), 1.0)
+	local posInicial = obtenerPosicionSuelo(Vector3.new(5, 60, 80), 0.55)
 
 	local cuerpo = Instance.new("Part")
 	cuerpo.Name = "HumanoidRootPart"
@@ -411,7 +430,7 @@ local function crearFirulaisElPerrito(parentFolder: Instance)
 	cabeza.Position = cuerpo.Position + Vector3.new(0, 0.7, -1.2)
 	cabeza.Color = Color3.fromRGB(180, 115, 60)
 	cabeza.Material = Enum.Material.SmoothPlastic
-	cabeza.Anchored = true
+	cabeza.Anchored = false
 	cabeza.CanCollide = false
 	cabeza.Parent = modelo
 	soldar(cuerpo, cabeza)
@@ -422,7 +441,7 @@ local function crearFirulaisElPerrito(parentFolder: Instance)
 	hocico.Position = cabeza.Position + Vector3.new(0, -0.15, -0.6)
 	hocico.Color = Color3.fromRGB(40, 30, 25)
 	hocico.Material = Enum.Material.SmoothPlastic
-	hocico.Anchored = true
+	hocico.Anchored = false
 	hocico.CanCollide = false
 	hocico.Parent = modelo
 	soldar(cuerpo, hocico)
@@ -434,7 +453,7 @@ local function crearFirulaisElPerrito(parentFolder: Instance)
 	cola.Position = cuerpo.Position + Vector3.new(0, 0.4, 1.3)
 	cola.Color = Color3.fromRGB(160, 100, 50)
 	cola.Material = Enum.Material.SmoothPlastic
-	cola.Anchored = true
+	cola.Anchored = false
 	cola.CanCollide = false
 	cola.Parent = modelo
 	soldar(cuerpo, cola)
@@ -487,16 +506,16 @@ local function crearFirulaisElPerrito(parentFolder: Instance)
 	-- Paseo por la acera de la plaza
 	task.spawn(function()
 		local puntos = {
-			Vector3.new(5, 68, 75),
-			Vector3.new(5, 68, 95),
-			Vector3.new(5, 68, 65),
+			Vector3.new(5, 60, 75),
+			Vector3.new(5, 60, 95),
+			Vector3.new(5, 60, 65),
 		}
 		local idx = 1
 
 		while modelo.Parent do
 			task.wait(5.0)
 			idx = (idx % #puntos) + 1
-			local meta = obtenerPosicionSuelo(puntos[idx], 1.0)
+			local meta = obtenerPosicionSuelo(puntos[idx], 0.55)
 			local dir = (meta - cuerpo.Position) * Vector3.new(1, 0, 1)
 			if dir.Magnitude > 1.5 then
 				local cframeObj = CFrame.lookAt(meta, meta + dir.Unit)
@@ -506,9 +525,6 @@ local function crearFirulaisElPerrito(parentFolder: Instance)
 					{ CFrame = cframeObj }
 				)
 				tween:Play()
-				cabeza.CFrame = cframeObj * CFrame.new(0, 0.7, -1.2)
-				hocico.CFrame = cframeObj * CFrame.new(0, 0.55, -1.8)
-				cola.CFrame = cframeObj * CFrame.new(0, 0.4, 1.3)
 			end
 		end
 	end)
@@ -526,7 +542,7 @@ local function crearGallinasMelcocha(parentFolder: Instance)
 		modelo.Name = nombre
 		modelo.Parent = parentFolder
 
-		local posSuelo = obtenerPosicionSuelo(pos, 0.6)
+		local posSuelo = obtenerPosicionSuelo(pos, 0.4)
 
 		local cuerpo = Instance.new("Part")
 		cuerpo.Name = "HumanoidRootPart"
@@ -547,7 +563,7 @@ local function crearGallinasMelcocha(parentFolder: Instance)
 		cabeza.Position = cuerpo.Position + Vector3.new(0, 0.5, -0.5)
 		cabeza.Color = cuerpo.Color
 		cabeza.Material = Enum.Material.SmoothPlastic
-		cabeza.Anchored = true
+		cabeza.Anchored = false
 		cabeza.CanCollide = false
 		cabeza.Parent = modelo
 		soldar(cuerpo, cabeza)
@@ -558,7 +574,7 @@ local function crearGallinasMelcocha(parentFolder: Instance)
 		cresta.Position = cabeza.Position + Vector3.new(0, 0.35, 0)
 		cresta.Color = Color3.fromRGB(220, 30, 30)
 		cresta.Material = Enum.Material.SmoothPlastic
-		cresta.Anchored = true
+		cresta.Anchored = false
 		cresta.CanCollide = false
 		cresta.Parent = modelo
 		soldar(cuerpo, cresta)
@@ -569,7 +585,7 @@ local function crearGallinasMelcocha(parentFolder: Instance)
 		pico.Position = cabeza.Position + Vector3.new(0, -0.1, -0.35)
 		pico.Color = Color3.fromRGB(255, 190, 40)
 		pico.Material = Enum.Material.SmoothPlastic
-		pico.Anchored = true
+		pico.Anchored = false
 		pico.CanCollide = false
 		pico.Parent = modelo
 		soldar(cuerpo, pico)
@@ -882,6 +898,34 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			},
 			Frase = "¡Llevo un encargo de panelitas para mi tía!",
 		},
+		{
+			Nombre = "Peaton_DrJavier",
+			Apodo = "Dr. Javier (Camino al Hospital)",
+			ColorRopa = Color3.fromRGB(240, 245, 250),
+			ColorPantalon = Color3.fromRGB(35, 75, 130),
+			Icono = "👨‍⚕️",
+			Ruta = {
+				Vector3.new(6, 60, 60),
+				Vector3.new(6, 75, 160),
+				Vector3.new(12, 83.2, 210),
+				Vector3.new(6, 75, 160),
+			},
+			Frase = "¡Voy subiendo al Hospital San Rafael para el turno de urgencias!",
+		},
+		{
+			Nombre = "Peaton_NikoCiclista",
+			Apodo = "Niko (El Deportista)",
+			ColorRopa = Color3.fromRGB(255, 120, 30),
+			ColorPantalon = Color3.fromRGB(25, 25, 30),
+			Icono = "🚴",
+			Ruta = {
+				Vector3.new(6, 83, 215),
+				Vector3.new(-18, 81.5, 255),
+				Vector3.new(6, 90, 320),
+				Vector3.new(-18, 81.5, 255),
+			},
+			Frase = "¡Esta subida a la ladera es exigente pero perfecta para entrenar!",
+		},
 	}
 
 	for _, info in ipairs(listaPeatones) do
@@ -889,7 +933,7 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 		modelo.Name = info.Nombre
 		modelo.Parent = carpetaPeatones
 
-		local posIni = obtenerPosicionSuelo(info.Ruta[1], 2.4)
+		local posIni = obtenerPosicionSuelo(info.Ruta[1], 2.7)
 
 		local hrp = Instance.new("Part")
 		hrp.Name = "HumanoidRootPart"
@@ -952,27 +996,30 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			})
 		end)
 
-		-- Hilo de patrullaje suave en acera
+		-- Hilo de patrullaje continuo adaptado al suelo
 		task.spawn(function()
 			local ruta = info.Ruta
 			local idx = 1
 			while modelo.Parent do
 				idx = (idx % #ruta) + 1
-				local dest = obtenerPosicionSuelo(ruta[idx], 2.4)
-				local delta = (dest - hrp.Position) * Vector3.new(1, 0, 1)
-				if delta.Magnitude > 1.0 then
-					local cfLook = CFrame.lookAt(dest, dest + delta.Unit)
-					local velPeaton = 3.8
-					local dur = math.clamp(delta.Magnitude / velPeaton, 1.5, 8.0)
-					local tween = TweenService:Create(
-						hrp,
-						TweenInfo.new(dur, Enum.EasingStyle.Linear),
-						{ CFrame = cfLook }
-					)
-					tween:Play()
-					task.wait(dur)
+				local metaPunto = ruta[idx]
+				local velPeaton = 4.2
+
+				while modelo.Parent do
+					local curPos = hrp.Position
+					local deltaXZ = (metaPunto - curPos) * Vector3.new(1, 0, 1)
+					local distXZ = deltaXZ.Magnitude
+					if distXZ <= 1.2 then
+						break
+					end
+
+					local dt = task.wait(0.1)
+					local paso = deltaXZ.Unit * math.min(distXZ, velPeaton * dt)
+					local nextXZ = curPos + paso
+					local nextGrounded = obtenerPosicionSuelo(nextXZ, 2.7)
+					hrp.CFrame = CFrame.lookAt(nextGrounded, nextGrounded + deltaXZ.Unit)
 				end
-				-- Pausa de 3 a 5 segundos mirando vitrinas o descansando
+
 				task.wait(math.random(3, 5))
 			end
 		end)

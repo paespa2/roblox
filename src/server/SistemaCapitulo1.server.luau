@@ -12,6 +12,70 @@ local hojaIzq: BasePart? = nil
 local hojaDer: BasePart? = nil
 local candado: BasePart? = nil
 
+local function soldar(p0: BasePart, p1: BasePart)
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = p0
+	weld.Part1 = p1
+	weld.Parent = p0
+end
+
+local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Vector3
+	local offset = alturaOffset or 3.0
+	local rayOrigin = Vector3.new(posBase.X, posBase.Y + 4.5, posBase.Z)
+	local rayDir = Vector3.new(0, -50, 0)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+
+	local exclusions: { Instance } = {}
+	local mapa = Workspace:FindFirstChild("Mapa")
+	if mapa then
+		local dec = mapa:FindFirstChild("Decoracion")
+		if dec then
+			table.insert(exclusions, dec)
+		end
+	end
+
+	local maxPasos = 10
+	local paso = 0
+	while paso < maxPasos do
+		paso += 1
+		params.FilterDescendantsInstances = exclusions
+		local hit = Workspace:Raycast(rayOrigin, rayDir, params)
+		if not hit then
+			break
+		end
+
+		local n = hit.Instance.Name:lower()
+		local esTechoOCielo = (
+			string.find(n, "techo")
+			or string.find(n, "teja")
+			or string.find(n, "cubierta")
+			or string.find(n, "dintel")
+			or string.find(n, "alero")
+			or string.find(n, "toldo")
+			or string.find(n, "cobertizo")
+			or string.find(n, "marquesina")
+			or string.find(n, "cielo")
+			or string.find(n, "losa")
+			or string.find(n, "banderin")
+			or string.find(n, "poste")
+			or string.find(n, "foco")
+			or string.find(n, "letrero")
+			or not hit.Instance.CanCollide
+			or (hit.Position.Y > posBase.Y + 2.0)
+		)
+
+		if esTechoOCielo then
+			table.insert(exclusions, hit.Instance)
+			rayOrigin = hit.Position - Vector3.new(0, 0.05, 0)
+		else
+			return Vector3.new(posBase.X, hit.Position.Y + offset, posBase.Z)
+		end
+	end
+
+	return posBase
+end
+
 -- ====================================================================
 -- 1. CONSTRUCCIÓN Y CONFIGURACIÓN DEL PORTÓN FÍSICO DEL COLEGIO
 -- ====================================================================
@@ -301,7 +365,7 @@ local function crearAutoridadesEscolares()
 		local hrp = Instance.new("Part")
 		hrp.Name = "HumanoidRootPart"
 		hrp.Size = Vector3.new(2, 2, 1)
-		hrp.Position = config.PosicionInicial
+		hrp.Position = obtenerPosicionSuelo(config.PosicionInicial, 3.0)
 		hrp.Transparency = 1
 		hrp.CanCollide = false
 		hrp.Anchored = true
@@ -314,9 +378,10 @@ local function crearAutoridadesEscolares()
 		torso.Position = hrp.Position
 		torso.Color = config.ColorTraje
 		torso.Material = Enum.Material.SmoothPlastic
-		torso.Anchored = true
-		torso.CanCollide = true
+		torso.Anchored = false
+		torso.CanCollide = false
 		torso.Parent = modelo
+		soldar(hrp, torso)
 
 		local cabeza = Instance.new("Part")
 		cabeza.Name = "Head"
@@ -324,9 +389,10 @@ local function crearAutoridadesEscolares()
 		cabeza.Position = torso.Position + Vector3.new(0, 1.6, 0)
 		cabeza.Color = Color3.fromRGB(235, 195, 160)
 		cabeza.Material = Enum.Material.SmoothPlastic
-		cabeza.Anchored = true
+		cabeza.Anchored = false
 		cabeza.CanCollide = false
 		cabeza.Parent = modelo
+		soldar(hrp, cabeza)
 
 		if config.ColorPelo then
 			local pelo = Instance.new("Part")
@@ -335,9 +401,10 @@ local function crearAutoridadesEscolares()
 			pelo.Position = cabeza.Position + Vector3.new(0, 0.65, 0)
 			pelo.Color = config.ColorPelo
 			pelo.Material = Enum.Material.SmoothPlastic
-			pelo.Anchored = true
+			pelo.Anchored = false
 			pelo.CanCollide = false
 			pelo.Parent = modelo
+			soldar(hrp, pelo)
 		end
 
 		if config.TieneCorbata then
@@ -347,9 +414,10 @@ local function crearAutoridadesEscolares()
 			corbata.Position = torso.Position + Vector3.new(0, 0.1, -0.55)
 			corbata.Color = Color3.fromRGB(190, 40, 40)
 			corbata.Material = Enum.Material.SmoothPlastic
-			corbata.Anchored = true
+			corbata.Anchored = false
 			corbata.CanCollide = false
 			corbata.Parent = modelo
+			soldar(hrp, corbata)
 		end
 
 		if config.TieneLentes then
@@ -359,9 +427,10 @@ local function crearAutoridadesEscolares()
 			lentes.Position = cabeza.Position + Vector3.new(0, 0.1, -0.62)
 			lentes.Color = Color3.fromRGB(40, 40, 40)
 			lentes.Material = Enum.Material.Metal
-			lentes.Anchored = true
+			lentes.Anchored = false
 			lentes.CanCollide = false
 			lentes.Parent = modelo
+			soldar(hrp, lentes)
 		end
 
 		if config.TieneRegla then
@@ -371,9 +440,10 @@ local function crearAutoridadesEscolares()
 			regla.Position = torso.Position + Vector3.new(1.2, -0.2, -0.3)
 			regla.Color = Color3.fromRGB(220, 180, 110)
 			regla.Material = Enum.Material.Wood
-			regla.Anchored = true
+			regla.Anchored = false
 			regla.CanCollide = false
 			regla.Parent = modelo
+			soldar(hrp, regla)
 		end
 
 		if config.TieneMaletin then
@@ -383,9 +453,10 @@ local function crearAutoridadesEscolares()
 			maletin.Position = torso.Position + Vector3.new(-1.3, -0.5, 0)
 			maletin.Color = Color3.fromRGB(70, 45, 30)
 			maletin.Material = Enum.Material.SmoothPlastic
-			maletin.Anchored = true
+			maletin.Anchored = false
 			maletin.CanCollide = false
 			maletin.Parent = modelo
+			soldar(hrp, maletin)
 		end
 
 		local piernas = Instance.new("Part")
@@ -394,9 +465,10 @@ local function crearAutoridadesEscolares()
 		piernas.Position = torso.Position + Vector3.new(0, -2, 0)
 		piernas.Color = config.ColorPantalon
 		piernas.Material = Enum.Material.SmoothPlastic
-		piernas.Anchored = true
-		piernas.CanCollide = true
+		piernas.Anchored = false
+		piernas.CanCollide = false
 		piernas.Parent = modelo
+		soldar(hrp, piernas)
 
 		-- BillboardGui con nombre y rol
 		local bbg = Instance.new("BillboardGui")
@@ -556,12 +628,10 @@ local function crearAutoridadesEscolares()
 						-- Avanzar hacia el jugador a velocidad moderada (11 studs/s)
 						local paso = dir.Unit * math.min(dist, 11 * dt)
 						local nuevaPos = hrp.Position + paso
-						local lookTarget = nuevaPos + dir.Unit
-						modelo:PivotTo(
-							CFrame.lookAt(
-								nuevaPos,
-								Vector3.new(lookTarget.X, nuevaPos.Y, lookTarget.Z)
-							)
+						local posSuelo = obtenerPosicionSuelo(nuevaPos, 3.0)
+						hrp.CFrame = CFrame.lookAt(
+							posSuelo,
+							posSuelo + dir.Unit
 						)
 					end
 				else
@@ -579,12 +649,10 @@ local function crearAutoridadesEscolares()
 					else
 						local paso = dirPatrulla.Unit * math.min(distPatrulla, 6.5 * dt)
 						local nuevaPos = hrp.Position + paso
-						local lookTarget = nuevaPos + dirPatrulla.Unit
-						modelo:PivotTo(
-							CFrame.lookAt(
-								nuevaPos,
-								Vector3.new(lookTarget.X, nuevaPos.Y, lookTarget.Z)
-							)
+						local posSuelo = obtenerPosicionSuelo(nuevaPos, 3.0)
+						hrp.CFrame = CFrame.lookAt(
+							posSuelo,
+							posSuelo + dirPatrulla.Unit
 						)
 					end
 				end

@@ -74,5 +74,6 @@ EventosRemotos.CampanaRecreo = obtenerOCrearEvento("CampanaRecreo")
 EventosRemotos.ObjetivoMisionActualizado = obtenerOCrearEvento("ObjetivoMisionActualizado")
 EventosRemotos.RedadaIniciada = obtenerOCrearEvento("RedadaIniciada")
 EventosRemotos.RedadaTerminada = obtenerOCrearEvento("RedadaTerminada")
+EventosRemotos.SolicitarViajeTransporte = obtenerOCrearFuncion("SolicitarViajeTransporte")
 
 return EventosRemotos
