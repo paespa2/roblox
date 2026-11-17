@@ -6,6 +6,8 @@ export type PerfilJugador = {
 	RecetasDesbloqueadas: { [string]: boolean },
 	MejorasCompradas: { [string]: boolean },
 	VehiculosComprados: { [string]: boolean },
+	ArmasDesbloqueadas: { [string]: boolean },
+	ArmaEquipada: string,
 	CapituloActual: number,
 	VehiculoEquipado: string,
 	EstrellasBusqueda: number,
@@ -25,6 +27,10 @@ local PlantillaPerfil: PerfilJugador = {
 	VehiculosComprados = {
 		["Vehiculo_Bicicleta"] = true,
 	},
+	ArmasDesbloqueadas = {
+		["Arma_CaucheraGomitas"] = true,
+	},
+	ArmaEquipada = "Arma_CaucheraGomitas",
 	CapituloActual = 1,
 	VehiculoEquipado = "Vehiculo_Bicicleta",
 	EstrellasBusqueda = 0,

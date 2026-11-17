@@ -8,8 +8,15 @@ local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 local enCooldown = false
 
 local function conectarTool(tool: Tool)
-	if tool.Name ~= "Cauchera de Gomitas" then
-		return
+	local idArma = tool:GetAttribute("IdArma")
+	if not idArma then
+		if tool.Name == "Cauchera de Gomitas" then
+			idArma = "Arma_CaucheraGomitas"
+		elseif tool.Name == "Pistola de Crema" then
+			idArma = "Arma_PistolaCrema"
+		else
+			return
+		end
 	end
 
 	tool.Activated:Connect(function()
@@ -18,20 +25,20 @@ local function conectarTool(tool: Tool)
 		end
 		enCooldown = true
 
+		local cadencia = tool:GetAttribute("CadenciaSegundos") or 0.8
 		local character = localPlayer.Character
 		if character and character:FindFirstChild("Head") then
 			local origen = character.Head.Position
 			local destino = mouse.Hit.Position
 			local direccion = (destino - origen).Unit
 
-			local exito, mensaje =
-				EventosRemotos.DispararArma:InvokeServer("Arma_CaucheraGomitas", direccion)
+			local exito, mensaje = EventosRemotos.DispararArma:InvokeServer(idArma, direccion)
 			if not exito then
-				warn("Cauchera: " .. tostring(mensaje))
+				warn("Arma (" .. tostring(idArma) .. "): " .. tostring(mensaje))
 			end
 		end
 
-		task.wait(0.6)
+		task.wait(cadencia)
 		enCooldown = false
 	end)
 end

@@ -8,10 +8,12 @@ local enCooldown = false
 
 local function reproducirSonidoCampana()
 	local sound = Instance.new("Sound")
-	sound.SoundId = "rbxasset://sounds/bell.wav"
+	sound.SoundId = "rbxassetid://9114223170"
 	sound.Volume = 0.7
 	sound.Parent = SoundService
-	sound:Play()
+	pcall(function()
+		sound:Play()
+	end)
 	task.delay(1.5, function()
 		sound:Destroy()
 	end)
