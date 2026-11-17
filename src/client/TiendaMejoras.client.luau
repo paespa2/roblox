@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
+local UserInputService = game:GetService("UserInputService")
 
 local localPlayer = Players.LocalPlayer
 local PlayerGui = localPlayer:WaitForChild("PlayerGui")
@@ -454,7 +455,20 @@ crearBotonPestana("Cocina")
 crearBotonPestana("Vehiculos")
 crearBotonPestana("Bodega")
 
-local function abrirTienda()
+local estaAbierto = false
+
+local function abrirTienda(pestanaInicial: string?)
+	if estaAbierto then
+		if pestanaInicial and pestanaInicial ~= pestanaActiva then
+			pestanaActiva = pestanaInicial
+			actualizarVista()
+		end
+		return
+	end
+	estaAbierto = true
+	if pestanaInicial then
+		pestanaActiva = pestanaInicial
+	end
 	actualizarVista()
 	screenGui.Enabled = true
 	panel.Position = UDim2.fromScale(0.5, 0.55)
@@ -469,6 +483,10 @@ local function abrirTienda()
 end
 
 local function cerrarTienda()
+	if not estaAbierto then
+		return
+	end
+	estaAbierto = false
 	local tween = TweenService:Create(
 		panel,
 		TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
@@ -479,14 +497,39 @@ local function cerrarTienda()
 	)
 	tween:Play()
 	tween.Completed:Connect(function()
-		screenGui.Enabled = false
+		if not estaAbierto then
+			screenGui.Enabled = false
+		end
 	end)
 end
 
 botonCerrar.MouseButton1Click:Connect(cerrarTienda)
 fondoOscuro.MouseButton1Click:Connect(cerrarTienda)
 
-EventosRemotos.AbrirTiendaMejoras.OnClientEvent:Connect(abrirTienda)
+screenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+	if screenGui.Enabled and not estaAbierto then
+		abrirTienda()
+	elseif not screenGui.Enabled and estaAbierto then
+		cerrarTienda()
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+	if input.KeyCode == Enum.KeyCode.M then
+		if estaAbierto then
+			cerrarTienda()
+		else
+			abrirTienda()
+		end
+	end
+end)
+
+EventosRemotos.AbrirTiendaMejoras.OnClientEvent:Connect(function(pestana: string?)
+	abrirTienda(pestana)
+end)
 
 EventosRemotos.DatosActualizados.OnClientEvent:Connect(function(nuevosDatos)
 	if nuevosDatos then

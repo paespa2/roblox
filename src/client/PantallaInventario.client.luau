@@ -299,7 +299,13 @@ local function actualizarVista()
 	end
 end
 
+local estaAbierto = false
+
 local function abrirInventario()
+	if estaAbierto then
+		return
+	end
+	estaAbierto = true
 	actualizarVista()
 	screenGui.Enabled = true
 	panel.Position = UDim2.fromScale(0.5, 0.55)
@@ -314,6 +320,10 @@ local function abrirInventario()
 end
 
 local function cerrarInventario()
+	if not estaAbierto then
+		return
+	end
+	estaAbierto = false
 	local tween = TweenService:Create(
 		panel,
 		TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
@@ -324,19 +334,29 @@ local function cerrarInventario()
 	)
 	tween:Play()
 	tween.Completed:Connect(function()
-		screenGui.Enabled = false
+		if not estaAbierto then
+			screenGui.Enabled = false
+		end
 	end)
 end
 
 botonCerrar.MouseButton1Click:Connect(cerrarInventario)
 fondoOscuro.MouseButton1Click:Connect(cerrarInventario)
 
+screenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+	if screenGui.Enabled and not estaAbierto then
+		abrirInventario()
+	elseif not screenGui.Enabled and estaAbierto then
+		cerrarInventario()
+	end
+end)
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then
 		return
 	end
 	if input.KeyCode == Enum.KeyCode.I then
-		if screenGui.Enabled then
+		if estaAbierto then
 			cerrarInventario()
 		else
 			abrirInventario()

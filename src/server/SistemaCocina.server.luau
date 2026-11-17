@@ -226,7 +226,7 @@ local function configurarPromptCocina(paila: BasePart)
 
 			-- Efecto de sonido de recogida
 			local sonidoRecoger = Instance.new("Sound")
-			sonidoRecoger.SoundId = "rbxasset://sounds/uianimation.wav"
+			sonidoRecoger.SoundId = "rbxasset://sounds/electronicpingshort.wav"
 			sonidoRecoger.Volume = 0.8
 			sonidoRecoger.Parent = paila
 			sonidoRecoger:Play()
@@ -313,7 +313,8 @@ end)
 local DIALOGOS_MELCOCHA = {
 	"¡Mijo! Si el alcalde Apio cree que nos va a dejar sin dulce, está muy equivocado. Venga le enseño a hacer los primeros bombones en la olla vieja. Nadie se mete con la receta de la abuela.",
 	"Eso es, mijo. No deje quemar el melao. Espere unos segundos a que cuaje y empaque los bombones antes de que llegue la patrulla con el cepillo gigante.",
-	"Cargue la canasta de la bicicleta. Ni se le ocurra llenar demasiado el morral que después no puede pedalear en la subida.",
+	"Cargue la canasta de la bicicleta con la tecla V. Ni se le ocurra llenar demasiado el morral que después no puede pedalear en la subida.",
+	"Si ve al Agente Dental con la sirena prendida, ¡péguese a los callejones o escóndase en las esquinas hasta que se le enfríen las caries!",
 }
 
 local indiceDialogo = 1
@@ -333,23 +334,30 @@ local function configurarDonaMelcocha()
 	end
 	local melcocha = npcs:FindFirstChild("Personaje_DonaMelcocha")
 	if melcocha then
-		local part = melcocha.PrimaryPart or melcocha:FindFirstChildWhichIsA("BasePart")
+		local part = melcocha.PrimaryPart
+			or melcocha:FindFirstChild("HumanoidRootPart")
+			or melcocha:FindFirstChildWhichIsA("BasePart")
 		if part then
 			local prompt = part:FindFirstChildOfClass("ProximityPrompt")
 			if not prompt then
 				prompt = Instance.new("ProximityPrompt")
 				prompt.Name = "PromptDonaMelcocha"
 				prompt.ObjectText = "Doña Melcocha (La Abuela)"
-				prompt.ActionText = "Pedir Consejo"
+				prompt.ActionText = "Hablar con la Abuela"
 				prompt.HoldDuration = 0.3
-				prompt.MaxActivationDistance = 12
+				prompt.MaxActivationDistance = 14
 				prompt.RequiresLineOfSight = false
 				prompt.Parent = part
 			end
 			prompt.Triggered:Connect(function(player: Player)
 				local dialogo = DIALOGOS_MELCOCHA[indiceDialogo]
 				indiceDialogo = (indiceDialogo % #DIALOGOS_MELCOCHA) + 1
-				EventosRemotos.AlertaPolicia:FireClient(player, dialogo, 0)
+				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+					Nombre = "Doña Melcocha",
+					Titulo = "La Abuela",
+					Icono = "👵",
+					Mensaje = dialogo,
+				})
 			end)
 		end
 	end

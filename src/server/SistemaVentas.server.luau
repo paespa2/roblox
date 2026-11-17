@@ -150,14 +150,149 @@ local function procesarVenta(player: Player, idTienda: string, puntoPart: BasePa
 			)
 		)
 	else
-		print(
-			string.format(
-				"El Patrón del Dulce: %s no tiene dulces demandados por %s",
-				player.Name,
-				tiendaInfo.Nombre
-			)
-		)
+		local nombresDulces = {}
+		for _, idD in ipairs(tiendaInfo.DulcesComprados) do
+			local d = Datos.Dulces[idD]
+			table.insert(nombresDulces, if d then d.Nombre else idD)
+		end
+		local listaStr = table.concat(nombresDulces, " o ")
+		EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+			Nombre = tiendaInfo.Nombre,
+			Titulo = "Tendero del Barrio",
+			Icono = "🏪",
+			Mensaje = string.format(
+				"¡Buenas patrón! Ahorita en este local solo le estoy recibiendo %s. ¡Vuelva con la maleta llena desde la cocina!",
+				listaStr
+			),
+		})
 	end
+end
+
+local MAPA_NPCS_TIENDAS = {
+	NPC_KioskoColegio = {
+		IdTienda = "Tienda_ColegioRecreo",
+		Nombre = "Lola Paleta",
+		Titulo = "Kiosko del Recreo",
+		Icono = "🍭",
+	},
+	NPC_Tendero01 = {
+		IdTienda = "Tienda_EsquinaPaisa",
+		Nombre = "Don Chucho",
+		Titulo = "La Esquina Paisa",
+		Icono = "🏪",
+	},
+	NPC_Tendero02 = {
+		IdTienda = "Tienda_DonAbaco",
+		Nombre = "Doña Rosa",
+		Titulo = "Tienda La Panelita",
+		Icono = "🏪",
+	},
+	Personaje_DonAbaco = {
+		IdTienda = "Tienda_DonAbaco",
+		Nombre = "Don Ábaco",
+		Titulo = "Contador y Abarrotes",
+		Icono = "🧮",
+	},
+	NPC_Tendero04 = {
+		IdTienda = "Tienda_ParqueCentral",
+		Nombre = "Don Carmelo",
+		Titulo = "Dulces El Parque",
+		Icono = "🏪",
+	},
+	NPC_Tendero05 = {
+		IdTienda = "Tienda_TerminalRuta",
+		Nombre = "Doña Tulia",
+		Titulo = "La Última Curva",
+		Icono = "🏪",
+	},
+	NPC_Tendero06 = {
+		IdTienda = "Tienda_TerminalRuta",
+		Nombre = "Don Pacho",
+		Titulo = "El Mirador",
+		Icono = "🏪",
+	},
+}
+
+local function configurarNPCsInteractivos()
+	local mapa = Workspace:WaitForChild("Mapa", 10)
+	if not mapa then
+		return
+	end
+	local decoracion = mapa:WaitForChild("Decoracion", 10)
+	if not decoracion then
+		return
+	end
+	local npcsFolder = decoracion:WaitForChild("NPCs_Interactivos", 10)
+	if not npcsFolder then
+		return
+	end
+
+	-- 1. Tenderos y Don Ábaco
+	for npcName, info in pairs(MAPA_NPCS_TIENDAS) do
+		local npcModel = npcsFolder:FindFirstChild(npcName)
+		if npcModel and npcModel:IsA("Model") then
+			local hrp = npcModel.PrimaryPart
+				or npcModel:FindFirstChild("HumanoidRootPart")
+				or npcModel:FindFirstChildWhichIsA("BasePart")
+			if hrp then
+				local prompt = hrp:FindFirstChildOfClass("ProximityPrompt")
+				if not prompt then
+					prompt = Instance.new("ProximityPrompt")
+					prompt.Name = "PromptNPCVenta"
+					prompt.ObjectText = string.format("%s (%s)", info.Nombre, info.Titulo)
+					prompt.ActionText = "Hablar / Vender dulces"
+					prompt.HoldDuration = 0.3
+					prompt.MaxActivationDistance = 14
+					prompt.RequiresLineOfSight = false
+					prompt.Parent = hrp
+				end
+
+				prompt.Triggered:Connect(function(player: Player)
+					procesarVenta(player, info.IdTienda, hrp)
+				end)
+			end
+		end
+	end
+
+	-- 2. Agente Dental (Policía con advertencia verbal)
+	local agente = npcsFolder:FindFirstChild("Personaje_AgenteDental")
+	if agente and agente:IsA("Model") then
+		local hrp = agente.PrimaryPart
+			or agente:FindFirstChild("HumanoidRootPart")
+			or agente:FindFirstChildWhichIsA("BasePart")
+		if hrp then
+			local prompt = hrp:FindFirstChildOfClass("ProximityPrompt")
+			if not prompt then
+				prompt = Instance.new("ProximityPrompt")
+				prompt.Name = "PromptAgenteDental"
+				prompt.ObjectText = "Agente Dental (Policía)"
+				prompt.ActionText = "Escuchar Advertencia"
+				prompt.HoldDuration = 0.3
+				prompt.MaxActivationDistance = 14
+				prompt.RequiresLineOfSight = false
+				prompt.Parent = hrp
+			end
+
+			local advertencias = {
+				"¡Atención ciudadano! La Ordenanza Municipal N° 404 prohíbe terminantemente el porte y distribución de azúcares refinados sin aval del odontólogo. ¡Circule inmediatamente!",
+				"¡Le estamos siguiendo la pista a los cargamentos de melcocha que bajan de la ladera! La caries no pasará en esta ciudad.",
+				"Si lo vemos pedaleando con más de 20 dulces, sonará la sirena y su carga quedará bajo custodia dental. ¡Advertido queda!",
+			}
+			local idx = 1
+			prompt.Triggered:Connect(function(player: Player)
+				local msg = advertencias[idx]
+				idx = (idx % #advertencias) + 1
+				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+					Nombre = "Agente Dental",
+					Titulo = "Policía Municipal",
+					Icono = "👮‍♂️",
+					Mensaje = msg,
+				})
+			end)
+		end
+	end
+
+	print("El Patrón del Dulce: NPCs interactivos configurados con diálogos y ventas")
 end
 
 local function configurarPuntosDeVenta()
@@ -201,3 +336,4 @@ local function configurarPuntosDeVenta()
 end
 
 task.spawn(configurarPuntosDeVenta)
+task.spawn(configurarNPCsInteractivos)

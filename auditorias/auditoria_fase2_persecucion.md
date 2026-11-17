@@ -72,3 +72,4 @@ Con la **Fase 2** aprobada, el equipo debe avanzar a la **Fase 3: Rutina Diaria 
 3. **Evento Periódico "Hora del Recreo":** Disparo cada hora en el colegio con ventas al doble durante 3 minutos.
 4. **Dulce del Día:** Multiplicador especial para una receta aleatoria del día.
 5. **Producción Offline:** Rendimiento de la cocina durante la ausencia del jugador.
+

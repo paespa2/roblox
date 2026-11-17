@@ -19,3 +19,5 @@
 | `LiberadoDelInternado` | Servidor -> Cliente | ninguno | Notifica al cliente que cumplió su condena o pagó su fianza y queda en libertad |
 | `SolicitarPagarFianza` | Cliente -> Servidor | ninguno | Solicita pagar la fianza en pesos dulces para salir de inmediato del internado |
 | `CepillarMuela` | Cliente -> Servidor | ninguno | Trabajo comunitario: cepilla una muela gigante reduciendo 20s de condena |
+| `MostrarDialogoNPC` | Servidor -> Cliente | `{ Nombre: string, Titulo: string, Icono: string, Mensaje: string }` | Notificación o globo de diálogo emergente de NPC |
+

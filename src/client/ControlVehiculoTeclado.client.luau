@@ -8,7 +8,7 @@ local enCooldown = false
 
 local function reproducirSonidoCampana()
 	local sound = Instance.new("Sound")
-	sound.SoundId = "rbxassetid://9114223170"
+	sound.SoundId = "rbxasset://sounds/electronicpingshort.wav"
 	sound.Volume = 0.7
 	sound.Parent = SoundService
 	pcall(function()
@@ -37,7 +37,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 			warn(mensaje)
 		end
 
-		task.wait(1.5)
+		task.wait(0.8)
 		enCooldown = false
 	end
 end)

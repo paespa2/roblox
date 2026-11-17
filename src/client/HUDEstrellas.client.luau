@@ -120,6 +120,7 @@ bannerAlerta.Position = UDim2.new(0.5, 0, 0, -60)
 bannerAlerta.BackgroundColor3 = Color3.fromRGB(35, 15, 18)
 bannerAlerta.BackgroundTransparency = 0.15
 bannerAlerta.ClipsDescendants = true
+bannerAlerta.Visible = false
 bannerAlerta.Parent = screenGui
 
 local cornerBanner = Instance.new("UICorner")
@@ -161,6 +162,7 @@ local function mostrarAlerta(mensaje: string, esGrave: boolean)
 		then Color3.fromRGB(45, 12, 15)
 		else Color3.fromRGB(38, 25, 12)
 
+	bannerAlerta.Visible = true
 	local tweenEntrada = TweenService:Create(
 		bannerAlerta,
 		TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
@@ -175,6 +177,9 @@ local function mostrarAlerta(mensaje: string, esGrave: boolean)
 			{ Position = UDim2.new(0.5, 0, 0, -60) }
 		)
 		tweenSalida:Play()
+		tweenSalida.Completed:Connect(function()
+			bannerAlerta.Visible = false
+		end)
 	end)
 end
 
