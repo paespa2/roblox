@@ -98,8 +98,8 @@ local function crearEstudianteVivo(
 	torso.Position = hrp.Position
 	torso.Color = info.ColorRopa
 	torso.Material = Enum.Material.SmoothPlastic
-	torso.Anchored = true
-	torso.CanCollide = true
+	torso.Anchored = false
+	torso.CanCollide = false
 	torso.Parent = modelo
 	soldar(hrp, torso)
 
@@ -109,7 +109,7 @@ local function crearEstudianteVivo(
 	cabeza.Position = torso.Position + Vector3.new(0, 1.4, 0)
 	cabeza.Color = Color3.fromRGB(240, 205, 175)
 	cabeza.Material = Enum.Material.SmoothPlastic
-	cabeza.Anchored = true
+	cabeza.Anchored = false
 	cabeza.CanCollide = false
 	cabeza.Parent = modelo
 	soldar(hrp, cabeza)
@@ -120,8 +120,8 @@ local function crearEstudianteVivo(
 	piernas.Position = torso.Position + Vector3.new(0, -1.6, 0)
 	piernas.Color = info.ColorPantalon
 	piernas.Material = Enum.Material.SmoothPlastic
-	piernas.Anchored = true
-	piernas.CanCollide = true
+	piernas.Anchored = false
+	piernas.CanCollide = false
 	piernas.Parent = modelo
 	soldar(hrp, piernas)
 
@@ -132,7 +132,7 @@ local function crearEstudianteVivo(
 	mochila.Position = torso.Position + Vector3.new(0, 0, 0.55)
 	mochila.Color = Color3.fromRGB(240, 100, 50)
 	mochila.Material = Enum.Material.SmoothPlastic
-	mochila.Anchored = true
+	mochila.Anchored = false
 	mochila.CanCollide = false
 	mochila.Parent = modelo
 	soldar(hrp, mochila)
@@ -244,11 +244,6 @@ local function crearEstudianteVivo(
 						{ CFrame = nuevoCFrame }
 					)
 					tween:Play()
-					-- Mover piezas secundarias en sincronía
-					torso.CFrame = nuevoCFrame
-					cabeza.CFrame = nuevoCFrame * CFrame.new(0, 1.4, 0)
-					piernas.CFrame = nuevoCFrame * CFrame.new(0, -1.6, 0)
-					mochila.CFrame = nuevoCFrame * CFrame.new(0, 0, 0.55)
 				end
 			end
 		end
@@ -294,8 +289,8 @@ local function crearVecinoBarrio(
 	torso.Position = hrp.Position
 	torso.Color = info.ColorRopa
 	torso.Material = Enum.Material.SmoothPlastic
-	torso.Anchored = true
-	torso.CanCollide = true
+	torso.Anchored = false
+	torso.CanCollide = false
 	torso.Parent = modelo
 	soldar(hrp, torso)
 
@@ -305,7 +300,7 @@ local function crearVecinoBarrio(
 	cabeza.Position = torso.Position + Vector3.new(0, 1.55, 0)
 	cabeza.Color = Color3.fromRGB(235, 195, 160)
 	cabeza.Material = Enum.Material.SmoothPlastic
-	cabeza.Anchored = true
+	cabeza.Anchored = false
 	cabeza.CanCollide = false
 	cabeza.Parent = modelo
 	soldar(hrp, cabeza)
@@ -316,8 +311,8 @@ local function crearVecinoBarrio(
 	piernas.Position = torso.Position + Vector3.new(0, -1.8, 0)
 	piernas.Color = info.ColorPantalon
 	piernas.Material = Enum.Material.SmoothPlastic
-	piernas.Anchored = true
-	piernas.CanCollide = true
+	piernas.Anchored = false
+	piernas.CanCollide = false
 	piernas.Parent = modelo
 	soldar(hrp, piernas)
 
@@ -839,6 +834,226 @@ local function decorarAmbienteBarrio(parentFolder: Instance)
 end
 
 -- ====================================================================
+-- 5. PEATONES VIVOS CAMINANDO POR LAS ACERAS DEL PUEBLO
+-- ====================================================================
+local function crearPeatonesCaminando(parentFolder: Instance)
+	local carpetaPeatones = Instance.new("Folder")
+	carpetaPeatones.Name = "Peatones_Caminando"
+	carpetaPeatones.Parent = parentFolder
+
+	local listaPeatones = {
+		{
+			Nombre = "Peaton_DonaGladys",
+			Apodo = "Doña Gladys (Con Canasto)",
+			ColorRopa = Color3.fromRGB(190, 80, 140),
+			ColorPantalon = Color3.fromRGB(45, 40, 50),
+			Icono = "🧺",
+			Ruta = {
+				Vector3.new(6, 60, -35),
+				Vector3.new(6, 60, 45),
+				Vector3.new(6, 68, 90),
+				Vector3.new(6, 60, 10),
+			},
+			Frase = "¡Voy para la tienda de Don Chucho a ver si llegaron los dulces!",
+		},
+		{
+			Nombre = "Peaton_DonChepe",
+			Apodo = "Don Chepe (El Campesino)",
+			ColorRopa = Color3.fromRGB(230, 220, 205),
+			ColorPantalon = Color3.fromRGB(70, 50, 35),
+			Icono = "🌾",
+			Ruta = {
+				Vector3.new(-6, 60, 40),
+				Vector3.new(-6, 60, -30),
+				Vector3.new(-6, 68, 75),
+			},
+			Frase = "¡Buenas tardes patrón! Qué bonita que está la tarde en el pueblo.",
+		},
+		{
+			Nombre = "Peaton_SantiEstudiante",
+			Apodo = "Santi (El Mandadero)",
+			ColorRopa = Color3.fromRGB(50, 120, 220),
+			ColorPantalon = Color3.fromRGB(35, 40, 55),
+			Icono = "🏃‍♂️",
+			Ruta = {
+				Vector3.new(-42, 60, -10),
+				Vector3.new(-42, 60, 30),
+				Vector3.new(-70, 60, -30),
+			},
+			Frase = "¡Llevo un encargo de panelitas para mi tía!",
+		},
+	}
+
+	for _, info in ipairs(listaPeatones) do
+		local modelo = Instance.new("Model")
+		modelo.Name = info.Nombre
+		modelo.Parent = carpetaPeatones
+
+		local posIni = obtenerPosicionSuelo(info.Ruta[1], 2.4)
+
+		local hrp = Instance.new("Part")
+		hrp.Name = "HumanoidRootPart"
+		hrp.Size = Vector3.new(1.6, 1.8, 0.8)
+		hrp.Position = posIni
+		hrp.Transparency = 1
+		hrp.CanCollide = false
+		hrp.Anchored = true
+		hrp.Parent = modelo
+		modelo.PrimaryPart = hrp
+
+		local torso = Instance.new("Part")
+		torso.Name = "Torso"
+		torso.Size = Vector3.new(1.6, 1.8, 0.8)
+		torso.Position = hrp.Position
+		torso.Color = info.ColorRopa
+		torso.Material = Enum.Material.SmoothPlastic
+		torso.Anchored = false
+		torso.CanCollide = false
+		torso.Parent = modelo
+		soldar(hrp, torso)
+
+		local cabeza = Instance.new("Part")
+		cabeza.Name = "Head"
+		cabeza.Size = Vector3.new(1, 1, 1)
+		cabeza.Position = torso.Position + Vector3.new(0, 1.4, 0)
+		cabeza.Color = Color3.fromRGB(240, 205, 175)
+		cabeza.Material = Enum.Material.SmoothPlastic
+		cabeza.Anchored = false
+		cabeza.CanCollide = false
+		cabeza.Parent = modelo
+		soldar(hrp, cabeza)
+
+		local piernas = Instance.new("Part")
+		piernas.Name = "Piernas"
+		piernas.Size = Vector3.new(1.4, 1.6, 0.7)
+		piernas.Position = torso.Position + Vector3.new(0, -1.6, 0)
+		piernas.Color = info.ColorPantalon
+		piernas.Material = Enum.Material.SmoothPlastic
+		piernas.Anchored = false
+		piernas.CanCollide = false
+		piernas.Parent = modelo
+		soldar(hrp, piernas)
+
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "PromptPeaton"
+		prompt.ObjectText = info.Apodo
+		prompt.ActionText = "Saludar"
+		prompt.HoldDuration = 0.2
+		prompt.MaxActivationDistance = 10
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = torso
+
+		prompt.Triggered:Connect(function(player: Player)
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = info.Apodo,
+				Titulo = "Peatón de Villa Almíbar",
+				Icono = info.Icono,
+				Mensaje = info.Frase,
+			})
+		end)
+
+		-- Hilo de patrullaje suave en acera
+		task.spawn(function()
+			local ruta = info.Ruta
+			local idx = 1
+			while modelo.Parent do
+				idx = (idx % #ruta) + 1
+				local dest = obtenerPosicionSuelo(ruta[idx], 2.4)
+				local delta = (dest - hrp.Position) * Vector3.new(1, 0, 1)
+				if delta.Magnitude > 1.0 then
+					local cfLook = CFrame.lookAt(dest, dest + delta.Unit)
+					local velPeaton = 3.8
+					local dur = math.clamp(delta.Magnitude / velPeaton, 1.5, 8.0)
+					local tween = TweenService:Create(
+						hrp,
+						TweenInfo.new(dur, Enum.EasingStyle.Linear),
+						{ CFrame = cfLook }
+					)
+					tween:Play()
+					task.wait(dur)
+				end
+				-- Pausa de 3 a 5 segundos mirando vitrinas o descansando
+				task.wait(math.random(3, 5))
+			end
+		end)
+	end
+end
+
+-- ====================================================================
+-- 6. PALOMAS DE LA PLAZOLETA (VIDA ANIMAL URBANA)
+-- ====================================================================
+local function crearPalomasPlazoleta(parentFolder: Instance)
+	local carpetaPalomas = Instance.new("Folder")
+	carpetaPalomas.Name = "PalomasPlaza"
+	carpetaPalomas.Parent = parentFolder
+
+	local posicionesPalomas = {
+		Vector3.new(-22, 60, -12),
+		Vector3.new(-18, 60, -8),
+		Vector3.new(-24, 60, -5),
+		Vector3.new(14, 60, 12),
+		Vector3.new(18, 60, 8),
+		Vector3.new(16, 60, 15),
+	}
+
+	for i, posBase in ipairs(posicionesPalomas) do
+		local pos = obtenerPosicionSuelo(posBase, 0.4)
+		local paloma = Instance.new("Model")
+		paloma.Name = "Paloma_" .. i
+		paloma.Parent = carpetaPalomas
+
+		local cuerpo = Instance.new("Part")
+		cuerpo.Name = "Cuerpo"
+		cuerpo.Size = Vector3.new(0.6, 0.5, 0.9)
+		cuerpo.Position = pos
+		cuerpo.Color = Color3.fromRGB(130, 135, 145) -- Gris paloma
+		cuerpo.Material = Enum.Material.SmoothPlastic
+		cuerpo.Anchored = true
+		cuerpo.CanCollide = false
+		cuerpo.Parent = paloma
+		paloma.PrimaryPart = cuerpo
+
+		local cabeza = Instance.new("Part")
+		cabeza.Name = "Head"
+		cabeza.Shape = Enum.PartType.Ball
+		cabeza.Size = Vector3.new(0.35, 0.35, 0.35)
+		cabeza.Position = pos + Vector3.new(0, 0.35, -0.4)
+		cabeza.Color = Color3.fromRGB(110, 115, 125)
+		cabeza.Material = Enum.Material.SmoothPlastic
+		cabeza.Anchored = false
+		cabeza.CanCollide = false
+		cabeza.Parent = paloma
+		soldar(cuerpo, cabeza)
+
+		local pico = Instance.new("Part")
+		pico.Name = "Pico"
+		pico.Size = Vector3.new(0.12, 0.1, 0.2)
+		pico.Position = cabeza.Position + Vector3.new(0, -0.05, -0.2)
+		pico.Color = Color3.fromRGB(240, 180, 50)
+		pico.Material = Enum.Material.SmoothPlastic
+		pico.Anchored = false
+		pico.CanCollide = false
+		pico.Parent = paloma
+		soldar(cuerpo, pico)
+
+		-- Pequeño picoteo animado
+		task.spawn(function()
+			local cfBase = cuerpo.CFrame
+			while paloma.Parent do
+				task.wait(math.random(1, 3))
+				local rot = CFrame.Angles(0, math.rad(math.random(-45, 45)), 0)
+				cuerpo.CFrame = cfBase * rot
+				-- Picotear
+				task.wait(0.2)
+				cuerpo.CFrame = cfBase * rot * CFrame.Angles(math.rad(15), 0, 0)
+				task.wait(0.2)
+				cuerpo.CFrame = cfBase * rot
+			end
+		end)
+	end
+end
+
+-- ====================================================================
 -- INICIALIZADOR GENERAL DE VIDA DEL MUNDO
 -- ====================================================================
 local function inicializarVidaMundo()
@@ -981,6 +1196,10 @@ local function inicializarVidaMundo()
 
 	-- 5. Faroles, banderines y alumbrado
 	decorarAmbienteBarrio(carpetaVida)
+
+	-- 6. Peatones caminando por las aceras y palomas en la plazoleta
+	crearPeatonesCaminando(carpetaVida)
+	crearPalomasPlazoleta(carpetaVida)
 
 	print(
 		"El Patrón del Dulce: Sistema de Vida del Mundo (Estudiantes, Vecinos, Animales y Chiva) Inicializado"

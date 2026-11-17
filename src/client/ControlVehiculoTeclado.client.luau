@@ -92,10 +92,10 @@ RunService.RenderStepped:Connect(function(dt: number)
 	local stats = Datos.Vehiculos[idVehiculo]
 		or (
 			if idVehiculo == "Vehiculo_Moto"
-				then { VelocidadMax = 38, Torque = 38, TurnSpeed = 2.6 }
-				else { VelocidadMax = 26, Torque = 28, TurnSpeed = 2.4 }
+				then { VelocidadMax = 48, Torque = 52, TurnSpeed = 2.6 }
+				else { VelocidadMax = 34, Torque = 36, TurnSpeed = 2.4 }
 		)
-	local velBase = stats.VelocidadMax or 26
+	local velBase = stats.VelocidadMax or 34
 	local turnSpeed = stats.TurnSpeed or 2.4
 
 	-- Detección de superficie bajo el vehículo para física realista
@@ -193,6 +193,15 @@ RunService.RenderStepped:Connect(function(dt: number)
 		steer = asiento.SteerFloat
 	end
 
+	local overrideThrottle = asiento:GetAttribute("OverrideThrottle")
+	if overrideThrottle ~= nil then
+		throttle = overrideThrottle
+	end
+	local overrideSteer = asiento:GetAttribute("OverrideSteer")
+	if overrideSteer ~= nil then
+		steer = overrideSteer
+	end
+
 	if enElAire then
 		driveLV.MaxAxesForce = Vector3.new(0, 0, 0)
 		driveLV.VectorVelocity = Vector3.zero
@@ -230,7 +239,7 @@ RunService.RenderStepped:Connect(function(dt: number)
 			factorGiro = math.clamp(1.2 - (math.abs(velocidadActual) / velBase) * 0.3, 0.7, 1.2)
 		end
 
-		local velocidadAngularY = -steer * turnSpeed * factorGiro
+		local velocidadAngularY = steer * turnSpeed * factorGiro
 		steerAV.MaxTorque = 70000
 		steerAV.AngularVelocity = Vector3.new(0, velocidadAngularY, 0)
 
@@ -241,7 +250,7 @@ RunService.RenderStepped:Connect(function(dt: number)
 			local leanAngle = 0
 			if math.abs(velocidadActual) > 3 then
 				local dirAvance = math.sign(velocidadActual)
-				leanAngle = -steer * 0.14 * dirAvance
+				leanAngle = steer * 0.14 * dirAvance
 			end
 			-- Inclinación sobre el vector RightVector local
 			local upDeseado = (chasis.CFrame.UpVector + (chasis.CFrame.RightVector * leanAngle)).Unit

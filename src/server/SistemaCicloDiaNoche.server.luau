@@ -21,6 +21,13 @@ local function registrarLucesEnInstancia(inst: Instance)
 	for _, desc in ipairs(inst:GetDescendants()) do
 		if desc:IsA("BasePart") then
 			local nombreLower = string.lower(desc.Name)
+
+			-- Franjas amarillas retrorreflectivas de la carretera
+			if string.find(nombreLower, "lineacentral") then
+				desc.Material = Enum.Material.Neon
+				desc.Color = Color3.fromRGB(255, 230, 45)
+			end
+
 			local esLuz = string.find(nombreLower, "farol")
 				or string.find(nombreLower, "posteluz")
 				or string.find(nombreLower, "bombillo")
