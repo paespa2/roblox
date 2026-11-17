@@ -141,7 +141,27 @@ local function aparecerVehiculo(player: Player, idVehiculo: string): Model?
 	if asiento then
 		asiento.MaxSpeed = infoVehiculo.VelocidadMax
 
-		-- Ajustar velocidad si el jugador está sobrecargado
+		-- Crear o reutilizar parte física de masa para simular inercia real por peso de carga
+		local parteMasaCarga = modeloBase:FindFirstChild("MasaCargaFisica") :: Part?
+		if not parteMasaCarga then
+			parteMasaCarga = Instance.new("Part")
+			parteMasaCarga.Name = "MasaCargaFisica"
+			parteMasaCarga.Size = Vector3.new(1, 1, 1)
+			parteMasaCarga.Transparency = 1
+			parteMasaCarga.CanCollide = false
+			parteMasaCarga.CanTouch = false
+			parteMasaCarga.CanQuery = false
+			parteMasaCarga.Massless = false
+			parteMasaCarga.CFrame = asiento.CFrame
+			parteMasaCarga.Parent = modeloBase
+
+			local weldMasa = Instance.new("WeldConstraint")
+			weldMasa.Part0 = asiento
+			weldMasa.Part1 = parteMasaCarga
+			weldMasa.Parent = parteMasaCarga
+		end
+
+		-- Ajustar velocidad e inercia física según el peso real en Kg de la carga
 		asiento:GetPropertyChangedSignal("Occupant"):Connect(function()
 			local humanoid = asiento.Occupant
 			if humanoid then
@@ -149,20 +169,36 @@ local function aparecerVehiculo(player: Player, idVehiculo: string): Model?
 				if jugadorSentado then
 					local datosJugador = GestorDatos.ObtenerDatos(jugadorSentado)
 					if datosJugador then
-						local totalCarga = 0
-						for _, cant in pairs(datosJugador.Inventario) do
-							totalCarga += cant
+						local totalUnidades = 0
+						local pesoTotalKg = 0
+
+						for idDulce, cantidad in pairs(datosJugador.Inventario) do
+							totalUnidades += cantidad
+							local infoDulce = Datos.Dulces[idDulce]
+							local pesoUnitario = (infoDulce and infoDulce.PesoKg) or 0.05
+							pesoTotalKg += (pesoUnitario * cantidad)
 						end
 
-						if totalCarga > infoVehiculo.CapacidadCarga then
-							-- Penalización de velocidad por sobrecarga (-25%)
-							asiento.MaxSpeed = math.floor(infoVehiculo.VelocidadMax * 0.75)
+						-- Ajustar densidad física de la parte de masa (Simulación de inercia y gravedad real)
+						-- Una mayor densidad aumenta la inercia del vehículo, dificultando el frenado y la subida en pendientes
+						if parteMasaCarga then
+							local densidad = math.clamp(0.7 + (pesoTotalKg * 0.1), 0.7, 50.0)
+							parteMasaCarga.CustomPhysicalProperties = PhysicalProperties.new(densidad, 0.3, 0.5)
+						end
+
+						-- Límite de carga máxima por vehículo en Kg
+						local limiteCargaKg = (idVehiculo == "Vehiculo_Moto" and 40.0) or 10.0
+
+						if pesoTotalKg > limiteCargaKg or totalUnidades > infoVehiculo.CapacidadCarga then
+							-- Penalización física: mayor peso reduce velocidad y respuesta del motor
+							asiento.MaxSpeed = math.floor(infoVehiculo.VelocidadMax * 0.70)
+							asiento.Torque = math.floor((infoVehiculo.Torque or 20) * 0.8)
 							print(
 								string.format(
-									"El Patrón del Dulce: %s lleva sobrecarga (%d/%d). Velocidad reducida a %d.",
+									"El Patrón del Dulce: %s lleva sobrecarga física (%.2f kg / %.1f kg máx). Inercia alta y velocidad reducida a %d.",
 									jugadorSentado.Name,
-									totalCarga,
-									infoVehiculo.CapacidadCarga,
+									pesoTotalKg,
+									limiteCargaKg,
 									asiento.MaxSpeed
 								)
 							)

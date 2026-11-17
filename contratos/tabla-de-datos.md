@@ -1,35 +1,41 @@
 # Tabla de datos (dueño: Santiago)
 
-> **Contrato de Economía** — Única fuente de verdad para números, balance y progresión.
+> **Contrato de Economía y Parámetros Físicos** — Única fuente de verdad para números, balance y progresión.
 > Formato de identificadores: `Tipo_Nombre` (sin tildes ni espacios).
 
 ---
 
-## 1. Dulces
-| Identificador | Nivel | ValorVenta (pesos) | TiempoProduccion (s) | SeAbreEn |
-| :--- | :--- | :--- | :--- | :--- |
-| `Dulce_Bombon` | Común | 1 | 5 | Capítulo 1 |
-| `Dulce_Chicle` | Común | 1 | 8 | Capítulo 1 |
-| `Dulce_Gomita` | Común | 2 | 12 | Capítulo 1 |
-| `Dulce_Arequipe` | Casero | 5 | 25 | Capítulo 3 |
-| `Dulce_Panelita` | Casero | 6 | 30 | Capítulo 3 |
-| `Dulce_Bocadillo` | Casero | 8 | 40 | Capítulo 3 |
+## 1. Dulces (Propiedades Económicas y Físicas)
+| Identificador | Nivel | ValorVenta (pesos) | TiempoProduccion (s) | PesoUnitario (Kg) | SeAbreEn |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `Dulce_Bombon` | Común | 1 | 5 | **0.05 kg** (50g) | Capítulo 1 |
+| `Dulce_Chicle` | Común | 1 | 8 | **0.03 kg** (30g) | Capítulo 1 |
+| `Dulce_Gomita` | Común | 2 | 12 | **0.08 kg** (80g) | Capítulo 1 |
+| `Dulce_Arequipe` | Casero | 5 | 25 | **0.50 kg** (500g) | Capítulo 3 |
+| `Dulce_Panelita` | Casero | 6 | 30 | **0.35 kg** (350g) | Capítulo 3 |
+| `Dulce_Bocadillo` | Casero | 8 | 40 | **0.40 kg** (400g) | Capítulo 3 |
 
 ---
 
-## 2. Armas
-| Identificador | Tipo | Efecto | Duracion (s) | CostoDulcesPorDisparo | SeAbreEn |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `Arma_CaucheraGomitas` | Inicial / Distancia | Aturde al objetivo | 1 | 1 (`Dulce_Gomita`) | Capítulo 1 |
-| `Arma_PistolaCrema` | Distancia | Tapa parabrisas patrulla | 4 | 2 (`Dulce_Bombon`) | Capítulo 4 |
+## 2. Armas (Balística y Costo)
+| Identificador | Tipo | Efecto | Duracion (s) | Alcance (Studs) | Vel. Proyectil (Studs/s) | Munición | Gasto | SeAbreEn |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- | :---: | :---: |
+| `Arma_CaucheraGomitas` | Inicial / Distancia | Aturdir policía | 1.0 | 45 | 80 | `Dulce_Gomita` | 1 | Cap. 1 |
+| `Arma_PistolaCrema` | Distancia | Cegar parabrisas | 4.0 | 60 | 110 | `Dulce_Bombon` | 2 | Cap. 4 |
+| `Arma_EscopetaChicle` | Corto alcance | Pegar al piso | 3.0 | 30 | 70 | `Dulce_Chicle` | 3 | Cap. 5 |
+| `Arma_MinaCaramelo` | Trampa suelo | Frenar vehículo | 2.5 | 5 | 0 | `Dulce_Panelita` | 2 | Cap. 5 |
+| `Arma_GranadaGaseosa` | Explosivo área | Empuje espuma | 2.0 | 18 | 50 | `Dulce_Arequipe` | 2 | Cap. 6 |
+| `Arma_BazucaAlgodon` | Explosivo largo | Cortina rosada | 5.0 | 90 | 65 | `Dulce_Bocadillo` | 3 | Cap. 7 |
+| `Arma_DinamitaPinata` | Explosivo pesado | Destruir retenes | Estructural | 20 | 40 | `Dulce_Bocadillo` | 5 | Cap. 8 |
+| `Arma_CanonChiva` | Vehicular pesado | Avería patrulla | 3.5 | 120 | 130 | `Dulce_Bombon` | 10 | Cap. 9 |
 
 ---
 
-## 3. Vehículos
-| Identificador | Precio (pesos) | CapacidadCarga | VelocidadMax | Escondites | SeAbreEn |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `Vehiculo_Bicicleta` | 0 | 20 | 16 | 0 | Capítulo 1 |
-| `Vehiculo_Moto` | 150 | 60 | 28 | 1 | Capítulo 3 |
+## 3. Vehículos (Límites Físicos y Capacidad)
+| Identificador | Precio ($) | Capacidad (U) | CargaMaxKg | MasaBaseKg | VelMax (Studs/s) | Escondites | SeAbreEn |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `Vehiculo_Bicicleta` | 0 | 20 unidades | **10.0 kg** | 15 kg | 16 | 0 | Capítulo 1 |
+| `Vehiculo_Moto` | 150 | 60 unidades | **40.0 kg** | 120 kg | 28 | 1 | Capítulo 3 |
 
 ---
 
