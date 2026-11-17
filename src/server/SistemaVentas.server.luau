@@ -139,6 +139,17 @@ local function procesarVenta(player: Player, idTienda: string, puntoPart: BasePa
 			Detalles = detallesVenta,
 		})
 
+		-- Desbloquear logro "Primer Bombón" en la primera venta del tutorial
+		if (datosJugador.PasoTutorial or 0) <= 1 then
+			if GestorDatos.EstablecerPasoTutorial then
+				GestorDatos.EstablecerPasoTutorial(player, 2)
+			end
+			EventosRemotos.LogroDesbloqueado:FireClient(player, {
+				Nombre = "Primer Bombón",
+				Fama = 1,
+			})
+		end
+
 		print(
 			string.format(
 				"El Patrón del Dulce: %s vendió %d dulces (%s) en %s por $%d pesos (+1 Fama)",

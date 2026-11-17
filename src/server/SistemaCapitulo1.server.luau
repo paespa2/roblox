@@ -543,27 +543,150 @@ local function crearEstudiantes()
 end
 
 -- ====================================================================
--- 5. VIGILANCIA DE METAS DEL CAPÍTULO 1
+-- 5. ANUNCIO Y CARTEL DEL ALCALDE APIO (TUTORIAL MINUTO 0:00)
 -- ====================================================================
-GestorDatos.PesosModificados.Event:Connect(function(player: Player, pesos: number, datos)
-	if datos and (datos.CapituloActual or 1) == 1 and pesos >= 50 then
-		GestorDatos.AvanzarCapitulo(player, 2)
-		abrirPortonColegioPara(player)
+local function construirAnuncioAlcalde()
+	local mapa = Workspace:WaitForChild("Mapa", 10)
+	if not mapa then
+		return
 	end
-end)
+	local zonaColegio = mapa:WaitForChild("Zona_Colegio", 10)
+	if not zonaColegio then
+		return
+	end
 
--- Conectar también cuando el jugador gana pesos por cualquier medio
-Players.PlayerAdded:Connect(function(player: Player)
-	task.wait(2)
+	-- Cartel oficial de Azúcar Prohibida
+	local cartel = zonaColegio:FindFirstChild("Cartel_AzucarProhibida")
+	if not cartel then
+		cartel = Instance.new("Part")
+		cartel.Name = "Cartel_AzucarProhibida"
+		cartel.Size = Vector3.new(12, 6, 0.6)
+		cartel.CFrame = CFrame.new(-61, 75, -66) * CFrame.Angles(0, math.rad(90), 0)
+		cartel.Color = Color3.fromRGB(240, 240, 245)
+		cartel.Material = Enum.Material.SmoothPlastic
+		cartel.Anchored = true
+		cartel.CanCollide = false
+		cartel.Parent = zonaColegio
+
+		local sg = Instance.new("SurfaceGui")
+		sg.Name = "GuiDecreto"
+		sg.Face = Enum.NormalId.Front
+		sg.Parent = cartel
+
+		local f = Instance.new("Frame")
+		f.Size = UDim2.fromScale(1, 1)
+		f.BackgroundColor3 = Color3.fromRGB(230, 45, 45)
+		f.BorderSizePixel = 0
+		f.Parent = sg
+
+		local lbl = Instance.new("TextLabel")
+		lbl.Size = UDim2.fromScale(1, 0.4)
+		lbl.Position = UDim2.fromScale(0, 0.05)
+		lbl.BackgroundTransparency = 1
+		lbl.Font = Enum.Font.FredokaOne
+		lbl.Text = "🚫 DECRETO MUNICIPAL N° 001"
+		lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+		lbl.TextScaled = true
+		lbl.Parent = f
+
+		local sub = Instance.new("TextLabel")
+		sub.Size = UDim2.fromScale(0.9, 0.45)
+		sub.Position = UDim2.fromScale(0.05, 0.5)
+		sub.BackgroundTransparency = 1
+		sub.Font = Enum.Font.FredokaOne
+		sub.Text =
+			"PROHIBIDO EL AZÚCAR Y LOS DULCES\n¡Cero Caries en Villa Almíbar!\n— Alcalde Apio"
+		sub.TextColor3 = Color3.fromRGB(255, 245, 200)
+		sub.TextScaled = true
+		sub.Parent = f
+	end
+end
+
+-- ====================================================================
+-- 6. FLUJO DEL TUTORIAL Y METAS DEL CAPÍTULO 1
+-- ====================================================================
+local function iniciarTutorialParaJugador(player: Player)
+	local datos = GestorDatos.ObtenerDatos(player)
+	if not datos then
+		return
+	end
+
 	local cap = GestorDatos.ObtenerCapitulo(player)
-	if cap >= 2 then
+	local paso = GestorDatos.ObtenerPasoTutorial(player)
+
+	if cap == 1 and paso == 0 then
+		task.delay(2.5, function()
+			if not player.Parent then
+				return
+			end
+			-- Paso 0: Anuncio por el altavoz del Alcalde Apio
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = "Altavoz Escolar (Alcalde Apio)",
+				Titulo = "Decreto Municipal N° 001",
+				Icono = "📢",
+				Mensaje = "¡Atención estudiantes de Villa Almíbar! Por Decreto Municipal, queda terminantemente PROHIBIDO el consumo y venta de azúcar, melcochas y bombones. ¡Cero caries en mi municipio!",
+			})
+
+			-- Asegurar que el jugador tenga sus primeros 5 bombones y 3 gomitas para el tutorial
+			local bombones = (datos.Inventario["Dulce_Bombon"] or 0)
+			if bombones < 5 then
+				GestorDatos.AgregarDulce(player, "Dulce_Bombon", 5 - bombones)
+			end
+			local gomitas = (datos.Inventario["Dulce_Gomita"] or 0)
+			if gomitas < 3 then
+				GestorDatos.AgregarDulce(player, "Dulce_Gomita", 3 - gomitas)
+			end
+
+			-- Paso 0.5: Doña Melcocha le pasa los dulces y le da el primer encargo
+			task.delay(6, function()
+				if not player.Parent then
+					return
+				end
+				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+					Nombre = "Doña Melcocha",
+					Titulo = "La Abuela",
+					Icono = "👵",
+					Mensaje = "¡Mijo! Si el Alcalde cree que nos va a dejar sin dulce, ¡está loco! Te pasé 5 bombones a escondidas. Ve al patio del colegio y véndelos con Lola Paleta o los niños antes de que suene la campana. ¡Y si te cansas, pulsa V para montar la bicicleta!",
+				})
+				GestorDatos.EstablecerPasoTutorial(player, 1)
+			end)
+		end)
+	elseif cap >= 2 then
 		if not portonAbierto then
 			abrirPortonColegioPara(player)
 		end
 	end
+end
+
+GestorDatos.PesosModificados.Event:Connect(function(player: Player, pesos: number, datos)
+	if datos and (datos.CapituloActual or 1) == 1 and pesos >= 50 then
+		GestorDatos.AvanzarCapitulo(player, 2)
+		GestorDatos.EstablecerPasoTutorial(player, 5)
+		abrirPortonColegioPara(player)
+	end
+end)
+
+Players.PlayerAdded:Connect(function(player: Player)
+	task.wait(1.5)
+	iniciarTutorialParaJugador(player)
+end)
+
+for _, p in ipairs(Players:GetPlayers()) do
+	task.spawn(iniciarTutorialParaJugador, p)
+end
+
+-- Campana periódica del Recreo Escolar (cada 180s)
+task.spawn(function()
+	while true do
+		task.wait(180)
+		EventosRemotos.CampanaRecreo:FireAllClients()
+	end
 end)
 
 task.spawn(construirPortonColegio)
+task.spawn(construirAnuncioAlcalde)
 task.spawn(crearCoordinadorTiza)
 task.spawn(crearEstudiantes)
-print("El Patrón del Dulce: Sistema de Capítulo 1 (El Recreo y Portón del Colegio) Inicializado")
+print(
+	"El Patrón del Dulce: Sistema de Capítulo 1 (Tutorial, Recreo y Portón del Colegio) Inicializado"
+)

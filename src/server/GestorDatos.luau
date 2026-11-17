@@ -501,6 +501,25 @@ function GestorDatos.AvanzarCapitulo(player: Player, nuevoCapitulo: number): boo
 	return false
 end
 
+function GestorDatos.ObtenerPasoTutorial(player: Player): number
+	local perfil = perfilesCargados[player]
+	if perfil and perfil.Data then
+		return perfil.Data.PasoTutorial or 0
+	end
+	return 0
+end
+
+function GestorDatos.EstablecerPasoTutorial(player: Player, paso: number)
+	local perfil = perfilesCargados[player]
+	if perfil and perfil.Data then
+		perfil.Data.PasoTutorial = paso
+		if paso >= 5 then
+			perfil.Data.TutorialCompletado = true
+		end
+		sincronizarCliente(player)
+	end
+end
+
 function GestorDatos.Iniciar()
 	EventosRemotos.SolicitarDatos.OnServerInvoke = function(player: Player)
 		local perfil = perfilesCargados[player]

@@ -183,6 +183,62 @@ botonInventario.MouseButton1Click:Connect(function()
 	end
 end)
 
+-- Marco de Misión / Objetivo Actual (debajo del medidor de policía a la izquierda)
+local marcoObjetivo = Instance.new("Frame")
+marcoObjetivo.Name = "MarcoObjetivo"
+marcoObjetivo.Size = UDim2.fromOffset(280, 82)
+marcoObjetivo.Position = UDim2.fromOffset(20, 260)
+marcoObjetivo.BackgroundColor3 = Color3.fromRGB(20, 24, 34)
+marcoObjetivo.BackgroundTransparency = 0.2
+marcoObjetivo.Parent = screenGui
+
+local cornerObjetivo = Instance.new("UICorner")
+cornerObjetivo.CornerRadius = UDim.new(0, 10)
+cornerObjetivo.Parent = marcoObjetivo
+
+local strokeObjetivo = Instance.new("UIStroke")
+strokeObjetivo.Color = Color3.fromRGB(60, 130, 220)
+strokeObjetivo.Thickness = 1.5
+strokeObjetivo.Parent = marcoObjetivo
+
+local tituloObjetivo = Instance.new("TextLabel")
+tituloObjetivo.Name = "TituloObjetivo"
+tituloObjetivo.Size = UDim2.new(1, -20, 0, 20)
+tituloObjetivo.Position = UDim2.fromOffset(10, 6)
+tituloObjetivo.BackgroundTransparency = 1
+tituloObjetivo.Font = Enum.Font.FredokaOne
+tituloObjetivo.Text = "📋 MISIÓN: CAPÍTULO 1"
+tituloObjetivo.TextColor3 = Color3.fromRGB(140, 200, 255)
+tituloObjetivo.TextSize = 12
+tituloObjetivo.TextXAlignment = Enum.TextXAlignment.Left
+tituloObjetivo.Parent = marcoObjetivo
+
+local textoMision = Instance.new("TextLabel")
+textoMision.Name = "TextoMision"
+textoMision.Size = UDim2.new(1, -20, 0, 32)
+textoMision.Position = UDim2.fromOffset(10, 26)
+textoMision.BackgroundTransparency = 1
+textoMision.Font = Enum.Font.GothamMedium
+textoMision.Text = "Lleva los bombones al patio del colegio y véndelos en el recreo."
+textoMision.TextColor3 = Color3.fromRGB(255, 245, 230)
+textoMision.TextSize = 12
+textoMision.TextWrapped = true
+textoMision.TextXAlignment = Enum.TextXAlignment.Left
+textoMision.TextYAlignment = Enum.TextYAlignment.Top
+textoMision.Parent = marcoObjetivo
+
+local barraProgreso = Instance.new("TextLabel")
+barraProgreso.Name = "ProgresoObjetivo"
+barraProgreso.Size = UDim2.new(1, -20, 0, 18)
+barraProgreso.Position = UDim2.fromOffset(10, 58)
+barraProgreso.BackgroundTransparency = 1
+barraProgreso.Font = Enum.Font.FredokaOne
+barraProgreso.Text = "Meta: Reúne $50 pesos para abrir el portón"
+barraProgreso.TextColor3 = Color3.fromRGB(255, 215, 100)
+barraProgreso.TextSize = 11
+barraProgreso.TextXAlignment = Enum.TextXAlignment.Left
+barraProgreso.Parent = marcoObjetivo
+
 -- Notificación Banner (Posicionado debajo del banner de alertas de policía a Y=75 para evitar solapamiento)
 local bannerNotificacion = Instance.new("Frame")
 bannerNotificacion.Name = "BannerNotificacion"
@@ -417,11 +473,48 @@ local function actualizarInventario(inventario: { [string]: number })
 	end
 end
 
+-- Actualizar visualmente la tarjeta de Misión / Objetivo
+local function actualizarObjetivo(datos)
+	local cap = datos.CapituloActual or 1
+	local pesos = datos.PesosDulces or 0
+	local fama = datos.Fama or 0
+	local paso = datos.PasoTutorial or 0
+	local cantBombones = (datos.Inventario and datos.Inventario["Dulce_Bombon"]) or 0
+
+	if cap >= 2 then
+		tituloObjetivo.Text = "📋 CAPÍTULO 2: LA ESQUINA"
+		textoMision.Text = "Visita a Don Ábaco en el barrio y surte las 6 tiendas locales."
+		barraProgreso.Text = string.format("Progreso: $%d Pesos | %d Fama ⭐", pesos, fama)
+		strokeObjetivo.Color = Color3.fromRGB(80, 220, 140)
+	elseif pesos >= 50 then
+		tituloObjetivo.Text = "🔓 ¡PORTÓN DEL COLEGIO ABIERTO!"
+		textoMision.Text = "¡Capítulo 1 completado! Monta la bicicleta (tecla V) y sal al barrio."
+		barraProgreso.Text = "🎉 ¡Camino al Barrio Desbloqueado!"
+		strokeObjetivo.Color = Color3.fromRGB(255, 215, 0)
+	elseif paso == 0 then
+		tituloObjetivo.Text = "📢 ANUNCIO DEL ALCALDE APIO"
+		textoMision.Text = "Escucha el altavoz y habla con Doña Melcocha en la cocina."
+		barraProgreso.Text = "Presiona E para hablar con la Abuela"
+		strokeObjetivo.Color = Color3.fromRGB(240, 120, 80)
+	elseif cantBombones > 0 then
+		tituloObjetivo.Text = "🎒 CAPÍTULO 1: EL RECREO"
+		textoMision.Text = "Vende a Lola Paleta en el kiosko o a Tito y Sofi en la cancha."
+		barraProgreso.Text = string.format("Meta: $%d / $50 Pesos Dulces", pesos)
+		strokeObjetivo.Color = Color3.fromRGB(60, 160, 240)
+	else
+		tituloObjetivo.Text = "🍳 COCINA DE LA ABUELA"
+		textoMision.Text = "¡Te quedaste sin bombones! Ve a la paila y presiona E para cocinar."
+		barraProgreso.Text = string.format("Meta: $%d / $50 Pesos Dulces", pesos)
+		strokeObjetivo.Color = Color3.fromRGB(240, 160, 60)
+	end
+end
+
 -- Conexión de eventos
 EventosRemotos.DatosActualizados.OnClientEvent:Connect(function(datos)
 	animarPesos(datos.PesosDulces)
 	textoFama.Text = string.format("Fama: %d ⭐", datos.Fama)
 	actualizarInventario(datos.Inventario)
+	actualizarObjetivo(datos)
 end)
 
 EventosRemotos.CocinaActualizada.OnClientEvent:Connect(function(info)
@@ -456,5 +549,41 @@ EventosRemotos.VentaCompletada.OnClientEvent:Connect(function(resumen)
 	mostrarBanner(
 		string.format("💰 ¡Vendiste en %s por +$%d!", resumen.Tienda, resumen.PesosGanados),
 		Color3.fromRGB(255, 215, 0)
+	)
+end)
+
+EventosRemotos.LogroDesbloqueado.OnClientEvent:Connect(function(infoLogro)
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+	sound.Volume = 0.9
+	sound.Parent = SoundService
+	sound:Play()
+	task.delay(1.5, function()
+		sound:Destroy()
+	end)
+
+	mostrarBanner(
+		string.format(
+			"🏆 ¡LOGRO: %s! (+%d Fama)",
+			infoLogro.Nombre or "Primer Bombón",
+			infoLogro.Fama or 1
+		),
+		Color3.fromRGB(255, 215, 0)
+	)
+end)
+
+EventosRemotos.CampanaRecreo.OnClientEvent:Connect(function()
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+	sound.Volume = 1
+	sound.Parent = SoundService
+	sound:Play()
+	task.delay(1.5, function()
+		sound:Destroy()
+	end)
+
+	mostrarBanner(
+		"🔔 ¡SUENA LA CAMPANA DEL RECREO! Los niños llenan el patio escolar",
+		Color3.fromRGB(255, 120, 200)
 	)
 end)

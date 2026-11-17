@@ -69,5 +69,7 @@ EventosRemotos.LiberadoDelInternado = obtenerOCrearEvento("LiberadoDelInternado"
 EventosRemotos.SolicitarPagarFianza = obtenerOCrearFuncion("SolicitarPagarFianza")
 EventosRemotos.CepillarMuela = obtenerOCrearFuncion("CepillarMuela")
 EventosRemotos.MostrarDialogoNPC = obtenerOCrearEvento("MostrarDialogoNPC")
+EventosRemotos.LogroDesbloqueado = obtenerOCrearEvento("LogroDesbloqueado")
+EventosRemotos.CampanaRecreo = obtenerOCrearEvento("CampanaRecreo")
 
 return EventosRemotos
