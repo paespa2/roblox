@@ -302,6 +302,33 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 					)
 				)
 			end
+
+			-- Efecto contra Coordinador Tiza del Colegio (Capítulo 1)
+			local coordinador = npcs:FindFirstChild("Personaje_Coordinador")
+			if
+				coordinador
+				and (coordinador:GetPivot().Position - proyectil.Position).Magnitude < 18
+			then
+				coordinador:SetAttribute("Aturdido", true)
+				local bbg = coordinador:FindFirstChildWhichIsA("BillboardGui", true)
+				local lbl = bbg and bbg:FindFirstChildWhichIsA("TextLabel", true)
+				local textoAnterior = lbl and lbl.Text
+				if lbl then
+					lbl.Text = "😵 ¡EMPALAGADO CON GOMITA! (4s)"
+				end
+				task.delay(infoArma.Duracion or 4, function()
+					coordinador:SetAttribute("Aturdido", nil)
+					if lbl and textoAnterior then
+						lbl.Text = textoAnterior
+					end
+				end)
+				print(
+					string.format(
+						"El Patrón del Dulce: ¡Coordinador Tiza aturdido por %s con gomita!",
+						player.Name
+					)
+				)
+			end
 		end
 
 		task.delay(0.7, function()

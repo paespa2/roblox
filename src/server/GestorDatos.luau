@@ -16,6 +16,7 @@ if RunService:IsStudio() then
 end
 
 local GestorDatos = {}
+GestorDatos.PesosModificados = Instance.new("BindableEvent")
 local perfilesCargados: { [Player]: any } = {}
 
 local function actualizarLeaderstats(player: Player, datos: PerfilJugador)
@@ -112,6 +113,7 @@ function GestorDatos.AgregarPesos(player: Player, cantidad: number): boolean
 	end
 	perfil.Data.PesosDulces += cantidad
 	sincronizarCliente(player)
+	GestorDatos.PesosModificados:Fire(player, perfil.Data.PesosDulces, perfil.Data)
 	return true
 end
 
@@ -474,6 +476,29 @@ function GestorDatos.PagarFianza(player: Player): (boolean, string)
 	perfil.Data.EstrellasBusqueda = 0
 	sincronizarCliente(player)
 	return true, "Fianza pagada con éxito. ¡Quedas en libertad!"
+end
+
+function GestorDatos.ObtenerCapitulo(player: Player): number
+	local perfil = perfilesCargados[player]
+	if perfil and perfil.Data then
+		return perfil.Data.CapituloActual or 1
+	end
+	return 1
+end
+
+function GestorDatos.AvanzarCapitulo(player: Player, nuevoCapitulo: number): boolean
+	local perfil = perfilesCargados[player]
+	if not perfil or not perfil.Data then
+		return false
+	end
+
+	local capActual = perfil.Data.CapituloActual or 1
+	if nuevoCapitulo > capActual then
+		perfil.Data.CapituloActual = nuevoCapitulo
+		sincronizarCliente(player)
+		return true
+	end
+	return false
 end
 
 function GestorDatos.Iniciar()

@@ -350,13 +350,37 @@ local function configurarDonaMelcocha()
 				prompt.Parent = part
 			end
 			prompt.Triggered:Connect(function(player: Player)
-				local dialogo = DIALOGOS_MELCOCHA[indiceDialogo]
-				indiceDialogo = (indiceDialogo % #DIALOGOS_MELCOCHA) + 1
+				local datos = GestorDatos.ObtenerDatos(player)
+				local cap = GestorDatos.ObtenerCapitulo(player)
+				local cantBombones = (
+					datos
+					and datos.Inventario
+					and datos.Inventario["Dulce_Bombon"]
+				) or 0
+
+				local mensaje = ""
+				if cap == 1 then
+					if cantBombones == 0 and (datos and datos.PesosDulces or 0) < 50 then
+						mensaje =
+							"¡Mijo! El Alcalde Apio cree que nos va a prohibir el dulce, ¡pero aquí manda la paila! Vaya al fogón, cocine una tanda de bombones y luego pulse la tecla V para montar su bicicleta e ir al colegio."
+					elseif cantBombones > 0 and (datos and datos.PesosDulces or 0) < 50 then
+						mensaje =
+							"¡Eso es, mijo! Ya tiene los bombones listos. Móntese en la bicicleta con la tecla V y llévelos al recreo del colegio con Lola Paleta o los niños en el patio. ¡Si el Coordinador Tiza lo acosa, atúrdalo con la cauchera de gomitas!"
+					else
+						mensaje =
+							"¡Mijo, ya tiene los pesos necesarios! Vaya al portón del colegio para abrirlo hacia el barrio y comenzar el Capítulo 2."
+					end
+				else
+					local dialogoGenerico = DIALOGOS_MELCOCHA[indiceDialogo]
+					indiceDialogo = (indiceDialogo % #DIALOGOS_MELCOCHA) + 1
+					mensaje = dialogoGenerico
+				end
+
 				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
 					Nombre = "Doña Melcocha",
 					Titulo = "La Abuela",
 					Icono = "👵",
-					Mensaje = dialogo,
+					Mensaje = mensaje,
 				})
 			end)
 		end

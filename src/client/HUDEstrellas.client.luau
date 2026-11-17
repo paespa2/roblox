@@ -8,18 +8,23 @@ local PlayerGui = localPlayer:WaitForChild("PlayerGui")
 
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 
+local previo = PlayerGui:FindFirstChild("UI_HUD_Estrellas")
+if previo then
+	previo:Destroy()
+end
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "UI_HUD_Estrellas"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = PlayerGui
 
--- Marco Superior Derecho (Contenedor de Dientes / Estrellas)
+-- Marco Superior Izquierdo (Contenedor de Dientes / Estrellas debajo de Mejoras)
 local marcoEstrellas = Instance.new("Frame")
 marcoEstrellas.Name = "MarcoEstrellas"
-marcoEstrellas.Size = UDim2.fromOffset(230, 50)
-marcoEstrellas.AnchorPoint = Vector2.new(1, 0)
-marcoEstrellas.Position = UDim2.new(1, -20, 0, 20)
+marcoEstrellas.Size = UDim2.fromOffset(230, 48)
+marcoEstrellas.AnchorPoint = Vector2.new(0, 0)
+marcoEstrellas.Position = UDim2.fromOffset(20, 155)
 marcoEstrellas.BackgroundColor3 = Color3.fromRGB(20, 24, 32)
 marcoEstrellas.BackgroundTransparency = 0.2
 marcoEstrellas.Parent = screenGui
@@ -57,12 +62,12 @@ for i = 1, 5 do
 	table.insert(listaDientes, diente)
 end
 
--- Marco de Enfriamiento (Debajo de las estrellas)
+-- Marco de Enfriamiento (Debajo de las estrellas en el lado izquierdo)
 local marcoEnfriamiento = Instance.new("Frame")
 marcoEnfriamiento.Name = "MarcoEnfriamiento"
 marcoEnfriamiento.Size = UDim2.fromOffset(230, 42)
-marcoEnfriamiento.AnchorPoint = Vector2.new(1, 0)
-marcoEnfriamiento.Position = UDim2.new(1, -20, 0, 76)
+marcoEnfriamiento.AnchorPoint = Vector2.new(0, 0)
+marcoEnfriamiento.Position = UDim2.fromOffset(20, 212)
 marcoEnfriamiento.BackgroundColor3 = Color3.fromRGB(18, 32, 24)
 marcoEnfriamiento.BackgroundTransparency = 0.2
 marcoEnfriamiento.Visible = false
@@ -116,7 +121,7 @@ local bannerAlerta = Instance.new("Frame")
 bannerAlerta.Name = "BannerAlerta"
 bannerAlerta.Size = UDim2.fromOffset(420, 46)
 bannerAlerta.AnchorPoint = Vector2.new(0.5, 0)
-bannerAlerta.Position = UDim2.new(0.5, 0, 0, -60)
+bannerAlerta.Position = UDim2.new(0.5, 0, 0, -80)
 bannerAlerta.BackgroundColor3 = Color3.fromRGB(35, 15, 18)
 bannerAlerta.BackgroundTransparency = 0.15
 bannerAlerta.ClipsDescendants = true
@@ -166,7 +171,7 @@ local function mostrarAlerta(mensaje: string, esGrave: boolean)
 	local tweenEntrada = TweenService:Create(
 		bannerAlerta,
 		TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ Position = UDim2.new(0.5, 0, 0, 20) }
+		{ Position = UDim2.new(0.5, 0, 0, 15) }
 	)
 	tweenEntrada:Play()
 
@@ -174,7 +179,7 @@ local function mostrarAlerta(mensaje: string, esGrave: boolean)
 		local tweenSalida = TweenService:Create(
 			bannerAlerta,
 			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-			{ Position = UDim2.new(0.5, 0, 0, -60) }
+			{ Position = UDim2.new(0.5, 0, 0, -80) }
 		)
 		tweenSalida:Play()
 		tweenSalida.Completed:Connect(function()

@@ -1,7 +1,6 @@
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local GestorDatos = require(script.Parent.GestorDatos)
 local Datos = require(ReplicatedStorage.Shared.Datos)
@@ -150,7 +149,7 @@ local function crearModeloMotoFallback(): Model
 	return modelo
 end
 
-local function configurarFisicaConduccion(player: Player, modelo: Model, infoVehiculo: any)
+local function configurarFisicaConduccion(player: Player, modelo: Model, _infoVehiculo: any)
 	local chasis = modelo.PrimaryPart or modelo:FindFirstChild("Chasis") :: BasePart?
 	local asiento = modelo:FindFirstChildOfClass("VehicleSeat")
 	if not chasis or not asiento then
@@ -228,137 +227,39 @@ local function configurarFisicaConduccion(player: Player, modelo: Model, infoVeh
 		av.RelativeTo = Enum.ActuatorRelativeTo.World
 	end
 
-	local ao = chasis:FindFirstChild("UprightStabilizer") :: AlignOrientation?
-	if not ao then
-		ao = Instance.new("AlignOrientation")
-		ao.Name = "UprightStabilizer"
-		ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
-		ao.AlignType = Enum.AlignType.PrimaryAxisParallel
-		ao.Attachment0 = att
-		ao.PrimaryAxis = Vector3.new(0, 1, 0)
-		ao.MaxTorque = 80000
-		ao.Responsiveness = 45
-		ao.CFrame = CFrame.identity
-		ao.Parent = chasis
-	else
-		ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
-		ao.AlignType = Enum.AlignType.PrimaryAxisParallel
-		ao.PrimaryAxis = Vector3.new(0, 1, 0)
-		ao.MaxTorque = 80000
-		ao.Responsiveness = 45
-		ao.CFrame = CFrame.identity
+	-- Eliminar cualquier estabilizador que bloquee el giro natural
+	local ao = chasis:FindFirstChild("UprightStabilizer")
+		or modelo:FindFirstChild("UprightStabilizer", true)
+	if ao then
+		ao:Destroy()
 	end
 
-	local velocidadBase = infoVehiculo.VelocidadMax or 22
-	local velocidadGiro = 2.6
-	local velocidadActual = 0
+	-- Asignar la propiedad de red (NetworkOwnership) al jugador para conducción suave en cliente
+	for _, part in ipairs(modelo:GetDescendants()) do
+		if part:IsA("BasePart") then
+			pcall(function()
+				part:SetNetworkOwner(player)
+			end)
+		end
+	end
 
-	local raycastSuperficie = RaycastParams.new()
-	raycastSuperficie.FilterType = Enum.RaycastFilterType.Exclude
-	raycastSuperficie.IgnoreWater = true
-
-	-- Conectar bucle de conducción con física horizontal en coordenadas mundiales (pegado al suelo)
+	-- Monitorear cuando el jugador abandone el asiento para frenar el vehículo
 	if conexionesVehiculos[player] then
 		conexionesVehiculos[player]:Disconnect()
+		conexionesVehiculos[player] = nil
 	end
 
-	conexionesVehiculos[player] = RunService.Heartbeat:Connect(function(dt: number)
-		if not modelo.Parent or not asiento.Parent then
-			if conexionesVehiculos[player] then
-				conexionesVehiculos[player]:Disconnect()
-				conexionesVehiculos[player] = nil
-			end
-			return
-		end
-
-		local occupant = asiento.Occupant
-		if occupant and occupant.Health > 0 then
-			local throttle = asiento.ThrottleFloat
-			local steer = asiento.SteerFloat
-
-			-- 1. Raycast a la superficie bajo el chasis para detectar material
-			raycastSuperficie.FilterDescendantsInstances = { modelo, player.Character }
-			local hit =
-				Workspace:Raycast(chasis.Position, Vector3.new(0, -4.5, 0), raycastSuperficie)
-
-			local factorSuperficie = 1.0
-			local tasaAceleracion = 28
-
-			if hit then
-				local mat = hit.Material
-				if
-					mat == Enum.Material.Grass
-					or mat == Enum.Material.LeafyGrass
-					or mat == Enum.Material.Ground
-				then
-					factorSuperficie = 0.75 -- Césped/Tierra: menor tracción
-					tasaAceleracion = 18
-				elseif mat == Enum.Material.Sand or mat == Enum.Material.Mud then
-					factorSuperficie = 0.55 -- Arena/Lodo: pedaleo pesado
-					tasaAceleracion = 12
-				else
-					factorSuperficie = 1.0 -- Asfalto, Concreto, Metal: tracción total
-					tasaAceleracion = 30
-				end
-			else
-				-- En el aire (saltando un desnivel): tracción nula
-				factorSuperficie = 0.15
-				tasaAceleracion = 6
-			end
-
-			-- 2. Dirección horizontal de avance en espacio mundial
-			local look = chasis.CFrame.LookVector
-			local fwdHoriz = Vector3.new(look.X, 0, look.Z)
-			if fwdHoriz.Magnitude > 0.01 then
-				fwdHoriz = fwdHoriz.Unit
-			else
-				fwdHoriz = Vector3.new(0, 0, -1)
-			end
-
-			-- 3. Penalización por carga en morral
-			local factorCarga = 1.0
-			local datosJugador = GestorDatos.ObtenerDatos(player)
-			if datosJugador then
-				local totalCarga = 0
-				for _, cant in pairs(datosJugador.Inventario) do
-					totalCarga += cant
-				end
-				if totalCarga > infoVehiculo.CapacidadCarga then
-					factorCarga = 0.75
-				end
-			end
-
-			-- 4. Velocidad meta y aceleración progresiva
-			local velMaxFinal = velocidadBase * factorSuperficie * factorCarga
-			local velMeta = throttle * velMaxFinal
-
-			if math.abs(throttle) > 0.05 then
-				local diff = velMeta - velocidadActual
-				local paso = math.sign(diff) * math.min(math.abs(diff), tasaAceleracion * dt)
-				velocidadActual += paso
-			else
-				-- Fricción y desaceleración natural al soltar pedales
-				local friccion = if hit then 20 * dt else 5 * dt
-				if math.abs(velocidadActual) <= friccion then
-					velocidadActual = 0
-				else
-					velocidadActual -= math.sign(velocidadActual) * friccion
-				end
-			end
-
-			-- Aplicar velocidad puramente horizontal en el plano mundial (Y = 0)
-			local velVector = fwdHoriz * velocidadActual
-			lv.VectorVelocity = Vector3.new(velVector.X, 0, velVector.Z)
-
-			-- 5. Control de giro sobre el eje Y mundial:
-			-- A (steer = -1) -> rota hacia la izquierda (+Y mundial)
-			-- D (steer = +1) -> rota hacia la derecha (-Y mundial)
-			local factorGiroVel = math.clamp(math.abs(velocidadActual) / 5, 0.35, 1.0)
-			av.AngularVelocity = Vector3.new(0, -steer * velocidadGiro * factorGiroVel, 0)
-		else
-			velocidadActual = 0
+	conexionesVehiculos[player] = asiento:GetPropertyChangedSignal("Occupant"):Connect(function()
+		if not asiento.Occupant then
 			lv.VectorVelocity = Vector3.zero
 			av.AngularVelocity = Vector3.zero
+			pcall(function()
+				chasis:SetNetworkOwner(nil)
+			end)
+		else
+			pcall(function()
+				chasis:SetNetworkOwner(player)
+			end)
 		end
 	end)
 end

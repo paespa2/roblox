@@ -39,6 +39,11 @@ local datosActuales: PerfilJugador = {
 local pestanaActiva = "Cocina" -- "Cocina", "Vehiculos", "Bodega"
 
 -- UI Containers
+local previo = PlayerGui:FindFirstChild("UI_Pantalla_Mejoras")
+if previo then
+	previo:Destroy()
+end
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "UI_Pantalla_Mejoras"
 screenGui.ResetOnSpawn = false

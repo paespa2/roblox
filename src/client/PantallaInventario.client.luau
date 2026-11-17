@@ -9,6 +9,11 @@ local PlayerGui = localPlayer:WaitForChild("PlayerGui")
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 local Datos = require(ReplicatedStorage.Shared.Datos)
 
+local previo = PlayerGui:FindFirstChild("UI_Pantalla_Inventario")
+if previo then
+	previo:Destroy()
+end
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "UI_Pantalla_Inventario"
 screenGui.ResetOnSpawn = false

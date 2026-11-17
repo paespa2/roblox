@@ -12,6 +12,11 @@ local EventosRemotos = require(
 local Datos = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Datos"))
 
 -- Crear ScreenGui Principal
+local previo = PlayerGui:FindFirstChild("HUD_ElPatronDelDulce")
+if previo then
+	previo:Destroy()
+end
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "HUD_ElPatronDelDulce"
 screenGui.ResetOnSpawn = false
@@ -182,9 +187,10 @@ end)
 local bannerNotificacion = Instance.new("Frame")
 bannerNotificacion.Name = "BannerNotificacion"
 bannerNotificacion.Size = UDim2.fromOffset(380, 46)
-bannerNotificacion.Position = UDim2.new(0.5, -190, 0, -60) -- Oculto arriba
+bannerNotificacion.Position = UDim2.new(0.5, -190, 0, -80) -- Oculto arriba
 bannerNotificacion.BackgroundColor3 = Color3.fromRGB(26, 30, 40)
 bannerNotificacion.BackgroundTransparency = 0.1
+bannerNotificacion.ClipsDescendants = true
 bannerNotificacion.Visible = false
 bannerNotificacion.Parent = screenGui
 
@@ -203,7 +209,7 @@ textoBanner.Size = UDim2.new(1, -20, 1, 0)
 textoBanner.Position = UDim2.fromOffset(10, 0)
 textoBanner.BackgroundTransparency = 1
 textoBanner.Font = Enum.Font.FredokaOne
-textoBanner.Text = "¡Notificación!"
+textoBanner.Text = ""
 textoBanner.TextColor3 = Color3.fromRGB(255, 255, 255)
 textoBanner.TextSize = 15
 textoBanner.TextWrapped = true
@@ -214,7 +220,7 @@ local function mostrarBanner(mensaje: string, colorStroke: Color3?)
 	textoBanner.Text = mensaje
 
 	bannerNotificacion.Visible = true
-	bannerNotificacion.Position = UDim2.new(0.5, -190, 0, -60)
+	bannerNotificacion.Position = UDim2.new(0.5, -190, 0, -80)
 	local tweenBajar = TweenService:Create(
 		bannerNotificacion,
 		TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
@@ -226,7 +232,7 @@ local function mostrarBanner(mensaje: string, colorStroke: Color3?)
 		local tweenSubir = TweenService:Create(
 			bannerNotificacion,
 			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-			{ Position = UDim2.new(0.5, -190, 0, -60) }
+			{ Position = UDim2.new(0.5, -190, 0, -80) }
 		)
 		tweenSubir:Play()
 		tweenSubir.Completed:Connect(function()
