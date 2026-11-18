@@ -267,12 +267,12 @@ function Zombis.ObtenerConfigOleada(numeroOleada: number): ConfigOleada
 
 	local extra = math.max(0, numeroOleada - 5)
 	return {
-		Cantidad = math.min(60, 20 + extra * 5),
+		Cantidad = 20 + extra * 5,
 		VelocidadBase = math.min(23.5, 18.2 + extra * 0.6),
 		VidaBase = 230 + extra * 45,
 		DanioBase = math.min(48, 26 + extra * 3),
 		CooldownAtaque = math.max(0.80, 1.0 - extra * 0.03),
-		EtiquetaVelocidad = "Progresiva",
+		EtiquetaVelocidad = "Infinita",
 	}
 end
 

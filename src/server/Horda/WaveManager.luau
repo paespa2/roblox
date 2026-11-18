@@ -27,6 +27,8 @@ local _oleadaActual = 0
 local _zombisPorGenerar = 0
 local _totalOleadaActual = 0
 local _hiloCiclo: thread? = nil
+local _onHordaIniciadaCallback: (() -> ())? = nil
+local _onHordaFinalizadaCallback: (() -> ())? = nil
 
 local function hayAlgunJugadorVivo(): boolean
 	for _, player in ipairs(Players:GetPlayers()) do
@@ -188,9 +190,12 @@ local function ejecutarOleada(numeroOleada: number)
 		task.wait(1)
 	end
 
-	if _estado == "OleadaCompletada" then
-		ejecutarOleada(numeroOleada + 1)
-	end
+	-- El bucle principal en IniciarHorda avanzará a la siguiente oleada de forma infinita
+end
+
+function WaveManager.EstablecerCallbacksCiclo(onInicio: (() -> ())?, onFin: (() -> ())?)
+	_onHordaIniciadaCallback = onInicio
+	_onHordaFinalizadaCallback = onFin
 end
 
 function WaveManager.EstaActiva(): boolean
@@ -216,6 +221,9 @@ function WaveManager.IniciarHorda()
 	_totalOleadaActual = 0
 
 	ZombieAI.Iniciar()
+	if _onHordaIniciadaCallback then
+		task.spawn(_onHordaIniciadaCallback)
+	end
 
 	_hiloCiclo = task.spawn(function()
 		for seg = General.CuentaRegresivaInicial, 1, -1 do
@@ -226,8 +234,14 @@ function WaveManager.IniciarHorda()
 			task.wait(1)
 		end
 
-		if _estado == "CuentaRegresiva" then
-			ejecutarOleada(1)
+		-- Ciclo infinito de rondas mientras la horda siga activa
+		local numeroOleada = 1
+		while _estado ~= "Inactiva" do
+			ejecutarOleada(numeroOleada)
+			if _estado ~= "OleadaCompletada" then
+				break
+			end
+			numeroOleada += 1
 		end
 	end)
 end
@@ -241,13 +255,16 @@ function WaveManager.DetenerHorda(motivo: string?)
 	_zombisPorGenerar = 0
 	_totalOleadaActual = 0
 
-	if _hiloCiclo and coroutine.running() ~= _hiloCiclo then
+	if _hiloCiclo and coroutine.running() ~= _hiloCiclo and coroutine.status(_hiloCiclo) ~= "dead" then
 		task.cancel(_hiloCiclo)
 	end
 	_hiloCiclo = nil
 
 	ZombieAI.Detener()
 	ZombieService.LimpiarTodosZombis()
+	if _onHordaFinalizadaCallback then
+		task.spawn(_onHordaFinalizadaCallback)
+	end
 	notificarEstado(motivo or "Horda finalizada", 0)
 	_oleadaActual = 0
 

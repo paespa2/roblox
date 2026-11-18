@@ -7,6 +7,8 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
+local StarterPack = game:GetService("StarterPack")
 local Workspace = game:GetService("Workspace")
 
 local Datos = require(ReplicatedStorage.Shared.Datos)
@@ -14,6 +16,7 @@ local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 local GestorDatos = require(script.Parent.Parent.GestorDatos)
 local UtilidadesMapaHorda = require(script.Parent.UtilidadesMapaHorda)
 local WaveManager = require(script.Parent.WaveManager)
+local ZombieService = require(script.Parent.ZombieService)
 
 local ConfigZombis = Datos.Zombis
 local ConfigDante = ConfigZombis.Dante
@@ -422,7 +425,146 @@ local function generarDanteEnCocinaAbuela()
 	)
 end
 
+local function prepararPlantillaEspadaHorda(): Tool?
+	local existente = ServerStorage:FindFirstChild("EspadaHordaTemplate")
+	if existente and existente:IsA("Tool") then
+		return existente
+	end
+
+	local nombresCandidatos = {
+		"Minecraft Diamond Sword",
+		"Espada del rey",
+		"Classic Sword",
+		"Classic Error Sword",
+	}
+
+	-- Prioridad 1: Buscar en StarterPack (donde el jugador la colocó) y moverla a ServerStorage
+	for _, nombre in ipairs(nombresCandidatos) do
+		local enStarter = StarterPack:FindFirstChild(nombre)
+		if enStarter and enStarter:IsA("Tool") then
+			enStarter.Name = "EspadaHordaTemplate"
+			enStarter.Parent = ServerStorage
+			return enStarter
+		end
+	end
+
+	-- Prioridad 2: Buscar en Workspace y clonar como plantilla en ServerStorage
+	for _, nombre in ipairs(nombresCandidatos) do
+		local enWorkspace = Workspace:FindFirstChild(nombre)
+		if enWorkspace and enWorkspace:IsA("Tool") then
+			local clon = enWorkspace:Clone()
+			clon.Name = "EspadaHordaTemplate"
+			clon.Parent = ServerStorage
+			return clon
+		end
+	end
+
+	return nil
+end
+
+local function configurarInstakillEspada(espada: Tool, player: Player)
+	local handle = espada:FindFirstChild("Handle")
+	if not handle or not handle:IsA("BasePart") then
+		return
+	end
+
+	local ultimoGolpePorZombi: { [Model]: number } = {}
+	handle.Touched:Connect(function(hit: BasePart)
+		if espada.Parent ~= player.Character then
+			return
+		end
+		local modeloZombi = ZombieService.EsZombi(hit)
+		if not modeloZombi then
+			return
+		end
+
+		local ahora = os.clock()
+		if ultimoGolpePorZombi[modeloZombi] and (ahora - ultimoGolpePorZombi[modeloZombi]) < 0.2 then
+			return
+		end
+		ultimoGolpePorZombi[modeloZombi] = ahora
+
+		-- Instakill garantizado a cualquier zombi de la horda
+		ZombieService.AplicarDanio(modeloZombi, 999999, player, "EspadaHorda")
+	end)
+end
+
+local function entregarEspadaAJugador(player: Player)
+	local plantilla = prepararPlantillaEspadaHorda()
+	if not plantilla then
+		warn("[HordeService] No se encontró ninguna espada plantilla para la horda.")
+		return
+	end
+
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not hum or hum.Health <= 0 then
+		return
+	end
+
+	-- Evitar duplicados
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	if backpack then
+		for _, item in ipairs(backpack:GetChildren()) do
+			if item:IsA("Tool") and item:GetAttribute("EsEspadaHorda") == true then
+				item:Destroy()
+			end
+		end
+	end
+	if char then
+		for _, item in ipairs(char:GetChildren()) do
+			if item:IsA("Tool") and item:GetAttribute("EsEspadaHorda") == true then
+				item:Destroy()
+			end
+		end
+	end
+
+	local espada = plantilla:Clone()
+	espada.Name = "Espada Horda"
+	espada:SetAttribute("EsEspadaHorda", true)
+	espada.CanBeDropped = false
+	configurarInstakillEspada(espada, player)
+
+	if backpack then
+		espada.Parent = backpack
+		task.defer(function()
+			if hum and hum.Parent and hum.Health > 0 and espada.Parent then
+				hum:EquipTool(espada)
+			end
+		end)
+	end
+end
+
+local function entregarEspadaATodos()
+	for _, player in ipairs(Players:GetPlayers()) do
+		entregarEspadaAJugador(player)
+	end
+end
+
+local function retirarEspadasDeTodos()
+	for _, player in ipairs(Players:GetPlayers()) do
+		local backpack = player:FindFirstChildOfClass("Backpack")
+		if backpack then
+			for _, item in ipairs(backpack:GetChildren()) do
+				if item:IsA("Tool") and item:GetAttribute("EsEspadaHorda") == true then
+					item:Destroy()
+				end
+			end
+		end
+		local char = player.Character
+		if char then
+			for _, item in ipairs(char:GetChildren()) do
+				if item:IsA("Tool") and item:GetAttribute("EsEspadaHorda") == true then
+					item:Destroy()
+				end
+			end
+		end
+	end
+end
+
 function HordeService.Iniciar()
+	prepararPlantillaEspadaHorda()
+	WaveManager.EstablecerCallbacksCiclo(entregarEspadaATodos, retirarEspadasDeTodos)
 	WaveManager.Inicializar()
 	generarDanteEnCocinaAbuela()
 
@@ -460,6 +602,13 @@ function HordeService.Iniciar()
 
 	-- Sincronizar estado si un jugador entra cuando ya hay una oleada en curso
 	Players.PlayerAdded:Connect(function(player: Player)
+		player.CharacterAdded:Connect(function()
+			task.wait(0.4)
+			if WaveManager.EstaActiva() then
+				entregarEspadaAJugador(player)
+			end
+		end)
+
 		-- Comando de ayuda en chat: /dante para teletransportarse frente a Dante en la Cocina de la Abuela
 		player.Chatted:Connect(function(mensaje: string)
 			local cmd = string.lower(mensaje)
