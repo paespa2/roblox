@@ -1562,21 +1562,21 @@ local function crearPasoDeCebra(posCentro: Vector3, rotY: number, franjas: numbe
 	cruceModelo.Name = "CrucePeatonal"
 
 	local espacioEntreFranjas = 2.2
-	local anchoFranja = 1.2
+	local anchoFranja = 1.3
 	local mitadTotal = ((franjas - 1) * espacioEntreFranjas) / 2
 	local cfBase = CFrame.new(posCentro) * CFrame.Angles(0, math.rad(rotY), 0)
 
 	for i = 0, franjas - 1 do
 		local offsetLateral = -mitadTotal + (i * espacioEntreFranjas)
-		local franja = Instance.new("Part")
-		franja.Name = "FranjaCebra_" .. i
-		franja.Size = Vector3.new(anchoFranja, 0.08, largoFranja)
-		franja.CFrame = cfBase * CFrame.new(offsetLateral, 0.04, 0)
-		franja.Color = Color3.fromRGB(248, 248, 252)
-		franja.Material = Enum.Material.Neon
-		franja.Anchored = true
-		franja.CanCollide = false
-		franja.Parent = cruceModelo
+		local rayaBlanca = Instance.new("Part")
+		rayaBlanca.Name = "PasoCebraBlanco_" .. i
+		rayaBlanca.Size = Vector3.new(anchoFranja, 0.05, largoFranja)
+		rayaBlanca.CFrame = cfBase * CFrame.new(offsetLateral, 0.05, 0)
+		rayaBlanca.Color = Color3.fromRGB(255, 255, 255) -- Blanco puro reglamentario
+		rayaBlanca.Material = Enum.Material.SmoothPlastic
+		rayaBlanca.Anchored = true
+		rayaBlanca.CanCollide = false
+		rayaBlanca.Parent = cruceModelo
 	end
 
 	-- Rebajes o rampas de acera en los extremos del cruce
@@ -1733,34 +1733,28 @@ local function construirSenalizacionVialYCrucesPeatonales(parent: Instance)
 	carpetaSenales.Parent = parent
 
 	-- ================================================================
-	-- 1. CRUCES PEATONALES DE CEBRA REFLECTIVOS
+	-- 1. CRUCES PEATONALES DE CEBRA REFLECTIVOS (CALZADAS OFICIALES)
 	-- ================================================================
 	-- Cruce 1: Zona Escolar / Salida del Colegio República del Dulce
-	crearPasoDeCebra(Vector3.new(-75, 59.95, 0), 0, 7, 36.0, carpetaSenales)
+	crearPasoDeCebra(Vector3.new(-75, 59.98, 0), 0, 7, 36.0, carpetaSenales)
 
 	-- Cruce 2: Frente a la Cocina de la Abuela y Plazoleta Inicial
-	crearPasoDeCebra(Vector3.new(-25, 59.95, 0), 0, 6, 36.0, carpetaSenales)
+	crearPasoDeCebra(Vector3.new(-25, 59.98, 0), 0, 6, 36.0, carpetaSenales)
 
 	-- Cruce 3: Cruce Comercial entre Edificios y Plaza Central
-	crearPasoDeCebra(Vector3.new(35, 59.95, 0), 0, 6, 36.0, carpetaSenales)
+	crearPasoDeCebra(Vector3.new(35, 59.98, 0), 0, 6, 36.0, carpetaSenales)
 
 	-- Cruce 4: Esquina de Tiendas / Don Chucho (Oriente)
-	crearPasoDeCebra(Vector3.new(90, 59.95, 0), 0, 6, 36.0, carpetaSenales)
+	crearPasoDeCebra(Vector3.new(85, 59.98, 0), 0, 6, 36.0, carpetaSenales)
 
-	-- Cruce 5: Bocacalle del Cuadro Occidente (Hacia Tienda Don Ábaco en X = -100)
-	crearPasoDeCebra(Vector3.new(-100, 59.95, 45), 90, 5, 24.0, carpetaSenales)
+	-- Cruce 5: Antes del Retén 1 en el Zigzag de la Ladera
+	crearPasoDeCebra(Vector3.new(0, 68.95, 110), 0, 6, 20.0, carpetaSenales)
 
-	-- Cruce 6: Bocacalle del Cuadro Oriente (Hacia Tiendas Altas en X = 100)
-	crearPasoDeCebra(Vector3.new(100, 59.95, 45), 90, 5, 24.0, carpetaSenales)
+	-- Cruce 6: Hospital San Rafael (Paso de Urgencias y Peatones de Salud)
+	crearPasoDeCebra(Vector3.new(16, 83.15, 215), 0, 6, 18.0, carpetaSenales)
 
-	-- Cruce 7: Antes del Retén 1 en el Zigzag de la Ladera
-	crearPasoDeCebra(Vector3.new(0, 68.95, 110), 0, 5, 22.0, carpetaSenales)
-
-	-- Cruce 8: Hospital San Rafael (Paso de Urgencias y Peatones de Salud)
-	crearPasoDeCebra(Vector3.new(15, 83.15, 215), 0, 5, 20.0, carpetaSenales)
-
-	-- Cruce 9: Antes del Retén 2 en la Cima / Mirador del Valle
-	crearPasoDeCebra(Vector3.new(0, 96.45, 350), 0, 5, 22.0, carpetaSenales)
+	-- Cruce 7: Antes del Retén 2 en la Cima / Mirador del Valle
+	crearPasoDeCebra(Vector3.new(0, 96.45, 350), 0, 6, 20.0, carpetaSenales)
 
 	-- ================================================================
 	-- 2. SEÑALES VERTICALES DE TRÁNSITO OFICIALES
@@ -1965,7 +1959,7 @@ local function inicializarDecoracionYAmbiente()
 		for _, desc in ipairs(mapa:GetDescendants()) do
 			if desc:IsA("BasePart") then
 				local n = desc.Name:lower()
-				if n:find("lineacentral") or n:find("franja") or n:find("raya") then
+				if (n:find("lineacentral") or n:find("rayacentral") or n:find("franjaamarilla")) and not n:find("cebra") and not n:find("paso") then
 					desc.Material = Enum.Material.Neon
 					desc.Color = Color3.fromRGB(255, 230, 45)
 				end
