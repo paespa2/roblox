@@ -1,5 +1,10 @@
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local GestorDatos = require(script.Parent.GestorDatos)
+local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 
 local function soldar(p0: BasePart, p1: BasePart)
 	local weld = Instance.new("WeldConstraint")
@@ -781,6 +786,744 @@ local function crearLetreroPuntoReferencia(
 end
 
 -- ====================================================================
+-- ESTRUCTURAS OFICIALES DE LOS CAPÍTULOS 6 A 10
+-- ====================================================================
+
+-- 1. Capítulo 6: Barricada y Territorio de la Banda del Chicle
+local function construirBarricadaBandaChicle(parent: Instance)
+	local modelo = Instance.new("Model")
+	modelo.Name = "Capitulo6_BarricadaBandaChicle"
+
+	local basePos = Vector3.new(-50, 70, 140)
+
+	-- Bloque de Barricada Principal
+	local vallaMadera = Instance.new("Part")
+	vallaMadera.Name = "VallaBarricada"
+	vallaMadera.Size = Vector3.new(12, 4.5, 1.2)
+	vallaMadera.Position = basePos + Vector3.new(0, 2.25, 0)
+	vallaMadera.Color = Color3.fromRGB(160, 40, 120) -- Morado chicle rebelde
+	vallaMadera.Material = Enum.Material.WoodPlanks
+	vallaMadera.Anchored = true
+	vallaMadera.CanCollide = true
+	vallaMadera.Parent = modelo
+	modelo.PrimaryPart = vallaMadera
+
+	-- Cartel con Grafiti
+	local cartel = Instance.new("Part")
+	cartel.Name = "CartelGrafiti"
+	cartel.Size = Vector3.new(10, 2.2, 0.4)
+	cartel.Position = vallaMadera.Position + Vector3.new(0, 0.5, -0.7)
+	cartel.Color = Color3.fromRGB(255, 60, 150)
+	cartel.Material = Enum.Material.Neon
+	cartel.Anchored = true
+	cartel.CanCollide = false
+	cartel.Parent = modelo
+
+	local surfGui = Instance.new("SurfaceGui")
+	surfGui.Face = Enum.NormalId.Back
+	surfGui.LightInfluence = 0
+	surfGui.Parent = cartel
+
+	local txt = Instance.new("TextLabel")
+	txt.Size = UDim2.fromScale(1, 1)
+	txt.BackgroundTransparency = 1
+	txt.Font = Enum.Font.FredokaOne
+	txt.Text = "🍬 TERRITORIO BANDA DEL CHICLE 🍬"
+	txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+	txt.TextSize = 22
+	txt.Parent = surfGui
+
+	-- Cajas de chicle y barriles derramados
+	for i = 1, 3 do
+		local caja = Instance.new("Part")
+		caja.Name = "CajaChicles_" .. i
+		caja.Size = Vector3.new(2.4, 2.0, 2.4)
+		caja.Position = basePos + Vector3.new((i - 2) * 3.5, 1.0, -2.2)
+		caja.Color = Color3.fromRGB(230, 80, 140)
+		caja.Material = Enum.Material.Wood
+		caja.Anchored = true
+		caja.CanCollide = true
+		caja.Parent = modelo
+	end
+
+	-- NPC Pandillero: "Lalo el Masticador"
+	local pandillero = Instance.new("Model")
+	pandillero.Name = "NPC_LaloChicle"
+	pandillero.Parent = modelo
+
+	local hrp = Instance.new("Part")
+	hrp.Name = "HumanoidRootPart"
+	hrp.Size = Vector3.new(1.8, 2.0, 1.0)
+	hrp.Position = basePos + Vector3.new(2.5, 2.5, -1.8)
+	hrp.Color = Color3.fromRGB(120, 30, 90)
+	hrp.Material = Enum.Material.SmoothPlastic
+	hrp.Anchored = true
+	hrp.CanCollide = false
+	hrp.Parent = pandillero
+	pandillero.PrimaryPart = hrp
+
+	local cabeza = Instance.new("Part")
+	cabeza.Name = "Head"
+	cabeza.Size = Vector3.new(1.2, 1.2, 1.2)
+	cabeza.Position = hrp.Position + Vector3.new(0, 1.5, 0)
+	cabeza.Color = Color3.fromRGB(240, 205, 175)
+	cabeza.Material = Enum.Material.SmoothPlastic
+	cabeza.Anchored = true
+	cabeza.CanCollide = false
+	cabeza.Parent = pandillero
+
+	-- Burbuja de chicle en la boca
+	local burbujaChicle = Instance.new("Part")
+	burbujaChicle.Name = "BurbujaChicle"
+	burbujaChicle.Shape = Enum.PartType.Ball
+	burbujaChicle.Size = Vector3.new(0.9, 0.9, 0.9)
+	burbujaChicle.Position = cabeza.Position + Vector3.new(0, -0.1, -0.7)
+	burbujaChicle.Color = Color3.fromRGB(255, 90, 180)
+	burbujaChicle.Material = Enum.Material.Neon
+	burbujaChicle.Anchored = true
+	burbujaChicle.CanCollide = false
+	burbujaChicle.Parent = pandillero
+
+	-- Rótulo sobre la cabeza
+	local bbg = Instance.new("BillboardGui")
+	bbg.Size = UDim2.fromOffset(180, 40)
+	bbg.StudsOffset = Vector3.new(0, 2.5, 0)
+	bbg.AlwaysOnTop = true
+	bbg.MaxDistance = 35
+	bbg.Parent = cabeza
+
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.fromScale(1, 1)
+	lbl.BackgroundTransparency = 1
+	lbl.Font = Enum.Font.FredokaOne
+	lbl.Text = "💣 Lalo el Masticador\n(Banda del Chicle)"
+	lbl.TextColor3 = Color3.fromRGB(255, 140, 210)
+	lbl.TextSize = 13
+	lbl.Parent = bbg
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "PromptBandaChicle"
+	prompt.ObjectText = "Lalo el Masticador"
+	prompt.ActionText = "Desafiar / Negociar Territorio"
+	prompt.HoldDuration = 0.3
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = hrp
+
+	prompt.Triggered:Connect(function(player: Player)
+		local datos = GestorDatos.ObtenerDatos(player)
+		local cap = datos and (datos.CapituloActual or 1) or 1
+		if cap >= 6 then
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = "Lalo el Masticador",
+				Titulo = "Banda del Chicle",
+				Icono = "🕶️",
+				Mensaje = "¡Tranquilo patrón! Ya vimos que traes el Cañón de Confeti de Doña Melcocha. ¡Los callejones altos son tuyos!",
+			})
+		else
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = "Lalo el Masticador",
+				Titulo = "Banda del Chicle",
+				Icono = "💣",
+				Mensaje = "¡Ey pelado! Esta esquina es de la Banda del Chicle. ¡Llega al Capítulo 6 ($1.000) si quieres pasar sin que te peguemos chicle en la ropa!",
+			})
+		end
+	end)
+
+	modelo.Parent = parent
+	return modelo
+end
+
+-- 2. Capítulo 7: Finca La Melcocha y Trapiche Panelero
+local function construirFincaLaMelcocha(parent: Instance)
+	local modelo = Instance.new("Model")
+	modelo.Name = "Capitulo7_FincaLaMelcocha"
+
+	local basePos = Vector3.new(-98, 100, 412)
+
+	-- Explanada / Patio de la Finca
+	local patio = Instance.new("Part")
+	patio.Name = "PatioFinca"
+	patio.Size = Vector3.new(42, 0.8, 38)
+	patio.Position = basePos + Vector3.new(0, 0.4, 0)
+	patio.Color = Color3.fromRGB(150, 115, 80) -- Tierra firme y empedrado campestre
+	patio.Material = Enum.Material.Slate
+	patio.Anchored = true
+	patio.CanCollide = true
+	patio.Parent = modelo
+	modelo.PrimaryPart = patio
+
+	-- Gran Portón Colonial de Madera con Tejas
+	local portonArco = Instance.new("Part")
+	portonArco.Name = "ArcoPorton"
+	portonArco.Size = Vector3.new(14, 1.4, 1.4)
+	portonArco.Position = basePos + Vector3.new(0, 9.5, -18)
+	portonArco.Color = Color3.fromRGB(90, 50, 25)
+	portonArco.Material = Enum.Material.WoodPlanks
+	portonArco.Anchored = true
+	portonArco.CanCollide = true
+	portonArco.Parent = modelo
+
+	for _, xSide in ipairs({ -6.5, 6.5 }) do
+		local pilar = Instance.new("Part")
+		pilar.Name = "PilarPorton"
+		pilar.Size = Vector3.new(1.6, 9.5, 1.6)
+		pilar.Position = basePos + Vector3.new(xSide, 4.75, -18)
+		pilar.Color = Color3.fromRGB(110, 60, 30)
+		pilar.Material = Enum.Material.WoodPlanks
+		pilar.Anchored = true
+		pilar.CanCollide = true
+		pilar.Parent = modelo
+	end
+
+	-- Cartel Tallado en Madera "FINCA LA MELCOCHA"
+	local letreroFinca = Instance.new("Part")
+	letreroFinca.Name = "LetreroFinca"
+	letreroFinca.Size = Vector3.new(12, 2.2, 0.4)
+	letreroFinca.Position = basePos + Vector3.new(0, 9.5, -17.2)
+	letreroFinca.Color = Color3.fromRGB(240, 220, 170)
+	letreroFinca.Material = Enum.Material.Wood
+	letreroFinca.Anchored = true
+	letreroFinca.CanCollide = false
+	letreroFinca.Parent = modelo
+
+	local sg = Instance.new("SurfaceGui")
+	sg.Face = Enum.NormalId.Back
+	sg.LightInfluence = 0.1
+	sg.Parent = letreroFinca
+
+	local tLbl = Instance.new("TextLabel")
+	tLbl.Size = UDim2.fromScale(1, 1)
+	tLbl.BackgroundTransparency = 1
+	tLbl.Font = Enum.Font.FredokaOne
+	tLbl.Text = "🌾 FINCA LA MELCOCHA — TRAPICHE"
+	tLbl.TextColor3 = Color3.fromRGB(80, 45, 15)
+	tLbl.TextSize = 22
+	tLbl.Parent = sg
+
+	-- Casa Campestre Tradicional
+	local casa = Instance.new("Part")
+	casa.Name = "CasaCampestre"
+	casa.Size = Vector3.new(22, 10, 16)
+	casa.Position = basePos + Vector3.new(8, 5.5, 8)
+	casa.Color = Color3.fromRGB(248, 245, 240)
+	casa.Material = Enum.Material.Concrete
+	casa.Anchored = true
+	casa.CanCollide = true
+	casa.Parent = modelo
+
+	local techoCasa = Instance.new("Part")
+	techoCasa.Name = "TechoBarro"
+	techoCasa.Size = Vector3.new(24, 2.5, 18)
+	techoCasa.Position = casa.Position + Vector3.new(0, 5.5, 0)
+	techoCasa.Color = Color3.fromRGB(180, 70, 40) -- Teja de barro colonial
+	techoCasa.Material = Enum.Material.Brick
+	techoCasa.Anchored = true
+	techoCasa.CanCollide = true
+	techoCasa.Parent = modelo
+
+	-- Trapiche Panelero Artesanal (Paila hirviendo melao dulce)
+	local trapiche = Instance.new("Part")
+	trapiche.Name = "TrapichePaila"
+	trapiche.Size = Vector3.new(8, 2.5, 8)
+	trapiche.Position = basePos + Vector3.new(-12, 1.5, 2)
+	trapiche.Color = Color3.fromRGB(75, 45, 30)
+	trapiche.Material = Enum.Material.Cobblestone
+	trapiche.Anchored = true
+	trapiche.CanCollide = true
+	trapiche.Parent = modelo
+
+	local pailaMelao = Instance.new("Part")
+	pailaMelao.Name = "MelaoHirviendo"
+	pailaMelao.Size = Vector3.new(6, 0.4, 6)
+	pailaMelao.Position = trapiche.Position + Vector3.new(0, 1.3, 0)
+	pailaMelao.Color = Color3.fromRGB(215, 140, 30) -- Dulce de panela hirviendo
+	pailaMelao.Material = Enum.Material.Neon
+	pailaMelao.Anchored = true
+	pailaMelao.CanCollide = false
+	pailaMelao.Parent = modelo
+
+	-- Humo dulce y vapor
+	local humo = Instance.new("Smoke")
+	humo.Color = Color3.fromRGB(255, 240, 210)
+	humo.Opacity = 0.35
+	humo.RiseVelocity = 3.5
+	humo.Size = 4.0
+	humo.Parent = pailaMelao
+
+	-- Cañaduzal (Cultivo de Caña Dulce Cosechable)
+	local canaFolder = Instance.new("Folder")
+	canaFolder.Name = "Canaduzal"
+	canaFolder.Parent = modelo
+
+	for i = 1, 6 do
+		local tallo = Instance.new("Part")
+		tallo.Name = "CanaAzucar_" .. i
+		tallo.Size = Vector3.new(0.6, 7.0, 0.6)
+		local offsetX = -16 + ((i % 3) * 2.2)
+		local offsetZ = 10 + (math.floor(i / 3) * 3.0)
+		tallo.Position = basePos + Vector3.new(offsetX, 3.8, offsetZ)
+		tallo.Color = Color3.fromRGB(90, 180, 50) -- Verde cañaduzal
+		tallo.Material = Enum.Material.Grass
+		tallo.Anchored = true
+		tallo.CanCollide = true
+		tallo.Parent = canaFolder
+
+		local hojas = Instance.new("Part")
+		hojas.Name = "HojasCana"
+		hojas.Size = Vector3.new(2.4, 1.2, 2.4)
+		hojas.Position = tallo.Position + Vector3.new(0, 3.5, 0)
+		hojas.Color = Color3.fromRGB(60, 150, 40)
+		hojas.Material = Enum.Material.Grass
+		hojas.Anchored = true
+		hojas.CanCollide = false
+		hojas.Parent = canaFolder
+	end
+
+	-- ProximityPrompt en el Trapiche para cosechar melao
+	local promptTrapiche = Instance.new("ProximityPrompt")
+	promptTrapiche.Name = "PromptCosecha"
+	promptTrapiche.ObjectText = "Trapiche Melcochero"
+	promptTrapiche.ActionText = "Cosechar Melaza de Caña ($)"
+	promptTrapiche.HoldDuration = 0.5
+	promptTrapiche.MaxActivationDistance = 14
+	promptTrapiche.RequiresLineOfSight = false
+	promptTrapiche.Parent = trapiche
+
+	promptTrapiche.Triggered:Connect(function(player: Player)
+		local datos = GestorDatos.ObtenerDatos(player)
+		if not datos then
+			return
+		end
+		local mult = datos.MultiplicadorRenacimiento or 1
+		local ganancia = 35 * mult
+		GestorDatos.AgregarPesos(player, ganancia)
+		datos.Fama += 2
+
+		local sonido = Instance.new("Sound")
+		sonido.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+		sonido.Volume = 0.8
+		sonido.Parent = trapiche
+		sonido:Play()
+		task.delay(1.5, function()
+			sonido:Destroy()
+		end)
+
+		EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+			Nombre = "Trapiche de la Finca",
+			Titulo = "¡Cosecha Fresca!",
+			Icono = "🌾",
+			Mensaje = string.format("¡Molienda exitosa! Obtuviste melaza fresca y $%d pesos dulces para tu imperio.", ganancia),
+		})
+	end)
+
+	modelo.Parent = parent
+	return modelo
+end
+
+-- 3. Capítulo 8: Pista de Aterrizaje y Avioneta Dulcera de Exportación
+local function construirPistaYAvionetaDulcera(parent: Instance)
+	local modelo = Instance.new("Model")
+	modelo.Name = "Capitulo8_AeroclubDulcero"
+
+	local basePos = Vector3.new(45, 96.5, 435)
+
+	-- Pista de Aterrizaje
+	local pista = Instance.new("Part")
+	pista.Name = "PistaAterrizaje"
+	pista.Size = Vector3.new(24, 0.6, 75)
+	pista.Position = basePos + Vector3.new(0, 0.3, 0)
+	pista.Color = Color3.fromRGB(80, 85, 90)
+	pista.Material = Enum.Material.Asphalt
+	pista.Anchored = true
+	pista.CanCollide = true
+	pista.Parent = modelo
+	modelo.PrimaryPart = pista
+
+	-- Franjas de Pista Neon Brillantes
+	for z = -30, 30, 15 do
+		local franja = Instance.new("Part")
+		franja.Name = "FranjaPista"
+		franja.Size = Vector3.new(1.8, 0.1, 7.0)
+		franja.Position = basePos + Vector3.new(0, 0.65, z)
+		franja.Color = Color3.fromRGB(255, 230, 45)
+		franja.Material = Enum.Material.Neon
+		franja.Anchored = true
+		franja.CanCollide = false
+		franja.Parent = modelo
+	end
+
+	-- Hangar Rústico
+	local hangar = Instance.new("Part")
+	hangar.Name = "HangarAvioneta"
+	hangar.Size = Vector3.new(22, 10, 20)
+	hangar.Position = basePos + Vector3.new(-18, 5.2, -15)
+	hangar.Color = Color3.fromRGB(65, 75, 90)
+	hangar.Material = Enum.Material.CorrodedMetal
+	hangar.Anchored = true
+	hangar.CanCollide = true
+	hangar.Parent = modelo
+
+	local cartelHangar = Instance.new("Part")
+	cartelHangar.Name = "CartelHangar"
+	cartelHangar.Size = Vector3.new(18, 2.2, 0.4)
+	cartelHangar.Position = hangar.Position + Vector3.new(0, 4.2, 10.2)
+	cartelHangar.Color = Color3.fromRGB(240, 200, 50)
+	cartelHangar.Material = Enum.Material.Neon
+	cartelHangar.Anchored = true
+	cartelHangar.CanCollide = false
+	cartelHangar.Parent = modelo
+
+	local sg = Instance.new("SurfaceGui")
+	sg.Face = Enum.NormalId.Front
+	sg.LightInfluence = 0
+	sg.Parent = cartelHangar
+
+	local tLbl = Instance.new("TextLabel")
+	tLbl.Size = UDim2.fromScale(1, 1)
+	tLbl.BackgroundTransparency = 1
+	tLbl.Font = Enum.Font.FredokaOne
+	tLbl.Text = "🛩️ AEROCLUB VILLA ALMÍBAR — RUTA DULCERA"
+	tLbl.TextColor3 = Color3.fromRGB(20, 25, 35)
+	tLbl.TextSize = 20
+	tLbl.Parent = sg
+
+	-- MODELO DE LA AVIONETA DULCERA
+	local avioneta = Instance.new("Model")
+	avioneta.Name = "AvionetaDulcera"
+	avioneta.Parent = modelo
+
+	local fuselaje = Instance.new("Part")
+	fuselaje.Name = "Fuselaje"
+	fuselaje.Size = Vector3.new(4.2, 3.8, 16)
+	fuselaje.Position = basePos + Vector3.new(0, 3.8, 10)
+	fuselaje.Color = Color3.fromRGB(255, 215, 30) -- Amarillo brillante
+	fuselaje.Material = Enum.Material.Metal
+	fuselaje.Anchored = true
+	fuselaje.CanCollide = true
+	fuselaje.Parent = avioneta
+
+	-- Alas de la Avioneta
+	local alas = Instance.new("Part")
+	alas.Name = "Alas"
+	alas.Size = Vector3.new(26, 0.6, 4.5)
+	alas.Position = fuselaje.Position + Vector3.new(0, 1.4, -1.0)
+	alas.Color = Color3.fromRGB(35, 90, 200) -- Azul cielo
+	alas.Material = Enum.Material.Metal
+	alas.Anchored = true
+	alas.CanCollide = true
+	alas.Parent = avioneta
+
+	-- Hélice Delantera
+	local helice = Instance.new("Part")
+	helice.Name = "Helice"
+	helice.Size = Vector3.new(0.4, 5.0, 0.6)
+	helice.Position = fuselaje.Position + Vector3.new(0, 0, -8.3)
+	helice.Color = Color3.fromRGB(30, 30, 35)
+	helice.Material = Enum.Material.Metal
+	helice.Anchored = true
+	helice.CanCollide = false
+	helice.Parent = avioneta
+
+	-- Giro suave de hélice en idle
+	task.spawn(function()
+		while helice.Parent do
+			helice.CFrame = helice.CFrame * CFrame.Angles(0, 0, math.rad(18))
+			task.wait(0.04)
+		end
+	end)
+
+	-- NPC Piloto: Capitán Chepe
+	local piloto = Instance.new("Model")
+	piloto.Name = "NPC_CapitanChepe"
+	piloto.Parent = modelo
+
+	local pHrp = Instance.new("Part")
+	pHrp.Name = "HumanoidRootPart"
+	pHrp.Size = Vector3.new(1.8, 2.0, 1.0)
+	pHrp.Position = fuselaje.Position + Vector3.new(5.0, -1.0, 0)
+	pHrp.Color = Color3.fromRGB(90, 60, 40)
+	pHrp.Material = Enum.Material.SmoothPlastic
+	pHrp.Anchored = true
+	pHrp.CanCollide = false
+	pHrp.Parent = piloto
+
+	local pHead = Instance.new("Part")
+	pHead.Name = "Head"
+	pHead.Size = Vector3.new(1.2, 1.2, 1.2)
+	pHead.Position = pHrp.Position + Vector3.new(0, 1.5, 0)
+	pHead.Color = Color3.fromRGB(240, 205, 175)
+	pHead.Material = Enum.Material.SmoothPlastic
+	pHead.Anchored = true
+	pHead.CanCollide = false
+	pHead.Parent = piloto
+
+	local pBbg = Instance.new("BillboardGui")
+	pBbg.Size = UDim2.fromOffset(180, 40)
+	pBbg.StudsOffset = Vector3.new(0, 2.5, 0)
+	pBbg.AlwaysOnTop = true
+	pBbg.MaxDistance = 35
+	pBbg.Parent = pHead
+
+	local pLbl = Instance.new("TextLabel")
+	pLbl.Size = UDim2.fromScale(1, 1)
+	pLbl.BackgroundTransparency = 1
+	pLbl.Font = Enum.Font.FredokaOne
+	pLbl.Text = "👨‍✈️ Capitán Chepe\n(Exportación Aérea)"
+	pLbl.TextColor3 = Color3.fromRGB(255, 235, 150)
+	pLbl.TextSize = 13
+	pLbl.Parent = pBbg
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "PromptExportar"
+	prompt.ObjectText = "Capitán Chepe"
+	prompt.ActionText = "Despachar Exportación Aérea (5 Dulces -> $150)"
+	prompt.HoldDuration = 0.5
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = pHrp
+
+	prompt.Triggered:Connect(function(player: Player)
+		local datos = GestorDatos.ObtenerDatos(player)
+		if not datos then
+			return
+		end
+
+		-- Contar dulces totales en inventario
+		local dulcesTotales = 0
+		for _, cant in pairs(datos.Inventario) do
+			dulcesTotales += cant
+		end
+
+		if dulcesTotales >= 5 then
+			-- Quitar 5 dulces
+			local quitados = 0
+			for idD, cant in pairs(datos.Inventario) do
+				while cant > 0 and quitados < 5 do
+					GestorDatos.QuitarDulce(player, idD, 1)
+					cant -= 1
+					quitados += 1
+				end
+				if quitados >= 5 then
+					break
+				end
+			end
+
+			local mult = datos.MultiplicadorRenacimiento or 1
+			local pago = 150 * mult
+			GestorDatos.AgregarPesos(player, pago)
+			datos.Fama += 15
+
+			local sonido = Instance.new("Sound")
+			sonido.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+			sonido.Volume = 0.9
+			sonido.Parent = fuselaje
+			sonido:Play()
+			task.delay(2, function()
+				sonido:Destroy()
+			end)
+
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = "Capitán Chepe",
+				Titulo = "¡Vuelo Despejado!",
+				Icono = "🛩️",
+				Mensaje = string.format("¡Avioneta cargada y despegando hacia la capital! Recibes $%d pesos por la exportación. ¡El imperio crece!", pago),
+			})
+		else
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = "Capitán Chepe",
+				Titulo = "Avioneta Dulcera",
+				Icono = "🛩️",
+				Mensaje = "¡Buenas patrón! Necesito al menos 5 dulces en tu inventario para llenar las bodegas de la avioneta y justificar el vuelo.",
+			})
+		end
+	end)
+
+	modelo.Parent = parent
+	return modelo
+end
+
+-- 4. Capítulo 10: Monumento y Altar de la Leyenda del Patrón
+local function construirMonumentoAltarPatron(parent: Instance)
+	local modelo = Instance.new("Model")
+	modelo.Name = "Capitulo10_AltarDelPatron"
+
+	local basePos = Vector3.new(0, 60.5, 60)
+
+	-- Pedestal Octogonal de Mármol Blanco
+	local pedestal = Instance.new("Part")
+	pedestal.Name = "PedestalMarmol"
+	pedestal.Size = Vector3.new(10, 1.8, 10)
+	pedestal.Position = basePos + Vector3.new(0, 0.9, 0)
+	pedestal.Color = Color3.fromRGB(245, 248, 252)
+	pedestal.Material = Enum.Material.Marble
+	pedestal.Anchored = true
+	pedestal.CanCollide = true
+	pedestal.Parent = modelo
+	modelo.PrimaryPart = pedestal
+
+	-- 4 Antorchas de Caramelo en las esquinas
+	for _, xOff in ipairs({ -4.2, 4.2 }) do
+		for _, zOff in ipairs({ -4.2, 4.2 }) do
+			local pilar = Instance.new("Part")
+			pilar.Name = "PilarAntorcha"
+			pilar.Size = Vector3.new(0.8, 3.5, 0.8)
+			pilar.Position = basePos + Vector3.new(xOff, 2.65, zOff)
+			pilar.Color = Color3.fromRGB(220, 180, 60)
+			pilar.Material = Enum.Material.Metal
+			pilar.Anchored = true
+			pilar.CanCollide = true
+			pilar.Parent = modelo
+
+			local llama = Instance.new("Part")
+			llama.Name = "LlamaCaramelo"
+			llama.Shape = Enum.PartType.Ball
+			llama.Size = Vector3.new(1.0, 1.2, 1.0)
+			llama.Position = pilar.Position + Vector3.new(0, 2.0, 0)
+			llama.Color = Color3.fromRGB(255, 170, 30)
+			llama.Material = Enum.Material.Neon
+			llama.Anchored = true
+			llama.CanCollide = false
+			llama.Parent = modelo
+
+			local pLight = Instance.new("PointLight")
+			pLight.Color = Color3.fromRGB(255, 200, 80)
+			pLight.Range = 14
+			pLight.Brightness = 1.8
+			pLight.Parent = llama
+		end
+	end
+
+	-- Estatua Dorada de Doña Melcocha y el Gran Bombón
+	local estatua = Instance.new("Part")
+	estatua.Name = "EstatuaDorada"
+	estatua.Size = Vector3.new(3.0, 5.5, 3.0)
+	estatua.Position = pedestal.Position + Vector3.new(0, 3.65, 0)
+	estatua.Color = Color3.fromRGB(255, 215, 0) -- Oro macizo
+	estatua.Material = Enum.Material.Foil
+	estatua.Anchored = true
+	estatua.CanCollide = true
+	estatua.Parent = modelo
+
+	local bombonOro = Instance.new("Part")
+	bombonOro.Name = "BombonDorado"
+	bombonOro.Shape = Enum.PartType.Ball
+	bombonOro.Size = Vector3.new(2.8, 2.8, 2.8)
+	bombonOro.Position = estatua.Position + Vector3.new(0, 4.0, 0)
+	bombonOro.Color = Color3.fromRGB(255, 225, 45)
+	bombonOro.Material = Enum.Material.Neon
+	bombonOro.Anchored = true
+	bombonOro.CanCollide = false
+	bombonOro.Parent = modelo
+
+	-- Partículas de Confeti Dorado
+	local confeti = Instance.new("ParticleEmitter")
+	confeti.Name = "ConfetiDorado"
+	confeti.Color = ColorSequence.new(Color3.fromRGB(255, 220, 50), Color3.fromRGB(255, 160, 20))
+	confeti.Size = NumberSequence.new(0.4, 0.1)
+	confeti.Rate = 12
+	confeti.Speed = NumberRange.new(3, 6)
+	confeti.SpreadAngle = Vector2.new(45, 45)
+	confeti.Lifetime = NumberRange.new(2, 3.5)
+	confeti.Parent = bombonOro
+
+	-- Placa Conmemorativa con ProximityPrompt de Renacimiento
+	local placa = Instance.new("Part")
+	placa.Name = "PlacaRenacimiento"
+	placa.Size = Vector3.new(3.2, 1.6, 0.4)
+	placa.Position = pedestal.Position + Vector3.new(0, 0.2, -5.1)
+	placa.Color = Color3.fromRGB(255, 215, 0)
+	placa.Material = Enum.Material.Metal
+	placa.Anchored = true
+	placa.CanCollide = false
+	placa.Parent = modelo
+
+	local sg = Instance.new("SurfaceGui")
+	sg.Face = Enum.NormalId.Back
+	sg.LightInfluence = 0
+	sg.Parent = placa
+
+	local tLbl = Instance.new("TextLabel")
+	tLbl.Size = UDim2.fromScale(1, 1)
+	tLbl.BackgroundTransparency = 1
+	tLbl.Font = Enum.Font.FredokaOne
+	tLbl.Text = "👑 ALTAR DE LA LEYENDA 👑\n(Prestigio x2 Permanente)"
+	tLbl.TextColor3 = Color3.fromRGB(40, 25, 10)
+	tLbl.TextSize = 14
+	tLbl.TextWrapped = true
+	tLbl.Parent = sg
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "PromptRenacimiento"
+	prompt.ObjectText = "Altar de la Leyenda"
+	prompt.ActionText = "👑 Realizar Renacimiento (Capítulo 10)"
+	prompt.HoldDuration = 1.8
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = placa
+
+	prompt.Triggered:Connect(function(player: Player)
+		local datos = GestorDatos.ObtenerDatos(player)
+		if not datos then
+			return
+		end
+
+		local cap = datos.CapituloActual or 1
+		local pesos = datos.PesosDulces or 0
+
+		if cap >= 10 and pesos >= 6000 then
+			-- Ejecutar Renacimiento / Prestigio
+			GestorDatos.QuitarPesos(player, 6000)
+			datos.Renacimientos = (datos.Renacimientos or 0) + 1
+			datos.MultiplicadorRenacimiento = (datos.MultiplicadorRenacimiento or 1) * 2
+			datos.Fama += 250
+
+			-- Efecto de sonido triunfal
+			local fanfare = Instance.new("Sound")
+			fanfare.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+			fanfare.Volume = 1.0
+			fanfare.Parent = bombonOro
+			fanfare:Play()
+			task.delay(2.5, function()
+				fanfare:Destroy()
+			end)
+
+			-- Explosión visual de partículas
+			confeti:Emit(100)
+
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = "Doña Melcocha",
+				Titulo = "¡ERES LA LEYENDA DEL DULCE!",
+				Icono = "👑",
+				Mensaje = string.format(
+					"¡Has completado el Renacimiento #%d! Todas tus ganancias futuras se han multiplicado por x%d de por vida. ¡El imperio dulce reina por siempre!",
+					datos.Renacimientos,
+					datos.MultiplicadorRenacimiento
+				),
+			})
+
+			EventosRemotos.LogroDesbloqueado:FireClient(player, {
+				Nombre = "El Patrón Legendario",
+				Fama = 250,
+			})
+		else
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = "Doña Melcocha",
+				Titulo = "Altar del Renacimiento",
+				Icono = "👵",
+				Mensaje = string.format(
+					"Para alcanzar el Renacimiento y duplicar tus ganancias x2 necesitas llegar al Capítulo 10 y reunir $6.000 pesos dulces. Llevas $%d / $6.000. ¡Sigue adelante, mi patrón!",
+					pesos
+				),
+			})
+		end
+	end)
+
+	modelo.Parent = parent
+	return modelo
+end
+
+-- ====================================================================
 -- INICIALIZACIÓN Y POBLACIÓN DEL MUNDO
 -- ====================================================================
 local function inicializarDecoracionYAmbiente()
@@ -866,6 +1609,26 @@ local function inicializarDecoracionYAmbiente()
 		Color3.fromRGB(45, 120, 60),
 		landmarksFolder
 	)
+
+	-- 5. Estructuras Oficiales de los Capítulos 6 a 10
+	construirBarricadaBandaChicle(landmarksFolder)
+	construirFincaLaMelcocha(landmarksFolder)
+	construirPistaYAvionetaDulcera(landmarksFolder)
+	construirMonumentoAltarPatron(parqueFolder)
+
+	-- 6. Franjas Amarillas Reflectivas Brillantes de Carretera (Guías visuales nocturnas)
+	task.spawn(function()
+		task.wait(1.0)
+		for _, desc in ipairs(mapa:GetDescendants()) do
+			if desc:IsA("BasePart") then
+				local n = desc.Name:lower()
+				if n:find("lineacentral") or n:find("franja") or n:find("raya") then
+					desc.Material = Enum.Material.Neon
+					desc.Color = Color3.fromRGB(255, 230, 45)
+				end
+			end
+		end
+	end)
 
 	print("El Patrón del Dulce: Decoración exterior, parques, interiores y landmarks inicializados")
 end

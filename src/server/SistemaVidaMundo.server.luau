@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local GestorDatos = require(script.Parent.GestorDatos)
+local Datos = require(ReplicatedStorage.Shared.Datos)
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 
 -- ====================================================================
@@ -10,8 +11,9 @@ local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 -- ====================================================================
 local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Vector3
 	local offset = alturaOffset or 2.7
-	local rayOrigin = Vector3.new(posBase.X, posBase.Y + 12.0, posBase.Z)
-	local rayDir = Vector3.new(0, -85, 0)
+	local startY = math.max(posBase.Y + 30.0, 135)
+	local rayOrigin = Vector3.new(posBase.X, startY, posBase.Z)
+	local rayDir = Vector3.new(0, -180, 0)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 
@@ -24,7 +26,7 @@ local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Ve
 		end
 	end
 
-	local maxPasos = 12
+	local maxPasos = 10
 	local paso = 0
 	while paso < maxPasos do
 		paso += 1
@@ -35,7 +37,7 @@ local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Ve
 		end
 
 		local n = hit.Instance.Name:lower()
-		local esTechoOCielo = (
+		local esTechoOOstaculo = (
 			string.find(n, "techo")
 			or string.find(n, "teja")
 			or string.find(n, "cubierta")
@@ -45,7 +47,6 @@ local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Ve
 			or string.find(n, "cobertizo")
 			or string.find(n, "marquesina")
 			or string.find(n, "cielo")
-			or string.find(n, "losa")
 			or string.find(n, "banderin")
 			or string.find(n, "poste")
 			or string.find(n, "foco")
@@ -56,15 +57,13 @@ local function obtenerPosicionSuelo(posBase: Vector3, alturaOffset: number?): Ve
 			or string.find(n, "valla")
 			or string.find(n, "banca")
 			or string.find(n, "asiento")
-			or string.find(n, "mesa")
 			or not hit.Instance.CanCollide
-			or (hit.Position.Y > posBase.Y + 2.0)
 		)
 
-		if esTechoOCielo then
+		if esTechoOOstaculo then
 			table.insert(exclusions, hit.Instance)
-			rayOrigin = hit.Position - Vector3.new(0, 0.05, 0)
-			rayDir = Vector3.new(0, -60, 0)
+			rayOrigin = hit.Position - Vector3.new(0, 0.1, 0)
+			rayDir = Vector3.new(0, -120, 0)
 		else
 			return Vector3.new(posBase.X, hit.Position.Y + offset, posBase.Z)
 		end
@@ -371,24 +370,65 @@ local function crearVecinoBarrio(
 	textoBurbuja.TextWrapped = true
 	textoBurbuja.Parent = fondoBurbuja
 
-	-- ProximityPrompt de charla amigable
+	-- ProximityPrompt de venta callejera y charla amigable
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "PromptVecino"
 	prompt.ObjectText = info.Apodo
-	prompt.ActionText = "Saludar / Charlar"
-	prompt.HoldDuration = 0.3
+	prompt.ActionText = "Comprar Dulce / Charlar"
+	prompt.HoldDuration = 0.25
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = torso
 
 	prompt.Triggered:Connect(function(player: Player)
-		local fraseElegida = info.Frases[math.random(1, #info.Frases)]
-		EventosRemotos.MostrarDialogoNPC:FireClient(player, {
-			Nombre = info.Apodo,
-			Titulo = "Vecino de Villa Almíbar",
-			Icono = info.Icono,
-			Mensaje = fraseElegida,
-		})
+		local datos = GestorDatos.ObtenerDatos(player)
+		if not datos then
+			return
+		end
+
+		-- Buscar algún dulce en inventario
+		local dulceParaVender: string? = nil
+		local defDulce: any = nil
+		for idDulce, cant in pairs(datos.Inventario) do
+			if cant > 0 then
+				dulceParaVender = idDulce
+				defDulce = Datos.Dulces[idDulce]
+				break
+			end
+		end
+
+		if dulceParaVender and GestorDatos.QuitarDulce(player, dulceParaVender, 1) then
+			local mult = datos.MultiplicadorRenacimiento or 1
+			local valorBase = defDulce and defDulce.ValorVenta or 1
+			local ganancia = math.max(valorBase * 3, 5) * mult
+			GestorDatos.AgregarPesos(player, ganancia)
+			datos.Fama += 1
+
+			local sonido = Instance.new("Sound")
+			sonido.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+			sonido.Volume = 0.7
+			sonido.Parent = torso
+			sonido:Play()
+			task.delay(1.5, function()
+				sonido:Destroy()
+			end)
+
+			local nombreD = defDulce and defDulce.Nombre or "Dulce"
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = info.Apodo,
+				Titulo = "¡Venta Callejera!",
+				Icono = "🍬",
+				Mensaje = string.format("¡Uy qué delicia! Te compré 1 %s por $%d pesos dulces. ¡Sigue así, patrón!", nombreD, ganancia),
+			})
+		else
+			local fraseElegida = info.Frases[math.random(1, #info.Frases)]
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = info.Apodo,
+				Titulo = "Vecino de Villa Almíbar",
+				Icono = info.Icono,
+				Mensaje = fraseElegida,
+			})
+		end
 	end)
 
 	task.spawn(function()
@@ -479,13 +519,17 @@ local function crearFirulaisElPerrito(parentFolder: Instance)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "PromptAcariciar"
 	prompt.ObjectText = "Firulais"
-	prompt.ActionText = "Acariciar perrito"
+	prompt.ActionText = "Acariciar / Dar golosina"
 	prompt.HoldDuration = 0.2
 	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = cuerpo
 
+	local jugadorSeguido: Player? = nil
+	local tiempoSeguimiento = 0
+
 	prompt.Triggered:Connect(function(player: Player)
+		local datos = GestorDatos.ObtenerDatos(player)
 		local sonido = Instance.new("Sound")
 		sonido.SoundId = "rbxasset://sounds/electronicpingshort.wav"
 		sonido.Volume = 0.6
@@ -495,15 +539,33 @@ local function crearFirulaisElPerrito(parentFolder: Instance)
 			sonido:Destroy()
 		end)
 
+		jugadorSeguido = player
+		tiempoSeguimiento = os.clock() + 45.0 -- Acompaña al jugador 45 segundos
+
+		local tieneGolosina = false
+		if datos then
+			for idD, cant in pairs(datos.Inventario) do
+				if cant > 0 and GestorDatos.QuitarDulce(player, idD, 1) then
+					tieneGolosina = true
+					datos.Fama += 2
+					break
+				end
+			end
+		end
+
+		local mensajeTexto = if tieneGolosina
+			then "¡Guau, guau! *Firulais devora la golosina feliz y corre a tu lado como guardián fiel. ¡Te acompañará un rato!*"
+			else "¡Guau, guau! *Firulais menea la colita contento y decide seguirte por la calle.*"
+
 		EventosRemotos.MostrarDialogoNPC:FireClient(player, {
 			Nombre = "Firulais",
-			Titulo = "Perrito del Barrio",
+			Titulo = "Perrito Acompañante 🐕",
 			Icono = "🐕",
-			Mensaje = "¡Guau, guau! *Menea la cola alegremente y te da la patita. ¡Parece que le gusta el olor a melcocha fresca!*",
+			Mensaje = mensajeTexto,
 		})
 	end)
 
-	-- Paseo por la acera de la plaza
+	-- Hilo de paseo y seguimiento suave al jugador
 	task.spawn(function()
 		local puntos = {
 			Vector3.new(5, 60, 75),
@@ -513,18 +575,37 @@ local function crearFirulaisElPerrito(parentFolder: Instance)
 		local idx = 1
 
 		while modelo.Parent do
-			task.wait(5.0)
-			idx = (idx % #puntos) + 1
-			local meta = obtenerPosicionSuelo(puntos[idx], 0.55)
-			local dir = (meta - cuerpo.Position) * Vector3.new(1, 0, 1)
-			if dir.Magnitude > 1.5 then
-				local cframeObj = CFrame.lookAt(meta, meta + dir.Unit)
-				local tween = TweenService:Create(
-					cuerpo,
-					TweenInfo.new(3.5, Enum.EasingStyle.Linear),
-					{ CFrame = cframeObj }
-				)
-				tween:Play()
+			task.wait(0.25)
+			local ahora = os.clock()
+
+			if jugadorSeguido and ahora < tiempoSeguimiento and jugadorSeguido.Parent and jugadorSeguido.Character then
+				local char = jugadorSeguido.Character
+				local pHrp = char:FindFirstChild("HumanoidRootPart") :: BasePart?
+				if pHrp then
+					local dist = (pHrp.Position - cuerpo.Position).Magnitude
+					if dist > 4.5 and dist < 80 then
+						local dir = (pHrp.Position - cuerpo.Position) * Vector3.new(1, 0, 1)
+						local meta = obtenerPosicionSuelo(cuerpo.Position + dir.Unit * 3.2, 0.55)
+						cuerpo.CFrame = CFrame.lookAt(meta, meta + dir.Unit)
+					end
+				else
+					jugadorSeguido = nil
+				end
+			else
+				jugadorSeguido = nil
+				task.wait(3.5)
+				idx = (idx % #puntos) + 1
+				local meta = obtenerPosicionSuelo(puntos[idx], 0.55)
+				local dir = (meta - cuerpo.Position) * Vector3.new(1, 0, 1)
+				if dir.Magnitude > 1.5 then
+					local cframeObj = CFrame.lookAt(meta, meta + dir.Unit)
+					local tween = TweenService:Create(
+						cuerpo,
+						TweenInfo.new(3.5, Enum.EasingStyle.Linear),
+						{ CFrame = cframeObj }
+					)
+					tween:Play()
+				end
 			end
 		end
 	end)
@@ -981,19 +1062,60 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.Name = "PromptPeaton"
 		prompt.ObjectText = info.Apodo
-		prompt.ActionText = "Saludar"
+		prompt.ActionText = "Comprar Dulce / Saludar"
 		prompt.HoldDuration = 0.2
 		prompt.MaxActivationDistance = 10
 		prompt.RequiresLineOfSight = false
 		prompt.Parent = torso
 
 		prompt.Triggered:Connect(function(player: Player)
-			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
-				Nombre = info.Apodo,
-				Titulo = "Peatón de Villa Almíbar",
-				Icono = info.Icono,
-				Mensaje = info.Frase,
-			})
+			local datos = GestorDatos.ObtenerDatos(player)
+			if not datos then
+				return
+			end
+
+			-- Buscar algún dulce en inventario
+			local dulceParaVender: string? = nil
+			local defDulce: any = nil
+			for idDulce, cant in pairs(datos.Inventario) do
+				if cant > 0 then
+					dulceParaVender = idDulce
+					defDulce = Datos.Dulces[idDulce]
+					break
+				end
+			end
+
+			if dulceParaVender and GestorDatos.QuitarDulce(player, dulceParaVender, 1) then
+				local mult = datos.MultiplicadorRenacimiento or 1
+				local valorBase = defDulce and defDulce.ValorVenta or 1
+				local ganancia = math.max(valorBase * 3, 5) * mult
+				GestorDatos.AgregarPesos(player, ganancia)
+				datos.Fama += 1
+
+				local sonido = Instance.new("Sound")
+				sonido.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+				sonido.Volume = 0.7
+				sonido.Parent = torso
+				sonido:Play()
+				task.delay(1.5, function()
+					sonido:Destroy()
+				end)
+
+				local nombreD = defDulce and defDulce.Nombre or "Dulce"
+				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+					Nombre = info.Apodo,
+					Titulo = "¡Venta Callejera!",
+					Icono = "🍬",
+					Mensaje = string.format("¡Uy qué delicia! Te compré 1 %s por $%d pesos. ¡Gracias patrón!", nombreD, ganancia),
+				})
+			else
+				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+					Nombre = info.Apodo,
+					Titulo = "Peatón de Villa Almíbar",
+					Icono = info.Icono,
+					Mensaje = info.Frase,
+				})
+			end
 		end)
 
 		-- Hilo de patrullaje continuo adaptado al suelo

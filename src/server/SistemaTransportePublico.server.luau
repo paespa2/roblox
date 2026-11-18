@@ -52,6 +52,13 @@ local PARADAS: { ParadaInfo } = {
 		PosicionBahia = Vector3.new(12, 95.5, 380),
 		RotacionY = 180,
 	},
+	{
+		Id = 5,
+		Nombre = "Finca La Melcocha",
+		Subtitulo = "Cordillera Alta • Cuna del Dulce",
+		PosicionBahia = Vector3.new(-75, 100, 412),
+		RotacionY = 90,
+	},
 }
 
 -- Puntos intermedios de la carretera para tránsito fluido sin atajos
@@ -65,6 +72,8 @@ local WAYPOINTS_CARRETERA: { Vector3 } = {
 	Vector3.new(4, 82.5, 260),
 	Vector3.new(4, 90, 320),
 	Vector3.new(4, 96.5, 380),
+	Vector3.new(-40, 98, 400),
+	Vector3.new(-75, 100, 412),
 }
 
 -- ====================================================================
