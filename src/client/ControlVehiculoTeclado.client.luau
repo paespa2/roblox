@@ -95,22 +95,22 @@ RunService.RenderStepped:Connect(function(dt: number)
 
 	if string.find(nombreMod, "moto") then
 		tipoVehiculo = "Moto"
-		velBase = 48
-		turnSpeed = 2.7
-		maxForceZ = 45000
-		maxTorqueGiro = 95000
+		velBase = 38
+		turnSpeed = 2.4
+		maxForceZ = 32000
+		maxTorqueGiro = 75000
 	elseif string.find(nombreMod, "taxi") then
 		tipoVehiculo = "Taxi"
-		velBase = 44
+		velBase = 36
 		turnSpeed = 2.2
-		maxForceZ = 160000
-		maxTorqueGiro = 280000
+		maxForceZ = 45000
+		maxTorqueGiro = 85000
 	elseif string.find(nombreMod, "campero") or string.find(nombreMod, "willys") then
 		tipoVehiculo = "Campero"
-		velBase = 40
-		turnSpeed = 2.0
-		maxForceZ = 200000
-		maxTorqueGiro = 320000
+		velBase = 35
+		turnSpeed = 2.1
+		maxForceZ = 48000
+		maxTorqueGiro = 88000
 	else
 		local stats = Datos.Vehiculos["Vehiculo_Bicicleta"]
 		if stats then

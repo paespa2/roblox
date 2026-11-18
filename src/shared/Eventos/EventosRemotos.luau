@@ -6,13 +6,19 @@ local EventosRemotos = {}
 local function obtenerOCrearFolder(): Folder
 	local folder = ReplicatedStorage:FindFirstChild("EventosRemotos")
 	if not folder then
-		if RunService:IsServer() then
+		if RunService:IsServer() or RunService:IsEdit() or not RunService:IsRunning() then
 			local nuevoFolder = Instance.new("Folder")
 			nuevoFolder.Name = "EventosRemotos"
 			nuevoFolder.Parent = ReplicatedStorage
 			folder = nuevoFolder
 		else
-			folder = ReplicatedStorage:WaitForChild("EventosRemotos") :: Folder
+			folder = ReplicatedStorage:WaitForChild("EventosRemotos", 5)
+			if not folder then
+				local nuevoFolder = Instance.new("Folder")
+				nuevoFolder.Name = "EventosRemotos"
+				nuevoFolder.Parent = ReplicatedStorage
+				folder = nuevoFolder
+			end
 		end
 	end
 	return folder :: Folder
@@ -20,15 +26,21 @@ end
 
 local function obtenerOCrearEvento(nombre: string): RemoteEvent
 	local folder = obtenerOCrearFolder()
-	local evento = folder:FindFirstChild(nombre)
+	local evento = folder and folder:FindFirstChild(nombre)
 	if not evento then
-		if RunService:IsServer() then
+		if RunService:IsServer() or RunService:IsEdit() or not RunService:IsRunning() then
 			local nuevoEvento = Instance.new("RemoteEvent")
 			nuevoEvento.Name = nombre
 			nuevoEvento.Parent = folder
 			evento = nuevoEvento
 		else
-			evento = folder:WaitForChild(nombre) :: RemoteEvent
+			evento = folder:WaitForChild(nombre, 5) :: RemoteEvent?
+			if not evento then
+				local nuevoEvento = Instance.new("RemoteEvent")
+				nuevoEvento.Name = nombre
+				nuevoEvento.Parent = folder
+				evento = nuevoEvento
+			end
 		end
 	end
 	return evento :: RemoteEvent
@@ -36,15 +48,21 @@ end
 
 local function obtenerOCrearFuncion(nombre: string): RemoteFunction
 	local folder = obtenerOCrearFolder()
-	local funcion = folder:FindFirstChild(nombre)
+	local funcion = folder and folder:FindFirstChild(nombre)
 	if not funcion then
-		if RunService:IsServer() then
+		if RunService:IsServer() or RunService:IsEdit() or not RunService:IsRunning() then
 			local nuevaFuncion = Instance.new("RemoteFunction")
 			nuevaFuncion.Name = nombre
 			nuevaFuncion.Parent = folder
 			funcion = nuevaFuncion
 		else
-			funcion = folder:WaitForChild(nombre) :: RemoteFunction
+			funcion = folder:WaitForChild(nombre, 5) :: RemoteFunction?
+			if not funcion then
+				local nuevaFuncion = Instance.new("RemoteFunction")
+				nuevaFuncion.Name = nombre
+				nuevaFuncion.Parent = folder
+				funcion = nuevaFuncion
+			end
 		end
 	end
 	return funcion :: RemoteFunction

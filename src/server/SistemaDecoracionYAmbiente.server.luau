@@ -24,44 +24,75 @@ local function configurarFisicaVehiculoConducible(
 	asiento.Torque = 0
 	asiento.TurnSpeed = 0
 
-	-- Propiedades físicas optimizadas para deslizamiento suave sin fricción excesiva
-	chasis.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.05, 0.5, 0.05, 1)
+	-- Propiedades físicas idénticas a la bicicleta (centro de gravedad bajo y adherencia equilibrada)
+	chasis.CustomPhysicalProperties = PhysicalProperties.new(1.0, 0.1, 0, 1, 1)
+
+	-- Contrapeso inferior anti-vuelcos (idéntico a la bicicleta, evita giros de cabeza)
+	local contrapeso = chasis:FindFirstChild("ContrapesoBajo") :: BasePart?
+	if not contrapeso then
+		contrapeso = Instance.new("Part")
+		contrapeso.Name = "ContrapesoBajo"
+		contrapeso.Size = Vector3.new(math.max(chasis.Size.X * 0.7, 1.4), 0.4, math.max(chasis.Size.Z * 0.7, 2.6))
+		contrapeso.CFrame = chasis.CFrame * CFrame.new(0, -chasis.Size.Y * 0.55, 0)
+		contrapeso.Transparency = 1
+		contrapeso.CanCollide = false
+		contrapeso.Massless = false
+		contrapeso.CustomPhysicalProperties = PhysicalProperties.new(4.0, 0.1, 0, 1, 1)
+		contrapeso.Parent = chasis
+
+		soldar(chasis, contrapeso)
+	end
+
 	for _, part in ipairs(modelo:GetDescendants()) do
-		if part:IsA("BasePart") and part ~= chasis then
+		if part:IsA("BasePart") and part ~= chasis and part ~= contrapeso then
 			part.Massless = true
+			part.Anchored = false
 		end
 	end
 
-	local driveAtt = Instance.new("Attachment")
-	driveAtt.Name = "DriveAtt"
-	driveAtt.Parent = chasis
+	local driveAtt = chasis:FindFirstChild("DriveAtt") :: Attachment?
+	if not driveAtt then
+		driveAtt = Instance.new("Attachment")
+		driveAtt.Name = "DriveAtt"
+		driveAtt.Parent = chasis
+	end
 
-	local driveLV = Instance.new("LinearVelocity")
-	driveLV.Name = "DriveLV"
-	driveLV.Attachment0 = driveAtt
-	driveLV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-	driveLV.ForceLimitsEnabled = true
-	driveLV.MaxAxesForce = Vector3.new(0, 0, 180000)
-	driveLV.VectorVelocity = Vector3.zero
-	driveLV.Parent = chasis
+	local driveLV = chasis:FindFirstChild("DriveLV") :: LinearVelocity?
+	if not driveLV then
+		driveLV = Instance.new("LinearVelocity")
+		driveLV.Name = "DriveLV"
+		driveLV.Attachment0 = driveAtt
+		driveLV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+		driveLV.ForceLimitsEnabled = true
+		driveLV.MaxAxesForce = Vector3.new(0, 0, 45000)
+		driveLV.VectorVelocity = Vector3.zero
+		driveLV.Parent = chasis
+	end
 
-	local steerAV = Instance.new("AngularVelocity")
-	steerAV.Name = "SteerAV"
-	steerAV.Attachment0 = driveAtt
-	steerAV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-	steerAV.MaxTorque = 300000
-	steerAV.AngularVelocity = Vector3.zero
-	steerAV.Parent = chasis
+	local steerAV = chasis:FindFirstChild("SteerAV") :: AngularVelocity?
+	if not steerAV then
+		steerAV = Instance.new("AngularVelocity")
+		steerAV.Name = "SteerAV"
+		steerAV.Attachment0 = driveAtt
+		steerAV.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+		steerAV.MaxTorque = 80000
+		steerAV.AngularVelocity = Vector3.zero
+		steerAV.Parent = chasis
+	end
 
-	local ao = Instance.new("AlignOrientation")
-	ao.Name = "EstabilizadorVertical"
-	ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	ao.Attachment0 = driveAtt
-	ao.AlignType = Enum.AlignType.PrimaryAxisParallel
-	ao.PrimaryAxis = Vector3.new(0, 1, 0)
-	ao.MaxTorque = 120000
-	ao.Responsiveness = 35
-	ao.Parent = chasis
+	local ao = chasis:FindFirstChild("EstabilizadorVertical") :: AlignOrientation?
+	if not ao then
+		ao = Instance.new("AlignOrientation")
+		ao.Name = "EstabilizadorVertical"
+		ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
+		ao.Attachment0 = driveAtt
+		ao.AlignType = Enum.AlignType.PrimaryAxisParallel
+		ao.PrimaryAxis = Vector3.new(0, 1, 0)
+		ao.MaxTorque = 60000
+		ao.Responsiveness = 35
+		ao.ReactionTorqueEnabled = false
+		ao.Parent = chasis
+	end
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "PromptConducir"

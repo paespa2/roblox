@@ -28,35 +28,35 @@ local PARADAS: { ParadaInfo } = {
 		Id = 1,
 		Nombre = "Colegio San Jerónimo",
 		Subtitulo = "Salida Escolar • Prohibido Dulces",
-		PosicionBahia = Vector3.new(12, 60, -35),
+		PosicionBahia = Vector3.new(28, 60, -35),
 		RotacionY = 180,
 	},
 	{
 		Id = 2,
 		Nombre = "Plaza Central & Tiendas",
 		Subtitulo = "La Esquina Paisa • Almacén Don Chucho",
-		PosicionBahia = Vector3.new(12, 60, 60),
+		PosicionBahia = Vector3.new(28, 60, 60),
 		RotacionY = 180,
 	},
 	{
 		Id = 3,
 		Nombre = "Hospital San Rafael",
 		Subtitulo = "Urgencias 24H • Puesto de Salud",
-		PosicionBahia = Vector3.new(16, 83.2, 215),
+		PosicionBahia = Vector3.new(28, 83.2, 215),
 		RotacionY = 180,
 	},
 	{
 		Id = 4,
 		Nombre = "Mirador del Valle & Café",
 		Subtitulo = "Los Almendros • Cima de Ladera",
-		PosicionBahia = Vector3.new(12, 95.5, 380),
+		PosicionBahia = Vector3.new(24, 96.5, 380),
 		RotacionY = 180,
 	},
 	{
 		Id = 5,
 		Nombre = "Finca La Melcocha",
 		Subtitulo = "Cordillera Alta • Cuna del Dulce",
-		PosicionBahia = Vector3.new(-75, 100, 412),
+		PosicionBahia = Vector3.new(-78, 100, 395),
 		RotacionY = 90,
 	},
 }
@@ -86,7 +86,7 @@ local function construirCasetaParada(info: ParadaInfo, parent: Instance)
 	local base = Instance.new("Part")
 	base.Name = "PlataformaEspera"
 	base.Size = Vector3.new(6.0, 0.4, 4.0)
-	base.Position = info.PosicionBahia + Vector3.new(2.5, 0.2, 0)
+	base.Position = info.PosicionBahia + Vector3.new(0, 0.2, 0)
 	base.Color = Color3.fromRGB(180, 185, 190)
 	base.Material = Enum.Material.Concrete
 	base.Anchored = true
@@ -221,7 +221,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 	franjaCheck.Position = chasis.Position + Vector3.new(0, 0.3, 0)
 	franjaCheck.Color = Color3.fromRGB(25, 25, 30)
 	franjaCheck.Material = Enum.Material.SmoothPlastic
-	franjaCheck.Anchored = true
+	franjaCheck.Anchored = false
+	franjaCheck.Massless = true
 	franjaCheck.CanCollide = false
 	franjaCheck.Parent = taxi
 	soldar(chasis, franjaCheck)
@@ -234,7 +235,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 	cabina.Color = Color3.fromRGB(45, 55, 68)
 	cabina.Material = Enum.Material.Glass
 	cabina.Transparency = 0.4
-	cabina.Anchored = true
+	cabina.Anchored = false
+	cabina.Massless = true
 	cabina.CanCollide = true
 	cabina.Parent = taxi
 	soldar(chasis, cabina)
@@ -246,7 +248,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 	letreroTaxi.Position = cabina.Position + Vector3.new(0, 1.45, 0)
 	letreroTaxi.Color = Color3.fromRGB(255, 245, 220)
 	letreroTaxi.Material = Enum.Material.Neon
-	letreroTaxi.Anchored = true
+	letreroTaxi.Anchored = false
+	letreroTaxi.Massless = true
 	letreroTaxi.CanCollide = false
 	letreroTaxi.Parent = taxi
 	soldar(chasis, letreroTaxi)
@@ -273,7 +276,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 	farolIzq.Position = chasis.Position + Vector3.new(-2.2, 0.2, -6.5)
 	farolIzq.Color = Color3.fromRGB(255, 255, 210)
 	farolIzq.Material = Enum.Material.Neon
-	farolIzq.Anchored = true
+	farolIzq.Anchored = false
+	farolIzq.Massless = true
 	farolIzq.CanCollide = false
 	farolIzq.Parent = taxi
 	soldar(chasis, farolIzq)
@@ -293,7 +297,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 	farolDer.Position = chasis.Position + Vector3.new(2.2, 0.2, -6.5)
 	farolDer.Color = Color3.fromRGB(255, 255, 210)
 	farolDer.Material = Enum.Material.Neon
-	farolDer.Anchored = true
+	farolDer.Anchored = false
+	farolDer.Massless = true
 	farolDer.CanCollide = false
 	farolDer.Parent = taxi
 	soldar(chasis, farolDer)
@@ -309,7 +314,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 				* CFrame.Angles(0, 0, math.rad(90))
 			rueda.Color = Color3.fromRGB(30, 30, 35)
 			rueda.Material = Enum.Material.Rubber
-			rueda.Anchored = true
+			rueda.Anchored = false
+			rueda.Massless = true
 			rueda.CanCollide = false
 			rueda.Parent = taxi
 			soldar(chasis, rueda)
@@ -322,7 +328,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 	asientoPasajero.Size = Vector3.new(2.0, 0.6, 2.0)
 	asientoPasajero.Position = chasis.Position + Vector3.new(1.4, 0.6, 0.6)
 	asientoPasajero.Color = Color3.fromRGB(50, 45, 45)
-	asientoPasajero.Anchored = true
+	asientoPasajero.Anchored = false
+	asientoPasajero.Massless = true
 	asientoPasajero.CanCollide = true
 	asientoPasajero.Parent = taxi
 	soldar(chasis, asientoPasajero)
@@ -338,7 +345,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 	choferTorso.Position = chasis.Position + Vector3.new(-1.4, 1.5, 0.6)
 	choferTorso.Color = Color3.fromRGB(45, 95, 170) -- Camisa azul chófer
 	choferTorso.Material = Enum.Material.SmoothPlastic
-	choferTorso.Anchored = true
+	choferTorso.Anchored = false
+	choferTorso.Massless = true
 	choferTorso.CanCollide = false
 	choferTorso.Parent = donLibardo
 	soldar(chasis, choferTorso)
@@ -349,7 +357,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 	choferHead.Position = choferTorso.Position + Vector3.new(0, 1.3, 0)
 	choferHead.Color = Color3.fromRGB(230, 185, 150)
 	choferHead.Material = Enum.Material.SmoothPlastic
-	choferHead.Anchored = true
+	choferHead.Anchored = false
+	choferHead.Massless = true
 	choferHead.CanCollide = false
 	choferHead.Parent = donLibardo
 	soldar(chasis, choferHead)
@@ -360,7 +369,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 	gorraChofer.Position = choferHead.Position + Vector3.new(0, 0.55, -0.1)
 	gorraChofer.Color = Color3.fromRGB(25, 30, 42)
 	gorraChofer.Material = Enum.Material.SmoothPlastic
-	gorraChofer.Anchored = true
+	gorraChofer.Anchored = false
+	gorraChofer.Massless = true
 	gorraChofer.CanCollide = false
 	gorraChofer.Parent = donLibardo
 	soldar(chasis, gorraChofer)
@@ -372,7 +382,8 @@ local function crearTaxiDeDonLibardo(parent: Instance): Model
 	volante.Position = choferTorso.Position + Vector3.new(0, 0.3, -1.0)
 	volante.Color = Color3.fromRGB(20, 20, 25)
 	volante.Material = Enum.Material.Metal
-	volante.Anchored = true
+	volante.Anchored = false
+	volante.Massless = true
 	volante.CanCollide = false
 	volante.Parent = donLibardo
 	soldar(chasis, volante)
@@ -447,11 +458,11 @@ local function iniciarServicioTransporte(taxi: Model)
 	local function moverTaxiHacia(destino: Vector3, velocidad: number)
 		local dir = (destino - chasis.Position)
 		local dist = dir.Magnitude
-		if dist <= 1.5 then
+		if dist <= 1.2 then
 			return
 		end
 
-		local dur = math.clamp(dist / velocidad, 0.8, 6.0)
+		local dur = math.clamp(dist / velocidad, 0.4, 5.0)
 		local dirNorm = (dir * Vector3.new(1, 0, 1)).Unit
 		local cfMeta = CFrame.lookAt(destino, destino + dirNorm)
 
@@ -461,27 +472,7 @@ local function iniciarServicioTransporte(taxi: Model)
 			{ CFrame = cfMeta }
 		)
 		tween:Play()
-
-		-- Actualizar todas las piezas ancladas soldadas al taxi
-		local t0 = os.clock()
-		while os.clock() - t0 < dur do
-			local cfIntermedio = chasis.CFrame
-			for _, part in ipairs(taxi:GetDescendants()) do
-				if part:IsA("BasePart") and part ~= chasis and part.Anchored then
-					local weld = part:FindFirstChildOfClass("WeldConstraint")
-					if weld and weld.Part0 == chasis then
-						-- Conserva el offset relativo
-						local offset = part:GetAttribute("OffsetRelativo")
-						if not offset then
-							offset = chasis.CFrame:ToObjectSpace(part.CFrame)
-							part:SetAttribute("OffsetRelativo", offset)
-						end
-						part.CFrame = cfIntermedio * offset
-					end
-				end
-			end
-			task.wait(0.05)
-		end
+		task.wait(dur)
 	end
 
 	-- Conduce por los waypoints hasta la parada deseada
@@ -492,27 +483,30 @@ local function iniciarServicioTransporte(taxi: Model)
 		-- Determinar si sube o baja por la carretera
 		local destinoBahia = PARADAS[paradaDestinoIdx].PosicionBahia
 		local paso = if paradaDestinoIdx >= paradaActualIdx then 1 else -1
+		local carrilX = if paso > 0 then 4.5 else -4.5
 
-		-- 1. Incorporarse a la calzada
-		local puntoEntrada = Vector3.new(4, chasis.Position.Y, chasis.Position.Z)
+		-- 1. Incorporarse a la calzada en el carril correspondiente
+		local puntoEntrada = Vector3.new(carrilX, chasis.Position.Y, chasis.Position.Z)
 		moverTaxiHacia(puntoEntrada, 12)
 
-		-- 2. Recorrer waypoints intermedios
-		for i = 1, #WAYPOINTS_CARRETERA do
-			local wp = WAYPOINTS_CARRETERA[i]
-			local enRango = false
-			if paso > 0 then
-				enRango = (wp.Z >= chasis.Position.Z - 5 and wp.Z <= destinoBahia.Z + 5)
-			else
-				enRango = (wp.Z <= chasis.Position.Z + 5 and wp.Z >= destinoBahia.Z - 5)
+		-- 2. Recorrer waypoints intermedios por el carril de la carretera
+		if paso > 0 then
+			for i = 1, #WAYPOINTS_CARRETERA do
+				local wp = WAYPOINTS_CARRETERA[i]
+				if wp.Z >= chasis.Position.Z - 3 and wp.Z <= destinoBahia.Z + 3 then
+					moverTaxiHacia(Vector3.new(carrilX, wp.Y, wp.Z), 18)
+				end
 			end
-
-			if enRango then
-				moverTaxiHacia(wp, 18)
+		else
+			for i = #WAYPOINTS_CARRETERA, 1, -1 do
+				local wp = WAYPOINTS_CARRETERA[i]
+				if wp.Z <= chasis.Position.Z + 3 and wp.Z >= destinoBahia.Z - 3 then
+					moverTaxiHacia(Vector3.new(carrilX, wp.Y, wp.Z), 18)
+				end
 			end
 		end
 
-		-- 3. Entrar a la bahía de la parada de destino
+		-- 3. Entrar a la bahía de la parada de destino (fuera de la calzada)
 		moverTaxiHacia(destinoBahia, 10)
 		paradaActualIdx = paradaDestinoIdx
 

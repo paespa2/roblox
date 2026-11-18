@@ -254,14 +254,23 @@ local function crearEstudianteVivo(
 				local meta = obtenerPosicionSuelo(puntos[idxPunto], 2.4)
 				local dir = (meta - hrp.Position) * Vector3.new(1, 0, 1)
 				if dir.Magnitude > 1.5 then
-					local nuevoCFrame = CFrame.lookAt(meta, meta + dir.Unit)
-					local duracion = math.clamp(dir.Magnitude / 3.5, 1.5, 4.0)
-					local tween = TweenService:Create(
-						hrp,
-						TweenInfo.new(duracion, Enum.EasingStyle.Linear),
-						{ CFrame = nuevoCFrame }
-					)
-					tween:Play()
+					-- Verificación anticolisión: si hay pared u obstáculo en el trayecto, no atravesarlo
+					local paramsRay = RaycastParams.new()
+					paramsRay.FilterType = Enum.RaycastFilterType.Exclude
+					paramsRay.FilterDescendantsInstances = { modelo }
+					local rayOrigin = hrp.Position + Vector3.new(0, 0.4, 0)
+					local rayDir = dir.Unit * math.min(dir.Magnitude, 3.5)
+					local hit = Workspace:Raycast(rayOrigin, rayDir, paramsRay)
+					if not hit or not hit.Instance.CanCollide then
+						local nuevoCFrame = CFrame.lookAt(meta, meta + dir.Unit)
+						local duracion = math.clamp(dir.Magnitude / 3.5, 1.5, 4.0)
+						local tween = TweenService:Create(
+							hrp,
+							TweenInfo.new(duracion, Enum.EasingStyle.Linear),
+							{ CFrame = nuevoCFrame }
+						)
+						tween:Play()
+					end
 				end
 			end
 		end
@@ -714,7 +723,8 @@ local function crearChivaRumbera(parentFolder: Instance)
 	franjaAzul.Position = chasis.Position + Vector3.new(0, 0.4, 0)
 	franjaAzul.Color = Color3.fromRGB(30, 70, 180)
 	franjaAzul.Material = Enum.Material.SmoothPlastic
-	franjaAzul.Anchored = true
+	franjaAzul.Anchored = false
+	franjaAzul.Massless = true
 	franjaAzul.CanCollide = false
 	franjaAzul.Parent = modelo
 	soldar(chasis, franjaAzul)
@@ -725,7 +735,8 @@ local function crearChivaRumbera(parentFolder: Instance)
 	franjaRoja.Position = chasis.Position + Vector3.new(0, -0.2, 0)
 	franjaRoja.Color = Color3.fromRGB(220, 40, 40)
 	franjaRoja.Material = Enum.Material.SmoothPlastic
-	franjaRoja.Anchored = true
+	franjaRoja.Anchored = false
+	franjaRoja.Massless = true
 	franjaRoja.CanCollide = false
 	franjaRoja.Parent = modelo
 	soldar(chasis, franjaRoja)
@@ -737,7 +748,8 @@ local function crearChivaRumbera(parentFolder: Instance)
 	techo.Position = chasis.Position + Vector3.new(0, 3.2, 0)
 	techo.Color = Color3.fromRGB(230, 230, 240)
 	techo.Material = Enum.Material.Metal
-	techo.Anchored = true
+	techo.Anchored = false
+	techo.Massless = true
 	techo.CanCollide = false
 	techo.Parent = modelo
 	soldar(chasis, techo)
@@ -749,7 +761,8 @@ local function crearChivaRumbera(parentFolder: Instance)
 	faroIzq.Position = chasis.Position + Vector3.new(-1.8, 0.2, -6.1)
 	faroIzq.Color = Color3.fromRGB(255, 255, 200)
 	faroIzq.Material = Enum.Material.Neon
-	faroIzq.Anchored = true
+	faroIzq.Anchored = false
+	faroIzq.Massless = true
 	faroIzq.CanCollide = false
 	faroIzq.Parent = modelo
 	soldar(chasis, faroIzq)
@@ -760,7 +773,8 @@ local function crearChivaRumbera(parentFolder: Instance)
 	faroDer.Position = chasis.Position + Vector3.new(1.8, 0.2, -6.1)
 	faroDer.Color = Color3.fromRGB(255, 255, 200)
 	faroDer.Material = Enum.Material.Neon
-	faroDer.Anchored = true
+	faroDer.Anchored = false
+	faroDer.Massless = true
 	faroDer.CanCollide = false
 	faroDer.Parent = modelo
 	soldar(chasis, faroDer)
@@ -795,17 +809,29 @@ local function crearChivaRumbera(parentFolder: Instance)
 	corner.CornerRadius = UDim.new(0, 8)
 	corner.Parent = lbl
 
-	-- Recorrido en bucle por la avenida principal
+	-- Recorrido en bucle por los carriles de la calzada
 	task.spawn(function()
 		local paradas = {
-			Vector3.new(0, 69.5, 20),
-			Vector3.new(0, 71.0, 80),
-			Vector3.new(0, 78.0, 160),
-			Vector3.new(0, 88.0, 260),
-			Vector3.new(0, 96.5, 360),
-			Vector3.new(0, 88.0, 260),
-			Vector3.new(0, 78.0, 160),
-			Vector3.new(0, 71.0, 80),
+			-- Subida por carril derecho este (X = 4.2)
+			Vector3.new(4.2, 60.5, -20),
+			Vector3.new(4.2, 60.5, 30),
+			Vector3.new(4.2, 70.0, 95),
+			Vector3.new(4.2, 77.0, 160),
+			Vector3.new(4.2, 83.0, 230),
+			Vector3.new(4.2, 90.0, 310),
+			Vector3.new(4.2, 96.5, 375),
+			-- Retorno y giro en terraza del Mirador
+			Vector3.new(0, 96.5, 385),
+			Vector3.new(-4.2, 96.5, 375),
+			-- Bajada por carril derecho oeste (X = -4.2)
+			Vector3.new(-4.2, 90.0, 310),
+			Vector3.new(-4.2, 83.0, 230),
+			Vector3.new(-4.2, 77.0, 160),
+			Vector3.new(-4.2, 70.0, 95),
+			Vector3.new(-4.2, 60.5, 30),
+			Vector3.new(-4.2, 60.5, -20),
+			-- Retorno y giro inferior (frente a la curva del colegio)
+			Vector3.new(0, 60.5, -30),
 		}
 
 		local idx = 1
@@ -816,7 +842,7 @@ local function crearChivaRumbera(parentFolder: Instance)
 			local dist = dir.Magnitude
 
 			if dist > 1.5 then
-				local duracion = math.clamp(dist / 14, 2.5, 9.0)
+				local duracion = math.clamp(dist / 14, 2.0, 8.5)
 				local cframeObjetivo = CFrame.lookAt(destino, destino + dir.Unit)
 
 				local tweenChasis = TweenService:Create(
@@ -825,18 +851,10 @@ local function crearChivaRumbera(parentFolder: Instance)
 					{ CFrame = cframeObjetivo }
 				)
 				tweenChasis:Play()
-
-				-- Acompañar piezas
-				franjaAzul.CFrame = cframeObjetivo * CFrame.new(0, 0.4, 0)
-				franjaRoja.CFrame = cframeObjetivo * CFrame.new(0, -0.2, 0)
-				techo.CFrame = cframeObjetivo * CFrame.new(0, 3.2, 0)
-				faroIzq.CFrame = cframeObjetivo * CFrame.new(-1.8, 0.2, -6.1)
-				faroDer.CFrame = cframeObjetivo * CFrame.new(1.8, 0.2, -6.1)
-
 				task.wait(duracion)
 
-				-- Tocar bocina en esquinas principales
-				if idx == 1 or idx == 3 or idx == 5 then
+				-- Tocar bocina en puntos clave del trayecto
+				if idx == 1 or idx == 4 or idx == 8 or idx == 12 then
 					local bocina = Instance.new("Sound")
 					bocina.SoundId = "rbxasset://sounds/electronicpingshort.wav"
 					bocina.Volume = 0.8
@@ -946,12 +964,14 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(45, 40, 50),
 			Icono = "🧺",
 			Ruta = {
-				Vector3.new(6, 60, -35),
-				Vector3.new(6, 60, 45),
-				Vector3.new(6, 68, 90),
-				Vector3.new(6, 60, 10),
+				Vector3.new(14, 60, -25),
+				Vector3.new(14, 60, 15),
+				Vector3.new(14, 60, 60),
+				Vector3.new(14, 68, 90),
+				Vector3.new(14, 60, 60),
+				Vector3.new(14, 60, 15),
 			},
-			Frase = "¡Voy para la tienda de Don Chucho a ver si llegaron los dulces!",
+			Frase = "¡Voy por la acera de Don Chucho a ver si llegaron los dulces!",
 		},
 		{
 			Nombre = "Peaton_DonChepe",
@@ -960,11 +980,12 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(70, 50, 35),
 			Icono = "🌾",
 			Ruta = {
-				Vector3.new(-6, 60, 40),
-				Vector3.new(-6, 60, -30),
-				Vector3.new(-6, 68, 75),
+				Vector3.new(-14, 60, -20),
+				Vector3.new(-14, 60, 15),
+				Vector3.new(-14, 60, 60),
+				Vector3.new(-14, 60, 15),
 			},
-			Frase = "¡Buenas tardes patrón! Qué bonita que está la tarde en el pueblo.",
+			Frase = "¡Buenas tardes patrón! Qué bonita que está la tarde en la acera del pueblo.",
 		},
 		{
 			Nombre = "Peaton_SantiEstudiante",
@@ -973,11 +994,14 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(35, 40, 55),
 			Icono = "🏃‍♂️",
 			Ruta = {
-				Vector3.new(-42, 60, -10),
-				Vector3.new(-42, 60, 30),
-				Vector3.new(-70, 60, -30),
+				Vector3.new(-14, 60, -25), -- Frente a salida de colegio
+				Vector3.new(-14, 60, 15),  -- Acera oeste
+				Vector3.new(14, 60, 15),   -- Cruza por paso peatonal de cebra a acera este
+				Vector3.new(14, 60, 50),   -- Llega a tienda Don Chucho
+				Vector3.new(14, 60, 15),   -- Regresa por acera
+				Vector3.new(-14, 60, 15),  -- Cruza de vuelta
 			},
-			Frase = "¡Llevo un encargo de panelitas para mi tía!",
+			Frase = "¡Llevo un encargo de panelitas para mi tía cruzando por el paso peatonal!",
 		},
 		{
 			Nombre = "Peaton_DrJavier",
@@ -986,12 +1010,14 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(35, 75, 130),
 			Icono = "👨‍⚕️",
 			Ruta = {
-				Vector3.new(6, 60, 60),
-				Vector3.new(6, 75, 160),
-				Vector3.new(12, 83.2, 210),
-				Vector3.new(6, 75, 160),
+				Vector3.new(14, 60, 60),
+				Vector3.new(14, 68, 90),
+				Vector3.new(16, 75, 160),
+				Vector3.new(22, 83.2, 210), -- Explanada del Hospital
+				Vector3.new(16, 75, 160),
+				Vector3.new(14, 68, 90),
 			},
-			Frase = "¡Voy subiendo al Hospital San Rafael para el turno de urgencias!",
+			Frase = "¡Voy subiendo por el andén al Hospital San Rafael para el turno de urgencias!",
 		},
 		{
 			Nombre = "Peaton_NikoCiclista",
@@ -1000,12 +1026,12 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(25, 25, 30),
 			Icono = "🚴",
 			Ruta = {
-				Vector3.new(6, 83, 215),
-				Vector3.new(-18, 81.5, 255),
-				Vector3.new(6, 90, 320),
-				Vector3.new(-18, 81.5, 255),
+				Vector3.new(18, 83.2, 215),
+				Vector3.new(18, 90, 310),
+				Vector3.new(20, 96.5, 375), -- Terraza Mirador
+				Vector3.new(18, 90, 310),
 			},
-			Frase = "¡Esta subida a la ladera es exigente pero perfecta para entrenar!",
+			Frase = "¡Esta subida peatonal de ladera es exigente pero perfecta para entrenar!",
 		},
 	}
 
@@ -1118,7 +1144,7 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			end
 		end)
 
-		-- Hilo de patrullaje continuo adaptado al suelo
+		-- Hilo de patrullaje continuo adaptado al suelo con detección de obstáculos
 		task.spawn(function()
 			local ruta = info.Ruta
 			local idx = 1
@@ -1126,6 +1152,7 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 				idx = (idx % #ruta) + 1
 				local metaPunto = ruta[idx]
 				local velPeaton = 4.2
+				local bloqueado = false
 
 				while modelo.Parent do
 					local curPos = hrp.Position
@@ -1135,6 +1162,27 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 						break
 					end
 
+					-- Verificación anticolisión frontal mediante Raycast a la altura del pecho
+					local rayOrigin = curPos + Vector3.new(0, 0.4, 0)
+					local rayDir = deltaXZ.Unit * 2.2
+					local paramsRay = RaycastParams.new()
+					paramsRay.FilterType = Enum.RaycastFilterType.Exclude
+					paramsRay.FilterDescendantsInstances = { modelo }
+					local hit = Workspace:Raycast(rayOrigin, rayDir, paramsRay)
+					if hit and hit.Instance.CanCollide then
+						local hitName = hit.Instance.Name:lower()
+						local esSueloOVia = string.find(hitName, "suelo")
+							or string.find(hitName, "via")
+							or string.find(hitName, "tramo")
+							or string.find(hitName, "acera")
+							or string.find(hitName, "calle")
+						if not esSueloOVia then
+							-- Hay un muro o fachada sólida enfrente: detener avance para no atravesarlo
+							bloqueado = true
+							break
+						end
+					end
+
 					local dt = task.wait(0.1)
 					local paso = deltaXZ.Unit * math.min(distXZ, velPeaton * dt)
 					local nextXZ = curPos + paso
@@ -1142,7 +1190,7 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 					hrp.CFrame = CFrame.lookAt(nextGrounded, nextGrounded + deltaXZ.Unit)
 				end
 
-				task.wait(math.random(3, 5))
+				task.wait(if bloqueado then 1.5 else math.random(3, 5))
 			end
 		end)
 	end
@@ -1309,12 +1357,12 @@ local function inicializarVidaMundo()
 		crearEstudianteVivo(est, carpetaVida)
 	end
 
-	-- 2. Vecinos en las aceras del barrio (posiciones corregidas en aceras reales)
+	-- 2. Vecinos en las aceras del barrio (posicionados con holgura sobre los andenes peatonales)
 	local listaVecinosBarrio = {
 		{
 			Nombre = "Vecino_DonPacho",
 			Apodo = "Don Pacho (El del Tinto)",
-			Posicion = Vector3.new(6, 68, 70),
+			Posicion = Vector3.new(14, 68, 70),
 			ColorRopa = Color3.fromRGB(220, 215, 200),
 			ColorPantalon = Color3.fromRGB(70, 50, 35),
 			Icono = "☕",
@@ -1327,7 +1375,7 @@ local function inicializarVidaMundo()
 		{
 			Nombre = "Vecina_DonaLuz",
 			Apodo = "Doña Luz (La Chismosa)",
-			Posicion = Vector3.new(-6, 68, 60),
+			Posicion = Vector3.new(-14, 68, 60),
 			ColorRopa = Color3.fromRGB(240, 120, 160),
 			ColorPantalon = Color3.fromRGB(50, 40, 55),
 			Icono = "👀",
@@ -1340,7 +1388,7 @@ local function inicializarVidaMundo()
 		{
 			Nombre = "Vecino_DonRogelio",
 			Apodo = "Don Rogelio (Chófer de Chiva)",
-			Posicion = Vector3.new(6, 68, 115),
+			Posicion = Vector3.new(14, 68, 115),
 			ColorRopa = Color3.fromRGB(55, 95, 160),
 			ColorPantalon = Color3.fromRGB(30, 35, 45),
 			Icono = "🚌",

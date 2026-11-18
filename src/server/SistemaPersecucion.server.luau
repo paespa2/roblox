@@ -767,18 +767,6 @@ local function configurar12PoliciasDentales()
 				Vector3.new(12, 114, 480),
 			},
 		},
-		{
-			Nombre = "Policia_ComandanteMuelas",
-			Titulo = "🦷 COMANDANTE MUELAS\n(Jefe de la Policía Dental)",
-			PosicionInicial = Vector3.new(0, 75, 170),
-			EsJefe = true,
-			Ruta = {
-				Vector3.new(0, 60, 60),
-				Vector3.new(0, 75, 170),
-				Vector3.new(0, 83, 215),
-				Vector3.new(0, 95, 380),
-			},
-		},
 	}
 
 	for _, pat in ipairs(listaPatrulleros) do
@@ -794,19 +782,6 @@ local function configurar12PoliciasDentales()
 			folderPatrulleros,
 			true
 		)
-
-		if pat.EsJefe and oficial.PrimaryPart then
-			local mega = Instance.new("Part")
-			mega.Name = "MegafonoDorado"
-			mega.Size = Vector3.new(0.8, 0.8, 1.4)
-			mega.Position = oficial.PrimaryPart.Position + Vector3.new(0.9, 0.5, -0.6)
-			mega.Color = Color3.fromRGB(255, 215, 0)
-			mega.Material = Enum.Material.Metal
-			mega.Anchored = false
-			mega.CanCollide = false
-			mega.Parent = oficial
-			soldar(oficial.PrimaryPart, mega)
-		end
 
 		-- Hilo de IA de patrullaje callejero y persecución por estrellas
 		task.spawn(function()
@@ -953,24 +928,14 @@ local function configurar12PoliciasDentales()
 
 						task.wait(2.0)
 					else
-						-- Avanzar persiguiendo al jugador
-						local velPersecucion = if pat.EsJefe then 17.5 else 13.5
-						local paso = dir.Unit * math.min(dist, velPersecucion * dt)
+						-- Avanzar persiguiendo al jugador a 13.5 studs/s
+						local paso = dir.Unit * math.min(dist, 13.5 * dt)
 						local nuevaPos = hrp.Position + paso
 						local posSuelo = obtenerPosicionSuelo(nuevaPos, 3.0)
 						hrp.CFrame = CFrame.lookAt(
 							posSuelo,
 							posSuelo + dir.Unit
 						)
-
-						if pat.EsJefe and math.random(1, 45) == 1 then
-							EventosRemotos.MostrarDialogoNPC:FireClient(jugadorObjetivo, {
-								Nombre = "Comandante Muelas",
-								Titulo = "🚨 ¡COMANDANTE MUELAS AL MEGÁFONO!",
-								Icono = "🦷",
-								Mensaje = "¡ALTO EN NOMBRE DE LA SALUD DENTAL! ¡Nadie trafica melcocha en mi pueblo!",
-							})
-						end
 					end
 				else
 					-- Modo Patrulla callejera normal
