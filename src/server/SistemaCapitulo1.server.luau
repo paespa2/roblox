@@ -620,6 +620,7 @@ local function crearAutoridadesEscolares()
 							Titulo = "🚨 ¡CONFISCACIÓN EN EL PATIO!",
 							Icono = config.Icono,
 							Mensaje = msg,
+							EsNotificacionEfimera = true, -- Efímera: banner que desaparece en 3s para no bloquear la huida
 						})
 
 						-- Pequeño retroceso para no estancarse

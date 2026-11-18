@@ -1143,7 +1143,7 @@ RunService.Heartbeat:Connect(function(dt: number)
 
 			if not estaAturdido then
 				local ahora = os.clock()
-				if ahora - estado.UltimaNotificacionReten > 3 then
+				if ahora - estado.UltimaNotificacionReten > 25 then
 					estado.UltimaNotificacionReten = ahora
 
 					local reglaEstrella = Datos.Persecucion.Estrellas[estrellas]
@@ -1165,20 +1165,9 @@ RunService.Heartbeat:Connect(function(dt: number)
 							FianzaPesos = fianza,
 							Estrellas = estrellas,
 						})
-						EventosRemotos.CargaConfiscada:FireClient(player, confiscados)
-
-						EventosRemotos.MostrarDialogoNPC:FireClient(player, {
-							Nombre = "Policía Dental (Retén)",
-							Titulo = "🚨 ¡ARRESTO Y TRASLADO AL INTERNADO!",
-							Icono = "🚔",
-							Mensaje = string.format(
-								"¡Quedas bajo arresto! Con %d estrellas se procede al decomiso de tu carga (%d dulces) y traslado al Internado Sin Azúcar por %ds (Fianza: $%d pesos).",
-								estrellas,
-								confiscados,
-								condena,
-								fianza
-							),
-						})
+						if confiscados > 0 then
+							EventosRemotos.CargaConfiscada:FireClient(player, confiscados)
+						end
 
 						print(
 							string.format(
@@ -1191,22 +1180,16 @@ RunService.Heartbeat:Connect(function(dt: number)
 							)
 						)
 					else
-						-- Advertencia y confiscación parcial (Estrellas 1 o 2)
+						-- Advertencia y confiscación parcial (Estrellas 1 o 2) - Notificación efímera en banner sin popup modal
 						if confiscados > 0 then
 							EventosRemotos.CargaConfiscada:FireClient(player, confiscados)
+						else
+							EventosRemotos.AlertaPolicia:FireClient(
+								player,
+								"👮 Retén de la Policía Dental: ¡Circule con precaución!",
+								estrellas
+							)
 						end
-						local msg = string.format(
-							"¡Alto ahí! Inspección de rutina de la Policía Dental de Villa Almíbar.\n\nPor transportar dulces sin autorización municipal, te decomisamos el %d%% de tu carga (%d dulces). ¡Evita que suba tu nivel de calor!",
-							math.floor(pctConfiscacion * 100),
-							confiscados
-						)
-						EventosRemotos.AlertaPolicia:FireClient(player, msg, estrellas)
-						EventosRemotos.MostrarDialogoNPC:FireClient(player, {
-							Nombre = "Policía Dental (Retén)",
-							Titulo = "🚨 ¡REQUISA DE AZÚCAR!",
-							Icono = "👮",
-							Mensaje = msg,
-						})
 					end
 				end
 			end
@@ -1243,16 +1226,8 @@ iniciarRedadaDental = function()
 	folderChoque.Name = "FuerzasEspeciales"
 	folderChoque.Parent = policiasFolder
 
-	-- Notificar inicio de redada a todos los clientes
+	-- Notificar inicio de redada a todos los clientes (Banner efímero de emergencia con sirena)
 	EventosRemotos.RedadaIniciada:FireAllClients()
-	for _, player in ipairs(Players:GetPlayers()) do
-		EventosRemotos.MostrarDialogoNPC:FireClient(player, {
-			Nombre = "Alcalde Apio (Altavoz Municipal)",
-			Titulo = "🚨 ¡OPERATIVO DE EMERGENCIA: REDADA DENTAL!",
-			Icono = "📢",
-			Mensaje = "¡ATENCIÓN VILLA ALMÍBAR! Por orden de la Alcaldía, se activa el TOQUE DE QUEDA DE CERO AZÚCAR. Las fuerzas especiales tienen orden de decomisar todo y reducir a los infractores. ¡Escóndete en un callejón seguro o defiéndete con tu cauchera!",
-		})
-	end
 
 	-- Despliegue de 4 Oficiales de Fuerzas Especiales Antidisturbios
 	local puntosAparicionChoque = {
@@ -1449,13 +1424,6 @@ iniciarRedadaDental = function()
 											"¡Caíste ante las Fuerzas Especiales de la Policía Dental!\n\nTe decomisaron %d dulces de tu cargamento. Fuiste atendido en la enfermería municipal.",
 											perdidos
 										),
-									})
-								else
-									EventosRemotos.MostrarDialogoNPC:FireClient(jugadorObjetivo, {
-										Nombre = "Fuerzas Especiales Dentales",
-										Titulo = "⚡ ¡IMPACTO DE BASTÓN ELÉCTRICO! (-25 HP)",
-										Icono = "⚡",
-										Mensaje = "¡Alto a la distribución ilegal! ¡Ríndete o terminarás en el Internado!",
 									})
 								end
 							end

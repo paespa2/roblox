@@ -358,7 +358,7 @@ end
 
 botonCerrarBanner.MouseButton1Click:Connect(cerrarBannerNotificacion)
 
-local function mostrarBanner(mensaje: string, colorStroke: Color3?)
+local function mostrarBanner(mensaje: string, colorStroke: Color3?, duracionSegundos: number?)
 	if timerCierreBanner then
 		task.cancel(timerCierreBanner)
 		timerCierreBanner = nil
@@ -382,8 +382,9 @@ local function mostrarBanner(mensaje: string, colorStroke: Color3?)
 		tweenBannerActual:Play()
 	end
 
-	-- Notificación efímera: auto-cierre tras 3.8 segundos o descarte inmediato con [X]
-	timerCierreBanner = task.delay(3.8, function()
+	-- Notificación efímera: auto-cierre tras duración (por defecto 3.2s) o descarte inmediato con [X]
+	local tiempo = duracionSegundos or 3.2
+	timerCierreBanner = task.delay(tiempo, function()
 		cerrarBannerNotificacion()
 	end)
 end
@@ -675,12 +676,38 @@ local function procesarMensajeEnPaginas(mensaje: any): { string }
 	return { texto }
 end
 
+local ultimoTextoNPC = ""
+local tiempoUltimoTextoNPC = 0
+
 local function mostrarDialogoNPC(info: {
 	Nombre: string,
 	Titulo: string?,
 	Icono: string?,
 	Mensaje: any,
+	EsNotificacionEfimera: boolean?,
 })
+	local textoCrudo = tostring(info.Mensaje or "")
+	local ahora = os.clock()
+
+	-- 1. Anti-spam: Filtrar mensajes idénticos que lleguen en menos de 3.5 segundos
+	if textoCrudo == ultimoTextoNPC and (ahora - tiempoUltimoTextoNPC) < 3.5 then
+		return
+	end
+	ultimoTextoNPC = textoCrudo
+	tiempoUltimoTextoNPC = ahora
+
+	-- 2. Clasificación Inteligente:
+	-- Mensajes cortos (< 100 caracteres y sin párrafos dobles \n\n) son NOTIFICACIONES EFÍMERAS.
+	-- Desaparecen solas en 3.2 segundos o se descartan con [X], sin bloquear la pantalla ni los controles.
+	local esTextoCorto = (#textoCrudo < 100) and not string.find(textoCrudo, "\n\n") and type(info.Mensaje) ~= "table"
+	if info.EsNotificacionEfimera or esTextoCorto then
+		local prefijo = string.format("%s %s:", info.Icono or "💬", info.Nombre)
+		mostrarBanner(string.format("%s %s", prefijo, textoCrudo), Color3.fromRGB(245, 185, 60), 3.2)
+		return
+	end
+
+	-- 3. DIÁLOGO MODAL ESTÁTICO (Historias largas, misiones, Doña Melcocha, etc.)
+	-- Cuadro interactivo en la parte inferior con paginación, [Siguiente >] y [X] para leer con calma.
 	iconoAvatar.Text = info.Icono or "🗣️"
 	nombreLabel.Text = info.Nombre .. (if info.Titulo then " (" .. info.Titulo .. ")" else "")
 
@@ -700,7 +727,7 @@ local function mostrarDialogoNPC(info: {
 	-- Sonido suave de diálogo
 	local sound = Instance.new("Sound")
 	sound.SoundId = "rbxasset://sounds/electronicpingshort.wav"
-	sound.Volume = 0.5
+	sound.Volume = 0.4
 	sound.Parent = SoundService
 	pcall(function()
 		sound:Play()
@@ -708,7 +735,6 @@ local function mostrarDialogoNPC(info: {
 	task.delay(1.5, function()
 		sound:Destroy()
 	end)
-	-- DIÁLOGO MODAL ESTÁTICO: No se cierra automáticamente. El jugador lee a su tiempo.
 end
 
 EventosRemotos.MostrarDialogoNPC.OnClientEvent:Connect(mostrarDialogoNPC)

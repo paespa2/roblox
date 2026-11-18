@@ -450,17 +450,7 @@ task.spawn(function()
 			if conteo > 0 then
 				local gananciaPasiva = conteo * 3 -- $3 pesos por cada tienda aliada
 				GestorDatos.AgregarPesos(player, gananciaPasiva)
-
-				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
-					Nombre = "Red de Tiendas del Barrio",
-					Titulo = "💰 Recaudo Pasivo Tycoon",
-					Icono = "🏪",
-					Mensaje = string.format(
-						"¡Ganancias recibidas! Tus %d tiendas aliadas te generaron +$%d Pesos Dulces.",
-						conteo,
-						gananciaPasiva
-					),
-				})
+				-- Recaudo pasivo silencioso: El saldo se actualiza suavemente en el HUD de la esquina sin spam de diálogos
 			end
 		end
 	end

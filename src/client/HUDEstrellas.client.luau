@@ -235,8 +235,8 @@ local function mostrarAlerta(mensaje: string, esGrave: boolean)
 		tweenAlertaActual:Play()
 	end
 
-	-- Notificación efímera: desaparece automáticamente a los 4.0s o al pulsar [X]
-	local tiempoAutoCierre = if esGrave then 4.5 else 3.5
+	-- Notificación efímera: desaparece automáticamente a los 3.0s o al pulsar [X]
+	local tiempoAutoCierre = if esGrave then 3.2 else 2.5
 	timerCierreAlerta = task.delay(tiempoAutoCierre, function()
 		cerrarBannerAlerta()
 	end)
