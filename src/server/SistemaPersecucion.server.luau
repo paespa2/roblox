@@ -833,9 +833,15 @@ local function configurar12PoliciasDentales()
 								local calor = GestorDatos.ObtenerPuntosCalor(player)
 
 								if estrellas >= 1 or calor > 15 then
-									distanciaMinima = dist
-									jugadorObjetivo = player
-									posObjetivo = pHrp.Position
+									local vecPlano = (pHrp.Position - hrp.Position) * Vector3.new(1, 0, 1)
+									local dotVision = hrp.CFrame.LookVector:Dot(vecPlano.Unit)
+									-- Cono de visión de patrulla: A más de 10 studs requiere estar en campo visual frontal
+									local enVision = (dist < 10) or (dotVision > 0.15) or (estrellas >= 3)
+									if enVision then
+										distanciaMinima = dist
+										jugadorObjetivo = player
+										posObjetivo = pHrp.Position
+									end
 								end
 							end
 						end

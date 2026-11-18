@@ -17,6 +17,9 @@ export type PerfilJugador = {
 	CondenaInternado: number,
 	TiendasConquistadas: { [string]: boolean },
 	IngresoPasivoAcumulado: number,
+	MultiplicadorRenacimiento: number,
+	Renacimientos: number,
+	EncargosCompletados: number,
 }
 
 local PlantillaPerfil: PerfilJugador = {
@@ -47,6 +50,9 @@ local PlantillaPerfil: PerfilJugador = {
 	CondenaInternado = 0,
 	TiendasConquistadas = {},
 	IngresoPasivoAcumulado = 0,
+	MultiplicadorRenacimiento = 1,
+	Renacimientos = 0,
+	EncargosCompletados = 0,
 }
 
 return PlantillaPerfil

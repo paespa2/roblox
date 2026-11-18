@@ -561,19 +561,26 @@ local function crearAutoridadesEscolares()
 					local char = player.Character
 					local playerHrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
 					if playerHrp then
-						local dist = (playerHrp.Position - hrp.Position).Magnitude
-						if dist <= distanciaMinima then
-							local datos = GestorDatos.ObtenerDatos(player)
-							local tieneDulces = datos
-								and (
-									(datos.Inventario["Dulce_Bombon"] or 0) > 0
-									or (datos.Inventario["Dulce_Gomita"] or 0) > 0
-									or (datos.PuntosCalor or 0) > 0
-								)
-							if tieneDulces then
-								distanciaMinima = dist
-								jugadorObjetivo = player
-								posObjetivo = playerHrp.Position
+						local vecPlano = (playerHrp.Position - hrp.Position) * Vector3.new(1, 0, 1)
+						local dist = vecPlano.Magnitude
+						if dist <= distanciaMinima and dist > 0.1 then
+							-- Cono de visión frontal: a más de 8 studs requiere estar al frente; a espaldas el jugador puede escabullirse
+							local dotVision = hrp.CFrame.LookVector:Dot(vecPlano.Unit)
+							local detectado = (dist < 8) or (dotVision > 0.15)
+
+							if detectado then
+								local datos = GestorDatos.ObtenerDatos(player)
+								local tieneDulces = datos
+									and (
+										(datos.Inventario["Dulce_Bombon"] or 0) > 0
+										or (datos.Inventario["Dulce_Gomita"] or 0) > 0
+										or (datos.PuntosCalor or 0) > 0
+									)
+								if tieneDulces then
+									distanciaMinima = dist
+									jugadorObjetivo = player
+									posObjetivo = playerHrp.Position
+								end
 							end
 						end
 					end

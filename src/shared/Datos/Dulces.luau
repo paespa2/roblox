@@ -47,6 +47,46 @@ local Dulces = {
 		TiempoProduccion = 40,
 		Capitulo = 3,
 	},
+	Dulce_ManjarBlanco = {
+		Id = "Dulce_ManjarBlanco",
+		Nombre = "Manjar Blanco",
+		Nivel = "Fino",
+		ValorVenta = 14,
+		TiempoProduccion = 45,
+		Capitulo = 5,
+	},
+	Dulce_MelcochaCanela = {
+		Id = "Dulce_MelcochaCanela",
+		Nombre = "Melcocha de Canela",
+		Nivel = "Fino",
+		ValorVenta = 18,
+		TiempoProduccion = 55,
+		Capitulo = 6,
+	},
+	Dulce_ChocotejaAndina = {
+		Id = "Dulce_ChocotejaAndina",
+		Nombre = "Chocoteja Andina",
+		Nivel = "Fino",
+		ValorVenta = 25,
+		TiempoProduccion = 65,
+		Capitulo = 7,
+	},
+	Dulce_ManjarDorado = {
+		Id = "Dulce_ManjarDorado",
+		Nombre = "Manjar Dorado",
+		Nivel = "Legendario",
+		ValorVenta = 60,
+		TiempoProduccion = 90,
+		Capitulo = 8,
+	},
+	Dulce_CoronaDelPatron = {
+		Id = "Dulce_CoronaDelPatron",
+		Nombre = "Corona del Patrón",
+		Nivel = "Legendario",
+		ValorVenta = 120,
+		TiempoProduccion = 120,
+		Capitulo = 9,
+	},
 }
 
 return Dulces

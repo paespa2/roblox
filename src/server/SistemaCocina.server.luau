@@ -415,6 +415,47 @@ local function configurarDonaMelcocha()
 					mensaje = dialogoGenerico
 				end
 
+				-- Mecánica de Bendición de la Abuela: Buff de energía dulce (+15% velocidad y sigilo)
+				local char = player.Character
+				local hum = char and char:FindFirstChildOfClass("Humanoid")
+				local root = char and char:FindFirstChild("HumanoidRootPart")
+				local tieneBendicion = player:GetAttribute("BendicionAbuela")
+
+				if hum and not tieneBendicion then
+					player:SetAttribute("BendicionAbuela", true)
+					local speedOriginal = hum.WalkSpeed
+					hum.WalkSpeed = math.max(speedOriginal, 18)
+
+					-- Efecto visual dorado de bendición
+					if root then
+						local chispas = Instance.new("ParticleEmitter")
+						chispas.Name = "ParticulasBendicion"
+						chispas.Color = ColorSequence.new(Color3.fromRGB(255, 220, 80))
+						chispas.LightEmission = 0.8
+						chispas.Rate = 12
+						chispas.Lifetime = NumberRange.new(0.6, 1.2)
+						chispas.Speed = NumberRange.new(1, 3)
+						chispas.Size = NumberSequence.new(0.3, 0)
+						chispas.Parent = root
+						task.delay(120, function()
+							if chispas.Parent then
+								chispas:Destroy()
+							end
+						end)
+					end
+
+					task.delay(120, function()
+						if player.Parent then
+							player:SetAttribute("BendicionAbuela", nil)
+							if hum and hum.Parent then
+								hum.WalkSpeed = speedOriginal
+							end
+						end
+					end)
+
+					mensaje = mensaje .. "\n\n✨ ¡Doña Melcocha te dio su Bendición! (+15% de velocidad y sigilo durante 2 minutos)."
+				end
+
 				EventosRemotos.MostrarDialogoNPC:FireClient(player, {
 					Nombre = "Doña Melcocha",
 					Titulo = "La Abuela",

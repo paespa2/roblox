@@ -16,6 +16,15 @@ local MAPA_PUNTOS_TIENDAS = {
 	Punto_Venta_Tienda06 = "Tienda_TerminalRuta",
 }
 
+local DULCES_DEL_DIA: { [string]: string } = {
+	Tienda_ColegioRecreo = "Dulce_Bombon",
+	Tienda_EsquinaPaisa = "Dulce_Bombon",
+	Tienda_DonAbaco = "Dulce_Gomita",
+	Tienda_LaLadera = "Dulce_Arequipe",
+	Tienda_ParqueCentral = "Dulce_Panelita",
+	Tienda_TerminalRuta = "Dulce_Bocadillo",
+}
+
 local function crearEfectoVenta(puntoPart: BasePart, montoPesos: number)
 	-- Texto 3D flotante animado
 	local bbg = Instance.new("BillboardGui")
@@ -94,12 +103,19 @@ local function procesarVenta(player: Player, idTienda: string, puntoPart: BasePa
 		if cantidad > 0 then
 			local infoDulce = Datos.Dulces[idDulce]
 			local valorBase = if infoDulce then infoDulce.ValorVenta else 1
-			local ganancia = math.floor(cantidad * valorBase * tiendaInfo.Multiplicador)
+
+			-- Mecánica de Especialidad: Si es el Dulce del Día de la tienda, paga un 35% extra
+			local esDulceDelDia = (DULCES_DEL_DIA[idTienda] == idDulce)
+			local factorEspecial = if esDulceDelDia then 1.35 else 1.0
+			local ganancia = math.floor(cantidad * valorBase * tiendaInfo.Multiplicador * factorEspecial)
 
 			if GestorDatos.QuitarDulce(player, idDulce, cantidad) then
 				totalPesos += ganancia
 				totalDulces += cantidad
-				table.insert(detallesVenta, string.format("%dx %s", cantidad, idDulce))
+				local txtDetalle = if esDulceDelDia
+					then string.format("%dx %s (⭐ Favorito +35%%)", cantidad, idDulce)
+					else string.format("%dx %s", cantidad, idDulce)
+				table.insert(detallesVenta, txtDetalle)
 			end
 		end
 	end
@@ -114,6 +130,17 @@ local function procesarVenta(player: Player, idTienda: string, puntoPart: BasePa
 			if famaVal then
 				famaVal.Value = datosJugador.Fama
 			end
+		end
+
+		-- Reacción contextual del tendero si el jugador llega con calor policial
+		if (datosJugador.EstrellasBusqueda or 0) >= 2 then
+			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
+				Nombre = tiendaInfo.Nombre,
+				Titulo = "¡Ojo con la Policía!",
+				Icono = "🤫",
+				Mensaje = "¡Rápido patrón, descargue aquí y refúgiese en los callejones que la patrulla dental viene pitando!",
+				EsNotificacionEfimera = true,
+			})
 		end
 
 		-- Aumentar calor policial (Estrellas de búsqueda según reglas de Santiago)
