@@ -337,11 +337,18 @@ strokeCerrarBanner.Parent = botonCerrarBanner
 local timerCierreBanner: thread? = nil
 local tweenBannerActual: Tween? = nil
 
-local function cerrarBannerNotificacion()
+local function cancelarTimerBanner()
 	if timerCierreBanner then
-		task.cancel(timerCierreBanner)
+		local h = timerCierreBanner
 		timerCierreBanner = nil
+		if coroutine.running() ~= h and coroutine.status(h) ~= "dead" then
+			task.cancel(h)
+		end
 	end
+end
+
+local function cerrarBannerNotificacion()
+	cancelarTimerBanner()
 	if tweenBannerActual then
 		tweenBannerActual:Cancel()
 	end
@@ -359,10 +366,7 @@ end
 botonCerrarBanner.MouseButton1Click:Connect(cerrarBannerNotificacion)
 
 local function mostrarBanner(mensaje: string, colorStroke: Color3?, duracionSegundos: number?)
-	if timerCierreBanner then
-		task.cancel(timerCierreBanner)
-		timerCierreBanner = nil
-	end
+	cancelarTimerBanner()
 	if tweenBannerActual then
 		tweenBannerActual:Cancel()
 	end
@@ -385,6 +389,7 @@ local function mostrarBanner(mensaje: string, colorStroke: Color3?, duracionSegu
 	-- Notificación efímera: auto-cierre tras duración (por defecto 3.2s) o descarte inmediato con [X]
 	local tiempo = duracionSegundos or 3.2
 	timerCierreBanner = task.delay(tiempo, function()
+		timerCierreBanner = nil
 		cerrarBannerNotificacion()
 	end)
 end

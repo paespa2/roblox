@@ -174,11 +174,18 @@ strokeCerrarAlerta.Parent = botonCerrarAlerta
 local timerCierreAlerta: thread? = nil
 local tweenAlertaActual: Tween? = nil
 
-local function cerrarBannerAlerta()
+local function cancelarTimerAlerta()
 	if timerCierreAlerta then
-		task.cancel(timerCierreAlerta)
+		local h = timerCierreAlerta
 		timerCierreAlerta = nil
+		if coroutine.running() ~= h and coroutine.status(h) ~= "dead" then
+			task.cancel(h)
+		end
 	end
+end
+
+local function cerrarBannerAlerta()
+	cancelarTimerAlerta()
 	if tweenAlertaActual then
 		tweenAlertaActual:Cancel()
 	end
@@ -207,10 +214,7 @@ local function reproducirSonido(idSonido: string)
 end
 
 local function mostrarAlerta(mensaje: string, esGrave: boolean)
-	if timerCierreAlerta then
-		task.cancel(timerCierreAlerta)
-		timerCierreAlerta = nil
-	end
+	cancelarTimerAlerta()
 	if tweenAlertaActual then
 		tweenAlertaActual:Cancel()
 	end
@@ -238,6 +242,7 @@ local function mostrarAlerta(mensaje: string, esGrave: boolean)
 	-- Notificación efímera: desaparece automáticamente a los 3.0s o al pulsar [X]
 	local tiempoAutoCierre = if esGrave then 3.2 else 2.5
 	timerCierreAlerta = task.delay(tiempoAutoCierre, function()
+		timerCierreAlerta = nil
 		cerrarBannerAlerta()
 	end)
 end

@@ -1,7 +1,6 @@
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local GestorDatos = require(script.Parent.GestorDatos)
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
@@ -1656,7 +1655,7 @@ local function crearSenalTransitoVertical(
 	corner.Parent = marco
 
 	local lblIcono = Instance.new("TextLabel")
-	lblIcono.Size = UDim2.new(1, 0, 0.5, 0)
+	lblIcono.Size = UDim2.fromScale(1, 0.5)
 	lblIcono.BackgroundTransparency = 1
 	lblIcono.Font = Enum.Font.FredokaOne
 	lblIcono.Text = info.Icono

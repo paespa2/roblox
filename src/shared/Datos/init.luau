@@ -9,6 +9,7 @@ local Datos = {
 	Persecucion = require(script.Persecucion),
 	Rutina = require(script.Rutina),
 	Capitulos = require(script.Capitulos),
+	Zombis = require(script.Zombis),
 }
 
 return Datos

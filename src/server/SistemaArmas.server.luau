@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Debris = game:GetService("Debris")
 
 local GestorDatos = require(script.Parent.GestorDatos)
+local ZombieService = require(script.Parent.Horda.ZombieService)
 local Datos = require(ReplicatedStorage.Shared.Datos)
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 
@@ -223,10 +224,16 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 	Debris:AddItem(proyectil, tiempoVida + 0.3)
 
 	-- Detección de impacto
+	local yaImpacto = false
 	proyectil.Touched:Connect(function(hit)
-		if hit:IsDescendantOf(character) then
+		if
+			yaImpacto
+			or hit:IsDescendantOf(character)
+			or hit.Name:sub(1, 14) == "ProyectilDulce"
+		then
 			return
 		end
+		yaImpacto = true
 
 		proyectil.AssemblyLinearVelocity = Vector3.zero
 		proyectil.Transparency = 1
@@ -351,6 +358,47 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 								infoArma.Nombre
 							)
 						)
+					end
+				end
+			end
+		end
+
+		-- Daño contra Zombis de la Horda (impacto directo y explosivo en área)
+		local danioZombi = (
+			Datos.Zombis
+			and Datos.Zombis.DanioPorArma
+			and Datos.Zombis.DanioPorArma[idArma]
+		) or 35
+		local zombiDirecto = ZombieService.EsZombi(hit)
+		local esExplosiva = string.find(infoArma.Tipo or "", "Explosivo") ~= nil
+			or infoArma.Tipo == "VehicularPesado"
+
+		if esExplosiva then
+			local radioExplosion = math.clamp(infoArma.AlcanceStuds or 16, 10, 24)
+			for modeloZombi, _ in pairs(ZombieService.ObtenerZombisActivos()) do
+				if modeloZombi.PrimaryPart then
+					local dist = (modeloZombi.PrimaryPart.Position - proyectil.Position).Magnitude
+					if dist <= radioExplosion then
+						local factor = math.clamp(1 - (dist / (radioExplosion * 1.4)), 0.45, 1.0)
+						ZombieService.AplicarDanio(
+							modeloZombi,
+							math.round(danioZombi * factor),
+							player,
+							idArma
+						)
+					end
+				end
+			end
+		elseif zombiDirecto then
+			ZombieService.AplicarDanio(zombiDirecto, danioZombi, player, idArma)
+		else
+			-- Asistencia de impacto cercano (3.8 studs) para hitbox amigable con proyectiles
+			for modeloZombi, _ in pairs(ZombieService.ObtenerZombisActivos()) do
+				if modeloZombi.PrimaryPart then
+					local dist = (modeloZombi.PrimaryPart.Position - proyectil.Position).Magnitude
+					if dist <= 3.8 then
+						ZombieService.AplicarDanio(modeloZombi, danioZombi, player, idArma)
+						break
 					end
 				end
 			end

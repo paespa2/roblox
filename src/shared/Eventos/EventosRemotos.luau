@@ -93,10 +93,26 @@ EventosRemotos.ObjetivoMisionActualizado = obtenerOCrearEvento("ObjetivoMisionAc
 EventosRemotos.RedadaIniciada = obtenerOCrearEvento("RedadaIniciada")
 EventosRemotos.RedadaTerminada = obtenerOCrearEvento("RedadaTerminada")
 EventosRemotos.SolicitarViajeTransporte = obtenerOCrearFuncion("SolicitarViajeTransporte")
+EventosRemotos.DanteInteraccion = obtenerOCrearEvento("DanteInteraccion")
 EventosRemotos.SolicitarIniciarHorda = obtenerOCrearFuncion("SolicitarIniciarHorda")
 EventosRemotos.EstadoHordaActualizado = obtenerOCrearEvento("EstadoHordaActualizado")
+EventosRemotos.ZombieEventoVisual = obtenerOCrearEvento("ZombieEventoVisual")
 EventosRemotos.HordaActualizada = obtenerOCrearEvento("HordaActualizada")
 EventosRemotos.HordaOleadaIniciada = obtenerOCrearEvento("HordaOleadaIniciada")
 EventosRemotos.HordaFinalizada = obtenerOCrearEvento("HordaFinalizada")
+
+-- Metatabla de seguridad: NUNCA retorna nil al indexar un evento o función
+setmetatable(EventosRemotos, {
+	__index = function(tbl, key: string)
+		local obj
+		if string.sub(key, 1, 9) == "Solicitar" or string.sub(key, 1, 7) == "Obtener" then
+			obj = obtenerOCrearFuncion(key)
+		else
+			obj = obtenerOCrearEvento(key)
+		end
+		rawset(tbl, key, obj)
+		return obj
+	end,
+})
 
 return EventosRemotos
