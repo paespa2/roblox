@@ -1555,6 +1555,315 @@ local function construirMonumentoAltarPatron(parent: Instance)
 end
 
 -- ====================================================================
+-- 5B. SEÑALIZACIÓN VIAL URBANA, CRUCES PEATONALES Y SEGURIDAD VIAL
+-- ====================================================================
+local function crearPasoDeCebra(posCentro: Vector3, rotY: number, franjas: number, largoFranja: number, parent: Instance)
+	local cruceModelo = Instance.new("Model")
+	cruceModelo.Name = "CrucePeatonal"
+
+	local espacioEntreFranjas = 2.2
+	local anchoFranja = 1.2
+	local mitadTotal = ((franjas - 1) * espacioEntreFranjas) / 2
+	local cfBase = CFrame.new(posCentro) * CFrame.Angles(0, math.rad(rotY), 0)
+
+	for i = 0, franjas - 1 do
+		local offsetLateral = -mitadTotal + (i * espacioEntreFranjas)
+		local franja = Instance.new("Part")
+		franja.Name = "FranjaCebra_" .. i
+		franja.Size = Vector3.new(anchoFranja, 0.08, largoFranja)
+		franja.CFrame = cfBase * CFrame.new(offsetLateral, 0.04, 0)
+		franja.Color = Color3.fromRGB(248, 248, 252)
+		franja.Material = Enum.Material.Neon
+		franja.Anchored = true
+		franja.CanCollide = false
+		franja.Parent = cruceModelo
+	end
+
+	-- Rebajes o rampas de acera en los extremos del cruce
+	for _, lado in ipairs({ -1, 1 }) do
+		local rampa = Instance.new("Part")
+		rampa.Name = "RampaAcera"
+		rampa.Size = Vector3.new(franjas * espacioEntreFranjas + 1.0, 0.25, 2.0)
+		rampa.CFrame = cfBase * CFrame.new(0, 0.12, lado * (largoFranja / 2 + 1.0))
+		rampa.Color = Color3.fromRGB(175, 178, 185)
+		rampa.Material = Enum.Material.Concrete
+		rampa.Anchored = true
+		rampa.CanCollide = true
+		rampa.Parent = cruceModelo
+	end
+
+	cruceModelo.Parent = parent
+	return cruceModelo
+end
+
+local function crearSenalTransitoVertical(
+	info: {
+		Tipo: string, -- "PARE", "ESCUELA", "VELOCIDAD", "RETEN", "PEATONAL", "HOSPITAL"
+		Texto: string,
+		Icono: string,
+		Posicion: Vector3,
+		RotacionY: number,
+		ColorFondo: Color3,
+		ColorBorde: Color3,
+	},
+	parent: Instance
+)
+	local modelo = Instance.new("Model")
+	modelo.Name = "SenalTransito_" .. info.Tipo
+
+	local poste = Instance.new("Part")
+	poste.Name = "Poste"
+	poste.Size = Vector3.new(0.35, 7.5, 0.35)
+	poste.Position = info.Posicion + Vector3.new(0, 3.75, 0)
+	poste.Color = Color3.fromRGB(90, 95, 105)
+	poste.Material = Enum.Material.Metal
+	poste.Anchored = true
+	poste.CanCollide = true
+	poste.Parent = modelo
+	modelo.PrimaryPart = poste
+
+	local placa = Instance.new("Part")
+	placa.Name = "Placa"
+	placa.Size = Vector3.new(3.0, 3.0, 0.2)
+	placa.CFrame = CFrame.new(info.Posicion + Vector3.new(0, 6.2, 0)) * CFrame.Angles(0, math.rad(info.RotacionY), 0)
+	placa.Color = info.ColorFondo
+	placa.Material = Enum.Material.SmoothPlastic
+	placa.Anchored = true
+	placa.CanCollide = false
+	placa.Parent = modelo
+
+	local bbg = Instance.new("BillboardGui")
+	bbg.Name = "RotuloSenal"
+	bbg.Size = UDim2.fromOffset(180, 75)
+	bbg.StudsOffset = Vector3.new(0, 0, 0.15)
+	bbg.AlwaysOnTop = false
+	bbg.MaxDistance = 65
+	bbg.Parent = placa
+
+	local marco = Instance.new("Frame")
+	marco.Size = UDim2.fromScale(1, 1)
+	marco.BackgroundColor3 = info.ColorFondo
+	marco.BorderSizePixel = 0
+	marco.Parent = bbg
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = info.ColorBorde
+	stroke.Thickness = 2.5
+	stroke.Parent = marco
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, info.Tipo == "PARE" and 14 or 8)
+	corner.Parent = marco
+
+	local lblIcono = Instance.new("TextLabel")
+	lblIcono.Size = UDim2.new(1, 0, 0.5, 0)
+	lblIcono.BackgroundTransparency = 1
+	lblIcono.Font = Enum.Font.FredokaOne
+	lblIcono.Text = info.Icono
+	lblIcono.TextSize = 22
+	lblIcono.TextColor3 = Color3.fromRGB(255, 255, 255)
+	lblIcono.Parent = marco
+
+	local lblTexto = Instance.new("TextLabel")
+	lblTexto.Size = UDim2.new(1, -8, 0.5, 0)
+	lblTexto.Position = UDim2.fromScale(0, 0.5)
+	lblTexto.BackgroundTransparency = 1
+	lblTexto.Font = Enum.Font.FredokaOne
+	lblTexto.Text = info.Texto
+	lblTexto.TextSize = 11
+	lblTexto.TextColor3 = Color3.fromRGB(255, 255, 255)
+	lblTexto.TextWrapped = true
+	lblTexto.Parent = marco
+
+	modelo.Parent = parent
+	return modelo
+end
+
+local function crearVallaSeguridadPeatonal(posBase: Vector3, rotY: number, modulos: number, parent: Instance)
+	local vallaMod = Instance.new("Model")
+	vallaMod.Name = "VallaPeatonalEscolar"
+
+	local cfBase = CFrame.new(posBase) * CFrame.Angles(0, math.rad(rotY), 0)
+
+	for m = 0, modulos - 1 do
+		local offsetZ = (m - (modulos - 1) / 2) * 5.0
+
+		-- Postes verticales amarillos
+		for _, px in ipairs({ -2.4, 2.4 }) do
+			local poste = Instance.new("Part")
+			poste.Name = "PosteValla"
+			poste.Size = Vector3.new(0.25, 3.2, 0.25)
+			poste.CFrame = cfBase * CFrame.new(0, 1.6, offsetZ + px)
+			poste.Color = Color3.fromRGB(240, 195, 25) -- Amarillo de seguridad vial
+			poste.Material = Enum.Material.Metal
+			poste.Anchored = true
+			poste.CanCollide = true
+			poste.Parent = vallaMod
+		end
+
+		-- Pasamanos horizontal superior e inferior
+		local barraSup = Instance.new("Part")
+		barraSup.Name = "BarraSuperior"
+		barraSup.Size = Vector3.new(0.2, 0.2, 4.8)
+		barraSup.CFrame = cfBase * CFrame.new(0, 3.1, offsetZ)
+		barraSup.Color = Color3.fromRGB(240, 195, 25)
+		barraSup.Material = Enum.Material.Metal
+		barraSup.Anchored = true
+		barraSup.CanCollide = true
+		barraSup.Parent = vallaMod
+
+		local barraInf = Instance.new("Part")
+		barraInf.Name = "BarraInferior"
+		barraInf.Size = Vector3.new(0.2, 0.2, 4.8)
+		barraInf.CFrame = cfBase * CFrame.new(0, 1.2, offsetZ)
+		barraInf.Color = Color3.fromRGB(240, 195, 25)
+		barraInf.Material = Enum.Material.Metal
+		barraInf.Anchored = true
+		barraInf.CanCollide = true
+		barraInf.Parent = vallaMod
+	end
+
+	vallaMod.Parent = parent
+	return vallaMod
+end
+
+local function construirSenalizacionVialYCrucesPeatonales(parent: Instance)
+	local carpetaSenales = Instance.new("Folder")
+	carpetaSenales.Name = "SenalizacionVialYCruces"
+	carpetaSenales.Parent = parent
+
+	-- ================================================================
+	-- 1. CRUCES PEATONALES DE CEBRA REFLECTIVOS
+	-- ================================================================
+	-- Cruce 1: Zona Escolar / Salida del Colegio República del Dulce
+	crearPasoDeCebra(Vector3.new(-75, 59.95, 0), 0, 7, 36.0, carpetaSenales)
+
+	-- Cruce 2: Frente a la Cocina de la Abuela y Plazoleta Inicial
+	crearPasoDeCebra(Vector3.new(-25, 59.95, 0), 0, 6, 36.0, carpetaSenales)
+
+	-- Cruce 3: Cruce Comercial entre Edificios y Plaza Central
+	crearPasoDeCebra(Vector3.new(35, 59.95, 0), 0, 6, 36.0, carpetaSenales)
+
+	-- Cruce 4: Esquina de Tiendas / Don Chucho (Oriente)
+	crearPasoDeCebra(Vector3.new(90, 59.95, 0), 0, 6, 36.0, carpetaSenales)
+
+	-- Cruce 5: Bocacalle del Cuadro Occidente (Hacia Tienda Don Ábaco en X = -100)
+	crearPasoDeCebra(Vector3.new(-100, 59.95, 45), 90, 5, 24.0, carpetaSenales)
+
+	-- Cruce 6: Bocacalle del Cuadro Oriente (Hacia Tiendas Altas en X = 100)
+	crearPasoDeCebra(Vector3.new(100, 59.95, 45), 90, 5, 24.0, carpetaSenales)
+
+	-- Cruce 7: Antes del Retén 1 en el Zigzag de la Ladera
+	crearPasoDeCebra(Vector3.new(0, 68.95, 110), 0, 5, 22.0, carpetaSenales)
+
+	-- Cruce 8: Hospital San Rafael (Paso de Urgencias y Peatones de Salud)
+	crearPasoDeCebra(Vector3.new(15, 83.15, 215), 0, 5, 20.0, carpetaSenales)
+
+	-- Cruce 9: Antes del Retén 2 en la Cima / Mirador del Valle
+	crearPasoDeCebra(Vector3.new(0, 96.45, 350), 0, 5, 22.0, carpetaSenales)
+
+	-- ================================================================
+	-- 2. SEÑALES VERTICALES DE TRÁNSITO OFICIALES
+	-- ================================================================
+	-- Señal de Zona Escolar y Cruce Peatonal frente al colegio
+	crearSenalTransitoVertical({
+		Tipo = "ESCUELA",
+		Texto = "ZONA ESCOLAR\nCRUCE PEATONAL",
+		Icono = "🚸",
+		Posicion = Vector3.new(-85, 60.0, -21.0),
+		RotacionY = 0,
+		ColorFondo = Color3.fromRGB(235, 185, 20),
+		ColorBorde = Color3.fromRGB(20, 20, 25),
+	}, carpetaSenales)
+
+	-- Señal de Pare en la salida del portón escolar
+	crearSenalTransitoVertical({
+		Tipo = "PARE",
+		Texto = "PARE / STOP",
+		Icono = "🛑",
+		Posicion = Vector3.new(-65, 60.0, -21.0),
+		RotacionY = 180,
+		ColorFondo = Color3.fromRGB(215, 30, 30),
+		ColorBorde = Color3.fromRGB(255, 255, 255),
+	}, carpetaSenales)
+
+	-- Señal de Velocidad Máxima 30 km/h en la avenida principal
+	crearSenalTransitoVertical({
+		Tipo = "VELOCIDAD",
+		Texto = "VELOCIDAD MÁXIMA\n30 KM/H",
+		Icono = "⭕",
+		Posicion = Vector3.new(-40, 60.0, -21.0),
+		RotacionY = 0,
+		ColorFondo = Color3.fromRGB(245, 245, 245),
+		ColorBorde = Color3.fromRGB(210, 30, 30),
+	}, carpetaSenales)
+
+	-- Señal de Cruce Peatonal frente a los edificios de apartamentos
+	crearSenalTransitoVertical({
+		Tipo = "PEATONAL",
+		Texto = "PASO PEATONAL\nCEDA EL PASO",
+		Icono = "🚶‍♂️",
+		Posicion = Vector3.new(28, 60.0, 21.0),
+		RotacionY = 180,
+		ColorFondo = Color3.fromRGB(30, 95, 215),
+		ColorBorde = Color3.fromRGB(255, 255, 255),
+	}, carpetaSenales)
+
+	-- Señal de Pare en el cruce de tiendas Don Chucho
+	crearSenalTransitoVertical({
+		Tipo = "PARE",
+		Texto = "PARE / STOP",
+		Icono = "🛑",
+		Posicion = Vector3.new(98, 60.0, -21.0),
+		RotacionY = 0,
+		ColorFondo = Color3.fromRGB(215, 30, 30),
+		ColorBorde = Color3.fromRGB(255, 255, 255),
+	}, carpetaSenales)
+
+	-- Señal de Advertencia: Retén Policial Dental Adelante (Inicio Zigzag)
+	crearSenalTransitoVertical({
+		Tipo = "RETEN",
+		Texto = "RETÉN POLICIAL\nCONTROL DENTAL 100m",
+		Icono = "🚨",
+		Posicion = Vector3.new(-8, 68.0, 85.0),
+		RotacionY = 0,
+		ColorFondo = Color3.fromRGB(225, 120, 20),
+		ColorBorde = Color3.fromRGB(20, 20, 25),
+	}, carpetaSenales)
+
+	-- Señal de Zona Hospitalaria en el acceso a Urgencias San Rafael
+	crearSenalTransitoVertical({
+		Tipo = "HOSPITAL",
+		Texto = "HOSPITAL SAN RAFAEL\nSILENCIO • URGENCIAS",
+		Icono = "🏥",
+		Posicion = Vector3.new(18, 83.0, 195.0),
+		RotacionY = 0,
+		ColorFondo = Color3.fromRGB(240, 245, 255),
+		ColorBorde = Color3.fromRGB(35, 130, 230),
+	}, carpetaSenales)
+
+	-- Señal de Advertencia: Retén Policial Superior en el Mirador
+	crearSenalTransitoVertical({
+		Tipo = "RETEN",
+		Texto = "RETÉN POLICIAL\nCONTROL DENTAL 50m",
+		Icono = "🚨",
+		Posicion = Vector3.new(-8, 96.0, 325.0),
+		RotacionY = 0,
+		ColorFondo = Color3.fromRGB(225, 120, 20),
+		ColorBorde = Color3.fromRGB(20, 20, 25),
+	}, carpetaSenales)
+
+	-- ================================================================
+	-- 3. VALLAS METÁLICAS DE PROTECCIÓN ESCOLAR EN ACERA
+	-- ================================================================
+	-- Valla tramo oeste (entre X = -105 y X = -80)
+	crearVallaSeguridadPeatonal(Vector3.new(-92, 60.0, -20.5), 90, 4, carpetaSenales)
+
+	-- Valla tramo este (entre X = -70 y X = -45)
+	crearVallaSeguridadPeatonal(Vector3.new(-58, 60.0, -20.5), 90, 4, carpetaSenales)
+end
+
+-- ====================================================================
 -- INICIALIZACIÓN Y POBLACIÓN DEL MUNDO
 -- ====================================================================
 local function inicializarDecoracionYAmbiente()
@@ -1647,7 +1956,10 @@ local function inicializarDecoracionYAmbiente()
 	construirPistaYAvionetaDulcera(landmarksFolder)
 	construirMonumentoAltarPatron(parqueFolder)
 
-	-- 6. Franjas Amarillas Reflectivas Brillantes de Carretera (Guías visuales nocturnas)
+	-- 6. Señalización Vial Urbana Oficial y Cruces Peatonales (Cebras, Señales y Vallas)
+	construirSenalizacionVialYCrucesPeatonales(decoracion)
+
+	-- 7. Franjas Amarillas Reflectivas Brillantes de Carretera (Guías visuales nocturnas)
 	task.spawn(function()
 		task.wait(1.0)
 		for _, desc in ipairs(mapa:GetDescendants()) do

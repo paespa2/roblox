@@ -93,5 +93,10 @@ EventosRemotos.ObjetivoMisionActualizado = obtenerOCrearEvento("ObjetivoMisionAc
 EventosRemotos.RedadaIniciada = obtenerOCrearEvento("RedadaIniciada")
 EventosRemotos.RedadaTerminada = obtenerOCrearEvento("RedadaTerminada")
 EventosRemotos.SolicitarViajeTransporte = obtenerOCrearFuncion("SolicitarViajeTransporte")
+EventosRemotos.SolicitarIniciarHorda = obtenerOCrearFuncion("SolicitarIniciarHorda")
+EventosRemotos.EstadoHordaActualizado = obtenerOCrearEvento("EstadoHordaActualizado")
+EventosRemotos.HordaActualizada = obtenerOCrearEvento("HordaActualizada")
+EventosRemotos.HordaOleadaIniciada = obtenerOCrearEvento("HordaOleadaIniciada")
+EventosRemotos.HordaFinalizada = obtenerOCrearEvento("HordaFinalizada")
 
 return EventosRemotos

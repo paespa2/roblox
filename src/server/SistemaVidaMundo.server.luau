@@ -809,29 +809,40 @@ local function crearChivaRumbera(parentFolder: Instance)
 	corner.CornerRadius = UDim.new(0, 8)
 	corner.Parent = lbl
 
-	-- Recorrido en bucle por los carriles de la calzada
+	-- Recorrido en bucle completo por la red vial: Autopista, Cuadro de Calles, Zigzag y Retenes
 	task.spawn(function()
 		local paradas = {
-			-- Subida por carril derecho este (X = 4.2)
-			Vector3.new(4.2, 60.5, -20),
-			Vector3.new(4.2, 60.5, 30),
-			Vector3.new(4.2, 70.0, 95),
-			Vector3.new(4.2, 77.0, 160),
-			Vector3.new(4.2, 83.0, 230),
-			Vector3.new(4.2, 90.0, 310),
-			Vector3.new(4.2, 96.5, 375),
-			-- Retorno y giro en terraza del Mirador
-			Vector3.new(0, 96.5, 385),
-			Vector3.new(-4.2, 96.5, 375),
-			-- Bajada por carril derecho oeste (X = -4.2)
-			Vector3.new(-4.2, 90.0, 310),
-			Vector3.new(-4.2, 83.0, 230),
-			Vector3.new(-4.2, 77.0, 160),
-			Vector3.new(-4.2, 70.0, 95),
-			Vector3.new(-4.2, 60.5, 30),
-			Vector3.new(-4.2, 60.5, -20),
-			-- Retorno y giro inferior (frente a la curva del colegio)
-			Vector3.new(0, 60.5, -30),
+			-- 1. Autopista Principal (sentido Este, carril sur frente al colegio y cocina)
+			Vector3.new(-120.0, 60.5, -7.0),
+			Vector3.new(-75.0, 60.5, -7.0),  -- Cruce escolar
+			Vector3.new(-25.0, 60.5, -7.0),  -- Cruce cocina y plazoleta
+			Vector3.new(35.0, 60.5, -7.0),   -- Frente a edificios de apartamentos
+			Vector3.new(85.0, 60.5, -7.0),   -- Esquina comercial de Don Chucho
+			-- 2. Conexión hacia el Cuadro Oriente y el inicio del Zigzag
+			Vector3.new(85.0, 60.5, 25.0),
+			Vector3.new(45.0, 60.5, 45.0),
+			Vector3.new(4.2, 60.5, 65.0),    -- Entrada al Zigzag de montaña
+			-- 3. Ascenso por el Zigzag de la Ladera pasando por los Retenes
+			Vector3.new(4.2, 68.8, 105.0),   -- Aproximación a Retén 1
+			Vector3.new(4.2, 69.2, 125.0),   -- Pasando por el Retén Policial 1 (isletas)
+			Vector3.new(8.0, 75.0, 165.0),   -- Curva panorámica del zigzag
+			Vector3.new(16.0, 83.2, 215.0),  -- Frente al Hospital San Rafael
+			Vector3.new(10.0, 88.0, 270.0),  -- Curva media de ladera
+			Vector3.new(4.2, 92.0, 320.0),   -- Subiendo hacia el Retén 2
+			Vector3.new(4.2, 96.4, 355.0),   -- Pasando por el Retén Policial 2 (isletas superiores)
+			Vector3.new(14.0, 96.5, 380.0),  -- Terraza del Mirador del Valle
+			Vector3.new(-45.0, 98.0, 395.0), -- Carretera alta de montaña
+			Vector3.new(-75.0, 100.0, 395.0),-- Portón de Finca La Melcocha
+			-- 4. Descenso por el Cuadro Occidente (Sector de Don Ábaco)
+			Vector3.new(-95.0, 88.0, 340.0), -- Curva alta del cuadro occidental
+			Vector3.new(-98.0, 78.0, 260.0), -- Tramo medio de la calle de Don Ábaco
+			Vector3.new(-98.0, 68.0, 170.0), -- Frente a la Tienda de Don Ábaco
+			Vector3.new(-98.0, 60.5, 75.0),  -- Esquina del cuadro occidental
+			Vector3.new(-98.0, 60.5, 25.0),  -- Bocacalle hacia la autopista
+			-- 5. Reincorporación a la Autopista Principal en sentido Oeste (carril norte frente a edificios)
+			Vector3.new(-75.0, 60.5, 7.0),   -- Frente al paso de cebra escolar
+			Vector3.new(-120.0, 60.5, 7.0),  -- Glorieta de retorno del colegio
+			Vector3.new(-140.0, 60.5, 0.0),  -- Giro de retorno
 		}
 
 		local idx = 1
@@ -842,7 +853,7 @@ local function crearChivaRumbera(parentFolder: Instance)
 			local dist = dir.Magnitude
 
 			if dist > 1.5 then
-				local duracion = math.clamp(dist / 14, 2.0, 8.5)
+				local duracion = math.clamp(dist / 14, 1.8, 8.0)
 				local cframeObjetivo = CFrame.lookAt(destino, destino + dir.Unit)
 
 				local tweenChasis = TweenService:Create(
@@ -853,8 +864,8 @@ local function crearChivaRumbera(parentFolder: Instance)
 				tweenChasis:Play()
 				task.wait(duracion)
 
-				-- Tocar bocina en puntos clave del trayecto
-				if idx == 1 or idx == 4 or idx == 8 or idx == 12 then
+				-- Tocar bocina rumbera en cruces y retenes
+				if idx == 2 or idx == 9 or idx == 12 or idx == 15 or idx == 21 then
 					local bocina = Instance.new("Sound")
 					bocina.SoundId = "rbxasset://sounds/electronicpingshort.wav"
 					bocina.Volume = 0.8
@@ -864,6 +875,243 @@ local function crearChivaRumbera(parentFolder: Instance)
 						bocina:Destroy()
 					end)
 				end
+			else
+				task.wait(1.0)
+			end
+		end
+	end)
+end
+
+-- ====================================================================
+-- 4B. PATRULLA MÓVIL DE LA POLICÍA DENTAL (VIGILANCIA EN ZIGZAG Y RETENES)
+-- ====================================================================
+local function crearPatrullaPolicialMovil(parentFolder: Instance)
+	local patrulla = Instance.new("Model")
+	patrulla.Name = "Vehiculo_PatrullaPolicial"
+	patrulla.Parent = parentFolder
+
+	local posInicial = Vector3.new(4.2, 69.2, 125.0)
+
+	local chasis = Instance.new("Part")
+	chasis.Name = "Chasis"
+	chasis.Size = Vector3.new(4.2, 1.6, 8.5)
+	chasis.Position = posInicial
+	chasis.Color = Color3.fromRGB(245, 245, 250)
+	chasis.Material = Enum.Material.Metal
+	chasis.Anchored = true
+	chasis.CanCollide = true
+	chasis.Parent = patrulla
+	patrulla.PrimaryPart = chasis
+
+	local franjaAzul = Instance.new("Part")
+	franjaAzul.Name = "FranjaPolicial"
+	franjaAzul.Size = Vector3.new(4.3, 0.5, 8.5)
+	franjaAzul.Position = chasis.Position + Vector3.new(0, 0.2, 0)
+	franjaAzul.Color = Color3.fromRGB(25, 60, 150)
+	franjaAzul.Material = Enum.Material.SmoothPlastic
+	franjaAzul.Anchored = false
+	franjaAzul.Massless = true
+	franjaAzul.CanCollide = false
+	franjaAzul.Parent = patrulla
+	soldar(chasis, franjaAzul)
+
+	-- Balizas policiales luminosas en el techo (Azul y Roja destellantes)
+	local balizaAzul = Instance.new("Part")
+	balizaAzul.Name = "BalizaAzul"
+	balizaAzul.Size = Vector3.new(0.8, 0.4, 0.8)
+	balizaAzul.Position = chasis.Position + Vector3.new(-0.8, 1.8, 0)
+	balizaAzul.Color = Color3.fromRGB(30, 90, 255)
+	balizaAzul.Material = Enum.Material.Neon
+	balizaAzul.Anchored = false
+	balizaAzul.Massless = true
+	balizaAzul.CanCollide = false
+	balizaAzul.Parent = patrulla
+	soldar(chasis, balizaAzul)
+
+	local balizaRoja = Instance.new("Part")
+	balizaRoja.Name = "BalizaRoja"
+	balizaRoja.Size = Vector3.new(0.8, 0.4, 0.8)
+	balizaRoja.Position = chasis.Position + Vector3.new(0.8, 1.8, 0)
+	balizaRoja.Color = Color3.fromRGB(255, 30, 30)
+	balizaRoja.Material = Enum.Material.Neon
+	balizaRoja.Anchored = false
+	balizaRoja.Massless = true
+	balizaRoja.CanCollide = false
+	balizaRoja.Parent = patrulla
+	soldar(chasis, balizaRoja)
+
+	local luzAzul = Instance.new("PointLight")
+	luzAzul.Color = Color3.fromRGB(40, 100, 255)
+	luzAzul.Brightness = 2.5
+	luzAzul.Range = 25
+	luzAzul.Parent = balizaAzul
+
+	local luzRoja = Instance.new("PointLight")
+	luzRoja.Color = Color3.fromRGB(255, 40, 40)
+	luzRoja.Brightness = 2.5
+	luzRoja.Range = 25
+	luzRoja.Parent = balizaRoja
+
+	local bbg = Instance.new("BillboardGui")
+	bbg.Name = "RotuloPatrulla"
+	bbg.Size = UDim2.fromOffset(200, 36)
+	bbg.StudsOffset = Vector3.new(0, 3.2, 0)
+	bbg.AlwaysOnTop = true
+	bbg.MaxDistance = 50
+	bbg.Parent = chasis
+
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.fromScale(1, 1)
+	lbl.BackgroundColor3 = Color3.fromRGB(20, 30, 50)
+	lbl.BackgroundTransparency = 0.2
+	lbl.Font = Enum.Font.FredokaOne
+	lbl.Text = "🚨 POLICÍA DENTAL • PATRULLA VIAL"
+	lbl.TextColor3 = Color3.fromRGB(255, 230, 100)
+	lbl.TextSize = 11
+	lbl.Parent = bbg
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = lbl
+
+	-- Efecto de sirena destellante alternada
+	task.spawn(function()
+		while patrulla.Parent do
+			balizaAzul.Transparency = 0
+			balizaRoja.Transparency = 0.8
+			luzAzul.Enabled = true
+			luzRoja.Enabled = false
+			task.wait(0.3)
+			balizaAzul.Transparency = 0.8
+			balizaRoja.Transparency = 0
+			luzAzul.Enabled = false
+			luzRoja.Enabled = true
+			task.wait(0.3)
+		end
+	end)
+
+	-- Recorrido de patrullaje continuo en el Zigzag de los Retenes y el Hospital
+	task.spawn(function()
+		local rutaPatrulla = {
+			Vector3.new(4.2, 69.2, 125.0),   -- Retén 1
+			Vector3.new(8.0, 75.0, 165.0),   -- Subida zigzag
+			Vector3.new(16.0, 83.2, 215.0),  -- Hospital San Rafael
+			Vector3.new(10.0, 88.0, 270.0),  -- Curva panorámica
+			Vector3.new(4.2, 96.4, 355.0),   -- Retén 2 (Mirador)
+			Vector3.new(14.0, 96.5, 380.0),  -- Terraza mirador
+			Vector3.new(4.2, 96.4, 355.0),   -- Retorno Retén 2
+			Vector3.new(-4.2, 88.0, 270.0),  -- Bajada zigzag
+			Vector3.new(-4.2, 83.2, 215.0),  -- Frente al hospital
+			Vector3.new(-4.2, 75.0, 165.0),  -- Curva baja
+			Vector3.new(-4.2, 69.2, 125.0),  -- Retén 1
+		}
+
+		local idx = 1
+		while patrulla.Parent do
+			idx = (idx % #rutaPatrulla) + 1
+			local destino = rutaPatrulla[idx]
+			local dir = destino - chasis.Position
+			local dist = dir.Magnitude
+
+			if dist > 1.5 then
+				local duracion = math.clamp(dist / 16, 1.5, 6.0)
+				local cframeObjetivo = CFrame.lookAt(destino, destino + dir.Unit)
+
+				local tween = TweenService:Create(
+					chasis,
+					TweenInfo.new(duracion, Enum.EasingStyle.Linear),
+					{ CFrame = cframeObjetivo }
+				)
+				tween:Play()
+				task.wait(duracion)
+			else
+				task.wait(1.0)
+			end
+		end
+	end)
+end
+
+-- ====================================================================
+-- 4C. CAMPERO WILLYS DE TRÁFICO AMBIENTE (RECORRE AUTOPISTA Y CUADRO)
+-- ====================================================================
+local function crearCamperoTraficoAmbiente(parentFolder: Instance)
+	local campero = Instance.new("Model")
+	campero.Name = "Vehiculo_CamperoTrafico"
+	campero.Parent = parentFolder
+
+	local posInicial = Vector3.new(-120.0, 60.5, 7.0)
+
+	local chasis = Instance.new("Part")
+	chasis.Name = "Chasis"
+	chasis.Size = Vector3.new(4.0, 1.8, 8.0)
+	chasis.Position = posInicial
+	chasis.Color = Color3.fromRGB(180, 50, 45) -- Rojo cafetero
+	chasis.Material = Enum.Material.Metal
+	chasis.Anchored = true
+	chasis.CanCollide = true
+	chasis.Parent = campero
+	campero.PrimaryPart = chasis
+
+	local capota = Instance.new("Part")
+	capota.Name = "CapotaLona"
+	capota.Size = Vector3.new(3.8, 1.2, 4.5)
+	capota.Position = chasis.Position + Vector3.new(0, 1.5, 1.2)
+	capota.Color = Color3.fromRGB(225, 215, 190) -- Lona beige
+	capota.Material = Enum.Material.Fabric
+	capota.Anchored = false
+	capota.Massless = true
+	capota.CanCollide = false
+	capota.Parent = campero
+	soldar(chasis, capota)
+
+	local faro = Instance.new("Part")
+	faro.Name = "Faro"
+	faro.Size = Vector3.new(0.6, 0.6, 0.2)
+	faro.Position = chasis.Position + Vector3.new(-1.4, 0.2, -4.1)
+	faro.Color = Color3.fromRGB(255, 255, 200)
+	faro.Material = Enum.Material.Neon
+	faro.Anchored = false
+	faro.Massless = true
+	faro.CanCollide = false
+	faro.Parent = campero
+	soldar(chasis, faro)
+
+	-- Recorrido continuo por la Autopista Principal y el Cuadro Comercial
+	task.spawn(function()
+		local rutaCampero = {
+			Vector3.new(-120.0, 60.5, 7.0),
+			Vector3.new(-75.0, 60.5, 7.0),
+			Vector3.new(-25.0, 60.5, 7.0),
+			Vector3.new(35.0, 60.5, 7.0),
+			Vector3.new(85.0, 60.5, 7.0),
+			Vector3.new(85.0, 60.5, 30.0),
+			Vector3.new(85.0, 68.0, 170.0), -- Tienda Don Chucho
+			Vector3.new(45.0, 68.0, 170.0),
+			Vector3.new(-45.0, 68.0, 170.0),
+			Vector3.new(-98.0, 68.0, 170.0),-- Tienda Don Ábaco
+			Vector3.new(-98.0, 60.5, 30.0),
+			Vector3.new(-98.0, 60.5, -7.0),
+			Vector3.new(-120.0, 60.5, -7.0),
+		}
+
+		local idx = 1
+		while campero.Parent do
+			idx = (idx % #rutaCampero) + 1
+			local destino = rutaCampero[idx]
+			local dir = destino - chasis.Position
+			local dist = dir.Magnitude
+
+			if dist > 1.5 then
+				local duracion = math.clamp(dist / 14, 1.8, 7.0)
+				local cframeObjetivo = CFrame.lookAt(destino, destino + dir.Unit)
+
+				local tween = TweenService:Create(
+					chasis,
+					TweenInfo.new(duracion, Enum.EasingStyle.Linear),
+					{ CFrame = cframeObjetivo }
+				)
+				tween:Play()
+				task.wait(duracion)
 			else
 				task.wait(1.0)
 			end
@@ -964,14 +1212,15 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(45, 40, 50),
 			Icono = "🧺",
 			Ruta = {
-				Vector3.new(14, 60, -25),
-				Vector3.new(14, 60, 15),
-				Vector3.new(14, 60, 60),
-				Vector3.new(14, 68, 90),
-				Vector3.new(14, 60, 60),
-				Vector3.new(14, 60, 15),
+				Vector3.new(-60, 60, 22),   -- Acera norte frente a edificios de apartamentos
+				Vector3.new(-25, 60, 22),   -- Llega al cruce peatonal de cebra
+				Vector3.new(-25, 60, -22),  -- Cruza por la cebra a la acera de la cocina
+				Vector3.new(20, 60, -22),   -- Camina por la acera sur hacia la plaza
+				Vector3.new(35, 60, -22),   -- Llega a la cebra comercial
+				Vector3.new(35, 60, 22),    -- Cruza por la cebra de vuelta a la acera norte
+				Vector3.new(-60, 60, 22),   -- Retorna por el andén de apartamentos
 			},
-			Frase = "¡Voy por la acera de Don Chucho a ver si llegaron los dulces!",
+			Frase = "¡Camino segura por las aceras y cruzo siempre por la cebra!",
 		},
 		{
 			Nombre = "Peaton_DonChepe",
@@ -980,12 +1229,12 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(70, 50, 35),
 			Icono = "🌾",
 			Ruta = {
-				Vector3.new(-14, 60, -20),
-				Vector3.new(-14, 60, 15),
-				Vector3.new(-14, 60, 60),
-				Vector3.new(-14, 60, 15),
+				Vector3.new(-110, 60, -22), -- Acera sur frente a canchas del colegio
+				Vector3.new(-75, 60, -22),  -- Cruce escolar del colegio
+				Vector3.new(-35, 60, -22),  -- Frente a la cocina inicial
+				Vector3.new(-75, 60, -22),  -- Retorna por el andén escolar
 			},
-			Frase = "¡Buenas tardes patrón! Qué bonita que está la tarde en la acera del pueblo.",
+			Frase = "¡Buenas tardes patrón! Qué ordenadas que están las aceras de Villa Almíbar.",
 		},
 		{
 			Nombre = "Peaton_SantiEstudiante",
@@ -994,14 +1243,17 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(35, 40, 55),
 			Icono = "🏃‍♂️",
 			Ruta = {
-				Vector3.new(-14, 60, -25), -- Frente a salida de colegio
-				Vector3.new(-14, 60, 15),  -- Acera oeste
-				Vector3.new(14, 60, 15),   -- Cruza por paso peatonal de cebra a acera este
-				Vector3.new(14, 60, 50),   -- Llega a tienda Don Chucho
-				Vector3.new(14, 60, 15),   -- Regresa por acera
-				Vector3.new(-14, 60, 15),  -- Cruza de vuelta
+				Vector3.new(-75, 60, -22), -- Salida del portón escolar
+				Vector3.new(-75, 60, 22),  -- Cruza la autopista por la cebra escolar
+				Vector3.new(35, 60, 22),   -- Camina por la acera norte frente a los edificios
+				Vector3.new(90, 60, 22),   -- Llega a la cebra de Don Chucho
+				Vector3.new(90, 60, 45),   -- Entra a la tienda por la acera comercial
+				Vector3.new(90, 60, 22),   -- Sale de la tienda
+				Vector3.new(35, 60, 22),   -- Regresa por la acera norte
+				Vector3.new(-75, 60, 22),  -- Llega a la cebra escolar
+				Vector3.new(-75, 60, -22), -- Cruza de regreso al colegio
 			},
-			Frase = "¡Llevo un encargo de panelitas para mi tía cruzando por el paso peatonal!",
+			Frase = "¡Llevo un encargo cruzando por las cebras escolares y sin pisar la calle!",
 		},
 		{
 			Nombre = "Peaton_DrJavier",
@@ -1010,14 +1262,16 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(35, 75, 130),
 			Icono = "👨‍⚕️",
 			Ruta = {
-				Vector3.new(14, 60, 60),
-				Vector3.new(14, 68, 90),
-				Vector3.new(16, 75, 160),
-				Vector3.new(22, 83.2, 210), -- Explanada del Hospital
-				Vector3.new(16, 75, 160),
-				Vector3.new(14, 68, 90),
+				Vector3.new(35, 60, 22),    -- Plaza central
+				Vector3.new(45, 60, 45),    -- Andén de conexión hacia el zigzag
+				Vector3.new(12, 69, 105),   -- Andén lateral antes del Retén 1
+				Vector3.new(16, 75, 160),   -- Andén en curva de ladera
+				Vector3.new(22, 83.2, 215), -- Explanada de Urgencias del Hospital San Rafael
+				Vector3.new(16, 75, 160),   -- Retorno por el andén
+				Vector3.new(12, 69, 105),
+				Vector3.new(45, 60, 45),
 			},
-			Frase = "¡Voy subiendo por el andén al Hospital San Rafael para el turno de urgencias!",
+			Frase = "¡Subo por el andén peatonal hacia el Hospital San Rafael para el turno de urgencias!",
 		},
 		{
 			Nombre = "Peaton_NikoCiclista",
@@ -1026,12 +1280,14 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(25, 25, 30),
 			Icono = "🚴",
 			Ruta = {
-				Vector3.new(18, 83.2, 215),
-				Vector3.new(18, 90, 310),
-				Vector3.new(20, 96.5, 375), -- Terraza Mirador
-				Vector3.new(18, 90, 310),
+				Vector3.new(22, 83.2, 215), -- Patio del hospital
+				Vector3.new(15, 90, 310),   -- Sendero panorámico hacia la cima
+				Vector3.new(10, 96.4, 350), -- Paso peatonal del Retén 2
+				Vector3.new(20, 96.5, 380), -- Terraza del Mirador del Valle
+				Vector3.new(10, 96.4, 350),
+				Vector3.new(15, 90, 310),
 			},
-			Frase = "¡Esta subida peatonal de ladera es exigente pero perfecta para entrenar!",
+			Frase = "¡Este sendero de ladera hacia el mirador es perfecto para entrenar sin estorbar los carros!",
 		},
 	}
 
@@ -1408,8 +1664,10 @@ local function inicializarVidaMundo()
 	crearFirulaisElPerrito(carpetaVida)
 	crearGallinasMelcocha(carpetaVida)
 
-	-- 4. Ruta de buses / La Chiva Rumbera Tradicional
+	-- 4. Ruta de buses y tráfico vehicular vivo en la red vial
 	crearChivaRumbera(carpetaVida)
+	crearPatrullaPolicialMovil(carpetaVida)
+	crearCamperoTraficoAmbiente(carpetaVida)
 
 	-- 5. Faroles, banderines y alumbrado
 	decorarAmbienteBarrio(carpetaVida)
@@ -1419,7 +1677,7 @@ local function inicializarVidaMundo()
 	crearPalomasPlazoleta(carpetaVida)
 
 	print(
-		"El Patrón del Dulce: Sistema de Vida del Mundo (Estudiantes, Vecinos, Animales y Chiva) Inicializado"
+		"El Patrón del Dulce: Sistema de Vida del Mundo (Estudiantes, Vecinos, Animales, Chiva, Patrulla y Tráfico) Inicializado"
 	)
 end
 
