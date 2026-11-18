@@ -156,10 +156,31 @@ local function ejecutarAtaqueZombi(registro: RegistroZombi, objetivo: Player)
 		local distImpacto = (pHrp.Position - registro.HRP.Position).Magnitude
 		if distImpacto <= ConfigZombis.RangoImpactoMaximoStuds then
 			pHum:TakeDamage(registro.DanioAtaque)
+
+			-- Efecto de quemadura ardiente al jugador si el zombi es de fuego
+			if registro.Variante and registro.Variante.EsDeFuego then
+				local fuegoExistente = pHrp:FindFirstChild("QuemaduraFuegoZombi")
+				if not fuegoExistente then
+					local fuego = Instance.new("Fire")
+					fuego.Name = "QuemaduraFuegoZombi"
+					fuego.Size = 2.8
+					fuego.Heat = 7
+					fuego.Color = Color3.fromRGB(255, 120, 30)
+					fuego.SecondaryColor = Color3.fromRGB(180, 50, 15)
+					fuego.Parent = pHrp
+					task.delay(2.5, function()
+						if fuego and fuego.Parent then
+							fuego:Destroy()
+						end
+					end)
+				end
+			end
+
 			EventosRemotos.ZombieEventoVisual:FireAllClients({
 				Tipo = "Ataque",
 				Modelo = registro.Modelo,
 				Posicion = pHrp.Position,
+				EsDeFuego = registro.Variante and registro.Variante.EsDeFuego,
 			})
 		end
 	end)

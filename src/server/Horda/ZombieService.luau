@@ -258,6 +258,48 @@ local function construirRigZombi(variante: any, escala: number): (Model, Humanoi
 		luzCristal.Parent = cristal
 	end
 
+	-- Efectos visuales de Lava Zombie (fuego y texturas ardientes en todas las extremidades)
+	if variante.EsDeFuego then
+		local texturaLava = variante.TexturaLava or "rbxassetid://102118326"
+		local partesLava = { torso, cabeza, brazoIzq, brazoDer, piernaIzq, piernaDer }
+		local caras = {
+			Enum.NormalId.Front,
+			Enum.NormalId.Back,
+			Enum.NormalId.Left,
+			Enum.NormalId.Right,
+			Enum.NormalId.Top,
+			Enum.NormalId.Bottom,
+		}
+
+		for _, parte in ipairs(partesLava) do
+			parte.Color = Color3.fromRGB(22, 22, 22)
+			parte.Material = Enum.Material.Basalt
+
+			for _, cara in ipairs(caras) do
+				local dec = Instance.new("Decal")
+				dec.Name = "LavaDecal"
+				dec.Texture = texturaLava
+				dec.Face = cara
+				dec.Parent = parte
+			end
+
+			local fuego = Instance.new("Fire")
+			fuego.Name = "LavaFire"
+			fuego.Heat = 9
+			fuego.Size = math.clamp(4.5 * escala, 3, 7)
+			fuego.Color = Color3.fromRGB(240, 130, 40)
+			fuego.SecondaryColor = Color3.fromRGB(150, 60, 20)
+			fuego.Parent = parte
+		end
+
+		local luzLava = Instance.new("PointLight")
+		luzLava.Name = "LavaAura"
+		luzLava.Color = Color3.fromRGB(255, 115, 30)
+		luzLava.Range = 14 * escala
+		luzLava.Brightness = 2.2
+		luzLava.Parent = torso
+	end
+
 	-- Articulaciones Motor6D (postura ligeramente encorvada hacia adelante)
 	crearMotor6D(
 		"RootJoint",
@@ -441,6 +483,16 @@ local function procesarMuerteZombi(registro: RegistroZombi)
 	end
 	registro.HRP.Anchored = true
 
+	-- Efecto de llamarada final al morir si es Zombi de Fuego
+	if registro.Variante and registro.Variante.EsDeFuego then
+		for _, desc in ipairs(registro.Modelo:GetDescendants()) do
+			if desc:IsA("Fire") then
+				desc.Size = 10
+				desc.Heat = 16
+			end
+		end
+	end
+
 	reproducirSonidoEnParte(registro.HRP, ConfigZombis.Sonidos.MuerteZombi, 0.7, 0.72)
 
 	-- Recompensar al atacante o sobrevivientes
@@ -502,9 +554,10 @@ end
 function ZombieService.GenerarZombi(
 	posicion: Vector3,
 	numeroOleada: number,
-	configOleada: any
+	configOleada: any,
+	varianteForzada: any?
 ): RegistroZombi?
-	local variante = elegirVarianteParaOleada(numeroOleada)
+	local variante = varianteForzada or elegirVarianteParaOleada(numeroOleada)
 	local escala = variante.Escala
 	local modelo, humanoid, hrp, barraVida = construirRigZombi(variante, escala)
 
@@ -522,6 +575,7 @@ function ZombieService.GenerarZombi(
 	modelo:SetAttribute("EsZombie", true)
 	modelo:SetAttribute("IdZombi", idZombi)
 	modelo:SetAttribute("VarianteId", variante.Id)
+	modelo:SetAttribute("EsDeFuego", variante.EsDeFuego == true)
 	modelo:SetAttribute("EstadoIA", "Detecting")
 	modelo:SetAttribute("VelocidadBase", velocidadFinal)
 	modelo:SetAttribute("UltimoGolpe", 0)
@@ -540,11 +594,13 @@ function ZombieService.GenerarZombi(
 	end)
 
 	emitirEfectoAparicion(hrp, variante.ColorOjos)
-	EventosRemotos.ZombieEventoVisual:FireAllClients({
-		Tipo = "Aparicion",
-		Posicion = posicion,
-		VarianteId = variante.Id,
-	})
+	if game:GetService("RunService"):IsRunning() then
+		EventosRemotos.ZombieEventoVisual:FireAllClients({
+			Tipo = "Aparicion",
+			Posicion = posicion,
+			VarianteId = variante.Id,
+		})
+	end
 
 	local registro: RegistroZombi = {
 		Id = idZombi,

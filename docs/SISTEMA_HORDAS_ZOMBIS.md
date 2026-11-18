@@ -80,7 +80,20 @@ Para garantizar compatibilidad absoluta tanto si existen animaciones oficiales d
   - Arco de impacto de los brazos al atacar.
   - Desplome físico al morir.
 
-### 2.5. Puntos de Aparición y Mapa (`UtilidadesMapaHorda.luau`)
+### 2.5. Variantes de Zombis y Zombi de Lava / Fuego
+- **Caminante Podrido (Oleada 1+):** Zombi estándar de movimiento moderado.
+- **Azucarado Tóxico (Oleada 1+):** Infectado con cristales de azúcar ácida de mayor velocidad.
+- **Corredor Rabioso (Oleada 2+):** Rápido y agresivo, embiste velozmente a los sobrevivientes.
+- **Bruto Caramelo (Oleada 3+):** Tanque pesado con el doble de vida y daño demoledor.
+- **🔥 Zombi de Lava / Fuego (`ZombiLava` - Oleada 3+):**
+  - Basado en el modelo original del juego con textura de lava (`rbxassetid://102118326`) en las 6 caras de cada extremidad.
+  - Emisores de partículas de `Fire` activos en cabeza, torso, brazos y piernas (`Heat = 9`, `Size = 4.5`, tonalidad fuego y lava).
+  - Luz ardiente de área (`PointLight`) que ilumina su alrededor con aura naranja.
+  - **Ataque ígneo:** Al golpear a un jugador, le aplica un efecto temporal de quemadura con fuego (`QuemaduraFuegoZombi`).
+  - **Muerte explosiva:** Al ser eliminado, sus partículas de fuego se expanden a tamaño 10 antes del despawn.
+  - **Aparición:** Se desbloquea a partir de la **Ronda 3** con aparición temprana garantizada y banner ardiente en el HUD.
+
+### 2.6. Puntos de Aparición y Mapa (`UtilidadesMapaHorda.luau`)
 - Crea y gestiona 8 puntos de aparición estratégicos distribuidos en zonas accesibles alrededor de la plaza y los callejones cercanos a la cocina.
 - Verificación de no colisión con el jugador ni con geometrías estáticas.
 - Spawneo secuencial escalonado para evitar tirones de rendimiento en el servidor.

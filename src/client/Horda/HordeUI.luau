@@ -282,11 +282,21 @@ local function manejarActualizacionEstado(datosEstado: {
 			_ultimaOleadaAnunciada = oleada
 			_ultimoMensajeAnunciado = "Oleada_" .. tostring(oleada)
 			reproducirSonido(ConfigZombis.Sonidos.InicioOleada, 0.75)
+
+			local subtitulo = if oleada == 3
+				then "🔥 ¡ALERTA: ZOMBIS DE FUEGO Y LAVA EMERGIENDO!"
+				elseif oleada > 3 then string.format("🔥 Horda ardiente activa: %d enemigos aproximándose", total)
+				else string.format("%d enemigos emergen de las sombras", total)
+
+			local colorBorde = if oleada >= 3
+				then Color3.fromRGB(255, 120, 30)
+				else Color3.fromRGB(235, 55, 65)
+
 			mostrarBannerOleada(
 				string.format("OLEADA %d", oleada),
-				string.format("%d enemigos emergen de las sombras", total),
-				Color3.fromRGB(235, 55, 65),
-				3.4
+				subtitulo,
+				colorBorde,
+				3.8
 			)
 		end
 	elseif estado == "OleadaCompletada" then

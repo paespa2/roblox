@@ -116,7 +116,19 @@ local function ejecutarOleada(numeroOleada: number)
 			if #puntosValidos > 0 then
 				indicePunto += 1
 				local posSpawn = puntosValidos[indicePunto]
-				ZombieService.GenerarZombi(posSpawn, numeroOleada, configOleada)
+
+				-- A partir de la oleada 3 garantizamos la aparición temprana del Zombi de Lava / Fuego
+				local varForzada = nil
+				if numeroOleada >= 3 and _zombisPorGenerar == configOleada.Cantidad then
+					for _, v in ipairs(ConfigZombis.Variantes) do
+						if v.Id == "ZombiLava" then
+							varForzada = v
+							break
+						end
+					end
+				end
+
+				ZombieService.GenerarZombi(posSpawn, numeroOleada, configOleada, varForzada)
 				_zombisPorGenerar -= 1
 				notificarEstado("", 0)
 			end
