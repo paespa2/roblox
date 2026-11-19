@@ -147,13 +147,19 @@ local function construirRigZombi(variante: any, escala: number): (Model, Humanoi
 
 	local cabeza = Instance.new("Part")
 	cabeza.Name = "Head"
-	cabeza.Size = Vector3.new(1.2 * escala, 1.2 * escala, 1.2 * escala)
+	cabeza.Size = Vector3.new(2 * escala, 1 * escala, 1 * escala)
 	cabeza.Color = tonoPiel
 	cabeza.Material = Enum.Material.SmoothPlastic
 	cabeza.CanCollide = false
 	cabeza.CanTouch = true
 	cabeza.Anchored = false
 	cabeza.Parent = modelo
+
+	local meshCabeza = Instance.new("SpecialMesh")
+	meshCabeza.Name = "Mesh"
+	meshCabeza.MeshType = Enum.MeshType.Head
+	meshCabeza.Scale = Vector3.new(1.25, 1.25, 1.25)
+	meshCabeza.Parent = cabeza
 
 	-- Cara 2D personalizada (Very scary face) o fallback procedural
 	local idCara = variante.TexturaCara or ConfigZombis.General.TexturaCara
@@ -327,7 +333,7 @@ local function construirRigZombi(variante: any, escala: number): (Model, Humanoi
 		torso,
 		cabeza,
 		CFrame.new(0, 1.0 * escala, -0.1 * escala) * CFrame.Angles(math.rad(8), 0, 0),
-		CFrame.new(0, -0.6 * escala, 0)
+		CFrame.new(0, -0.5 * escala, 0)
 	)
 	crearMotor6D(
 		"Left Shoulder",
