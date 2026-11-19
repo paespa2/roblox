@@ -265,6 +265,84 @@ function UtilidadesMapaHorda.ValidarRutaAlcanzable(origen: Vector3, destino: Vec
 	return ok and path.Status == Enum.PathStatus.Success
 end
 
+local function evaluarCandidatoSpawn(
+	cand: Vector3,
+	participantesInfo: { InfoParticipanteSpawn },
+	posicionesZombis: { Vector3 },
+	distanciaMinJugador: number,
+	distanciaMaxJugador: number,
+	distanciaMinZombis: number,
+	paramsOclusion: RaycastParams,
+	exigirOcultacion: boolean
+): (Vector3?, number)
+	local posSuelo, haySuelo = UtilidadesMapaHorda.ObtenerPosicionSuelo(cand, 3.0)
+	if not haySuelo then
+		return nil, 0
+	end
+
+	if
+		not UtilidadesMapaHorda.EstaEspacioLibre(
+			posSuelo + Vector3.new(0, 0.8, 0),
+			Vector3.new(3.4, 4.4, 3.4)
+		)
+	then
+		return nil, 0
+	end
+
+	-- Evitar superposición con otros zombis activos
+	for _, zPos in ipairs(posicionesZombis) do
+		if (posSuelo - zPos).Magnitude < distanciaMinZombis then
+			return nil, 0
+		end
+	end
+
+	-- Validar distancia, ángulo y oclusión respecto a TODOS los participantes vivos
+	local enRangoMaximo = #participantesInfo == 0
+	local fueraDeConoFrontal = true
+	local ocultoPorObstaculo = true
+
+	for _, infoP in ipairs(participantesInfo) do
+		local delta = posSuelo - infoP.Posicion
+		local dist = delta.Magnitude
+		if dist < distanciaMinJugador then
+			return nil, 0
+		end
+		if dist <= distanciaMaxJugador then
+			enRangoMaximo = true
+		end
+
+		local horiz = Vector3.new(delta.X, 0, delta.Z)
+		if horiz.Magnitude > 0.5 then
+			local dot = infoP.LookVector:Dot(horiz.Unit)
+			if dot >= 0.35 then
+				fueraDeConoFrontal = false
+			end
+		end
+
+		if dist <= 75 and puntoEsVisibleParaParticipante(infoP.Posicion, posSuelo, paramsOclusion) then
+			ocultoPorObstaculo = false
+		end
+	end
+
+	if not enRangoMaximo then
+		return nil, 0
+	end
+
+	-- En fallback espacial exigimos que al menos esté fuera del cono frontal o tras obstáculo
+	if exigirOcultacion and not fueraDeConoFrontal and not ocultoPorObstaculo then
+		return nil, 0
+	end
+
+	local score = math.random() * 15
+	if fueraDeConoFrontal then
+		score += 50
+	end
+	if ocultoPorObstaculo then
+		score += 40
+	end
+	return posSuelo, score
+end
+
 function UtilidadesMapaHorda.ObtenerPuntosAparicionZombis(
 	puntosRespaldo: { Vector3 },
 	participantesInfo: { InfoParticipanteSpawn },
@@ -321,102 +399,46 @@ function UtilidadesMapaHorda.ObtenerPuntosAparicionZombis(
 
 	local puntuados: { { Pos: Vector3, Score: number } } = {}
 	for _, cand in ipairs(candidatos) do
-		local posSuelo, haySuelo = UtilidadesMapaHorda.ObtenerPosicionSuelo(cand, 3.0)
-		if not haySuelo then
-			continue
-		end
-
-		if
-			not UtilidadesMapaHorda.EstaEspacioLibre(
-				posSuelo + Vector3.new(0, 0.8, 0),
-				Vector3.new(3.4, 4.4, 3.4)
-			)
-		then
-			continue
-		end
-
-		-- Evitar superposición con otros zombis activos
-		local muyCercaOtroZombi = false
-		for _, zPos in ipairs(posicionesZombis) do
-			if (posSuelo - zPos).Magnitude < distanciaMinZombis then
-				muyCercaOtroZombi = true
-				break
-			end
-		end
-		if muyCercaOtroZombi then
-			continue
-		end
-
-		-- Validar distancia respecto a participantes vivos
-		local muyCercaJugador = false
-		local enRangoMaximo = #participantesInfo == 0
-		local fueraDeConoFrontal = true
-		local ocultoPorObstaculo = true
-		local mejorDistJugador = math.huge
-
-		for _, infoP in ipairs(participantesInfo) do
-			local delta = posSuelo - infoP.Posicion
-			local dist = delta.Magnitude
-			if dist < distanciaMinJugador then
-				muyCercaJugador = true
-				break
-			end
-			if dist <= distanciaMaxJugador then
-				enRangoMaximo = true
-			end
-			if dist < mejorDistJugador then
-				mejorDistJugador = dist
-			end
-
-			local horiz = Vector3.new(delta.X, 0, delta.Z)
-			if horiz.Magnitude > 0.5 then
-				local dot = infoP.LookVector:Dot(horiz.Unit)
-				if dot >= 0.35 then
-					fueraDeConoFrontal = false
-				end
-			end
-
-			if dist <= 75 and puntoEsVisibleParaParticipante(infoP.Posicion, posSuelo, paramsOclusion) then
-				ocultoPorObstaculo = false
-			end
-		end
-
-		if not muyCercaJugador and enRangoMaximo then
-			local score = math.random() * 15
-			if fueraDeConoFrontal then
-				score += 50
-			end
-			if ocultoPorObstaculo then
-				score += 40
-			end
+		local posSuelo, score = evaluarCandidatoSpawn(
+			cand,
+			participantesInfo,
+			posicionesZombis,
+			distanciaMinJugador,
+			distanciaMaxJugador,
+			distanciaMinZombis,
+			paramsOclusion,
+			false
+		)
+		if posSuelo then
 			table.insert(puntuados, { Pos = posSuelo, Score = score })
 		end
 	end
 
-	-- Fallback alrededor del primer participante vivo si todos los puntos fijos quedaron fuera de rango
+	-- Fallback validado alrededor de los participantes vivos exigiendo ocultación o fuera de cono frontal
 	if #puntuados == 0 and #participantesInfo > 0 then
-		local centro = participantesInfo[1].Posicion
-		for anguloDeg = 0, 315, 30 do
-			local rad = math.rad(anguloDeg)
-			local cand = centro + Vector3.new(math.cos(rad) * 38, 2, math.sin(rad) * 38)
-			local posSuelo, haySuelo = UtilidadesMapaHorda.ObtenerPosicionSuelo(cand, 3.0)
-			if
-				haySuelo
-				and UtilidadesMapaHorda.EstaEspacioLibre(
-					posSuelo + Vector3.new(0, 0.8, 0),
-					Vector3.new(3.4, 4.4, 3.4)
-				)
-			then
-				local chocaZombi = false
-				for _, zPos in ipairs(posicionesZombis) do
-					if (posSuelo - zPos).Magnitude < distanciaMinZombis then
-						chocaZombi = true
-						break
+		for _, infoPart in ipairs(participantesInfo) do
+			local centro = infoPart.Posicion
+			for _, radio in ipairs({ 32, 38, 46 }) do
+				for anguloDeg = 0, 330, 30 do
+					local rad = math.rad(anguloDeg)
+					local cand = centro + Vector3.new(math.cos(rad) * radio, 2, math.sin(rad) * radio)
+					local posSuelo, score = evaluarCandidatoSpawn(
+						cand,
+						participantesInfo,
+						posicionesZombis,
+						distanciaMinJugador,
+						distanciaMaxJugador,
+						distanciaMinZombis,
+						paramsOclusion,
+						true
+					)
+					if posSuelo then
+						table.insert(puntuados, { Pos = posSuelo, Score = score })
 					end
 				end
-				if not chocaZombi then
-					table.insert(puntuados, { Pos = posSuelo, Score = math.random() * 10 })
-				end
+			end
+			if #puntuados >= 6 then
+				break
 			end
 		end
 	end

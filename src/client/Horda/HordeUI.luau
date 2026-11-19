@@ -347,13 +347,17 @@ local function manejarActualizacionEstado(datosEstado: {
 			_ultimoMensajeAnunciado = "Oleada_" .. tostring(oleada)
 			reproducirSonido(ConfigZombis.Sonidos.InicioOleada, 0.75)
 
-			local subtitulo = if oleada == 10
-				then "☣️ ¡ZOMBIS TÓXICOS! | ⚡ DESBLOQUEADO: RAILGUN"
-				elseif oleada == 7 then "💥 ¡DESBLOQUEADO: BURTAN ANTIMATERIAL RIFLE!"
+			local mensajeArmas = tostring(datosEstado.MensajeArmas or "")
+			local alertaBase = if oleada == 10
+				then "☣️ ¡ALERTA: ZOMBIS TÓXICOS!"
 				elseif oleada == 6 then "❄️ ¡ALERTA: ICE ZOMBIES EMERGIENDO!"
-				elseif oleada == 5 then "⚡ ¡ARSENAL PESADO: DMR & RHINO SPEAR!"
-				elseif oleada == 3 then "🔥 ¡ZOMBIS DE LAVA! | ⚔️ TAPER 21 & KINETIC"
-				elseif oleada == 1 then "⚔️ ¡ARSENAL INICIAL: UZI Y HACHAS!"
+				elseif oleada == 3 then "🔥 ¡ALERTA: ZOMBIS DE LAVA!"
+				else ""
+
+			local subtitulo = if alertaBase ~= "" and mensajeArmas ~= ""
+				then string.format("%s | ⚔️ %s", alertaBase, mensajeArmas)
+				elseif alertaBase ~= "" then alertaBase
+				elseif mensajeArmas ~= "" then string.format("⚔️ %s", mensajeArmas)
 				else string.format("%d enemigos emergen de las sombras", total)
 
 			local colorBorde = if oleada >= 10

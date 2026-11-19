@@ -73,10 +73,26 @@ local function jugadorEstaVivo(player: Player): boolean
 end
 
 local function limpiarEfectosTemporalesJugador(player: Player)
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	if backpack then
+		for _, item in ipairs(backpack:GetChildren()) do
+			if item:IsA("Tool") and item:GetAttribute("EsArmaHorda") == true then
+				item:Destroy()
+			end
+		end
+	end
+
 	local char = player.Character
 	if not char then
 		return
 	end
+
+	for _, item in ipairs(char:GetChildren()) do
+		if item:IsA("Tool") and item:GetAttribute("EsArmaHorda") == true then
+			item:Destroy()
+		end
+	end
+
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if hrp then
 		for _, nombreEfecto in ipairs({
@@ -261,6 +277,7 @@ function HordeSession.IniciarSesion(_iniciador: Player): (boolean, number, strin
 				if not reg.Eliminado then
 					reg.Vivo = false
 					reg.Eliminado = true
+					limpiarEfectosTemporalesJugador(p)
 					emitirCambioParticipantes()
 				end
 			end)

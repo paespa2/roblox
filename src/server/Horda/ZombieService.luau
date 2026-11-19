@@ -594,6 +594,9 @@ local function procesarMuerteZombi(registro: RegistroZombi)
 	registro.Estado = "Dead"
 	registro.Modelo:SetAttribute("EstadoIA", "Dead")
 	registro.Humanoid.WalkSpeed = 0
+	pcall(function()
+		registro.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+	end)
 
 	if registro.PathBlockedConn and registro.PathBlockedConn.Connected then
 		registro.PathBlockedConn:Disconnect()
@@ -631,7 +634,7 @@ local function procesarMuerteZombi(registro: RegistroZombi)
 				registro.UltimoAtacante = atacante
 			end
 		end
-		if atacante and HordeSession.EsParticipante(atacante) and atacante:IsDescendantOf(Players) then
+		if atacante and HordeSession.EsParticipanteVivo(atacante) and atacante:IsDescendantOf(Players) then
 			GestorDatos.AgregarPesos(atacante, registro.Variante.RecompensaPesos)
 			GestorDatos.AgregarFama(atacante, 1)
 			GestorDatos.AgregarDulce(
@@ -710,6 +713,9 @@ function ZombieService.GenerarZombi(
 	humanoid.MaxHealth = vidaFinal
 	humanoid.Health = vidaFinal
 	humanoid.WalkSpeed = velocidadFinal
+	pcall(function()
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+	end)
 
 	modelo:SetAttribute("EsZombie", true)
 	modelo:SetAttribute("IdZombi", idZombi)
@@ -778,9 +784,41 @@ function ZombieService.GenerarZombi(
 		BillboardVida = barraVida,
 	}
 
+	local ultimaVidaValida = vidaFinal
+	local revirtiendoVida = false
+
 	table.insert(
 		registro.Conexiones,
 		humanoid.HealthChanged:Connect(function(nuevaVida: number)
+			if revirtiendoVida or registro.Muerto then
+				return
+			end
+
+			if nuevaVida < ultimaVidaValida then
+				local tagCreator = humanoid:FindFirstChild("creator")
+				local playerCreator: Player? = if tagCreator
+						and tagCreator:IsA("ObjectValue")
+						and tagCreator.Value
+						and tagCreator.Value:IsA("Player")
+					then tagCreator.Value :: Player
+					else registro.UltimoAtacante
+
+				if not playerCreator or not HordeSession.EsParticipanteVivo(playerCreator) then
+					revirtiendoVida = true
+					humanoid.Health = ultimaVidaValida
+					revirtiendoVida = false
+					if tagCreator then
+						tagCreator:Destroy()
+					end
+					return
+				end
+
+				registro.UltimoAtacante = playerCreator
+				ultimaVidaValida = math.max(0, nuevaVida)
+			elseif nuevaVida > ultimaVidaValida then
+				ultimaVidaValida = nuevaVida
+			end
+
 			if registro.BillboardVida and registro.BillboardVida.Parent then
 				local ratio = math.clamp(nuevaVida / humanoid.MaxHealth, 0, 1)
 				registro.BillboardVida.Size = UDim2.fromScale(ratio, 1)
@@ -794,7 +832,9 @@ function ZombieService.GenerarZombi(
 	table.insert(
 		registro.Conexiones,
 		humanoid.Died:Connect(function()
-			procesarMuerteZombi(registro)
+			if humanoid.Health <= 0 and not registro.Muerto then
+				procesarMuerteZombi(registro)
+			end
 		end)
 	)
 
@@ -815,13 +855,19 @@ function ZombieService.AplicarDanio(
 	if cantidad <= 0 then
 		return false
 	end
-	if atacante and not HordeSession.EsParticipante(atacante) then
+	if not atacante or not HordeSession.EsParticipanteVivo(atacante) then
 		return false
 	end
 
-	if atacante then
-		registro.UltimoAtacante = atacante
+	registro.UltimoAtacante = atacante
+	local tagExistente = registro.Humanoid:FindFirstChild("creator")
+	if tagExistente then
+		tagExistente:Destroy()
 	end
+	local creator = Instance.new("ObjectValue")
+	creator.Name = "creator"
+	creator.Value = atacante
+	creator.Parent = registro.Humanoid
 
 	-- Reacción de impacto con resistencia al aturdimiento por variante
 	local ahora = os.clock()

@@ -21,9 +21,12 @@ local General = ConfigZombis.General
 
 local WaveManager = {}
 
+local ServerStorage = game:GetService("ServerStorage")
+
 local _oleadaActual = 0
 local _zombisPorGenerar = 0
 local _totalOleadaActual = 0
+local _mensajeArmasOleadaActual = ""
 local _hiloCiclo: thread? = nil
 
 local function asegurarMunicionInicialParticipantes()
@@ -41,49 +44,183 @@ local function asegurarMunicionInicialParticipantes()
 	end
 end
 
-local function entregarArmasRonda(numeroOleada: number)
-	local ServerStorage = game:GetService("ServerStorage")
+local function validarPlantillaArma(plantilla: Instance?): (boolean, string?)
+	if not plantilla then
+		return false, "no existe en ServerStorage.ArmasHorda"
+	end
+	if not plantilla:IsA("Tool") then
+		return false, "no es una instancia Tool"
+	end
+
+	local handle = plantilla:FindFirstChild("Handle")
+	if not handle or not handle:IsA("BasePart") then
+		return false, "carece de pieza Handle (BasePart)"
+	end
+
+	local gunServer = plantilla:FindFirstChild("GunScript_Server")
+	local gunLocal = plantilla:FindFirstChild("GunScript_Local")
+	local setting = plantilla:FindFirstChild("Setting")
+	if gunServer and gunLocal and setting then
+		if
+			gunServer:IsA("Script")
+			and not gunServer.Disabled
+			and gunLocal:IsA("LocalScript")
+			and not gunLocal.Disabled
+			and setting:IsA("ModuleScript")
+		then
+			return true, nil
+		end
+		return false, "scripts de arma de fuego inactivos o inválidos"
+	end
+
+	-- Herramienta cuerpo a cuerpo o especial (ej. Hand axes)
+	local tieneScriptServidorActivo = false
+	local tieneScriptClienteOImpacto = plantilla:FindFirstChild("KillBrick") ~= nil
+	for _, desc in ipairs(plantilla:GetDescendants()) do
+		if desc:IsA("Script") and not desc.Disabled then
+			tieneScriptServidorActivo = true
+		elseif desc:IsA("LocalScript") and not desc.Disabled then
+			tieneScriptClienteOImpacto = true
+		end
+	end
+
+	if not tieneScriptServidorActivo then
+		return false, "no tiene Script de servidor activo"
+	end
+	if not tieneScriptClienteOImpacto then
+		return false, "no tiene componente de impacto ni LocalScript activo"
+	end
+
+	return true, nil
+end
+
+function WaveManager.ValidarArsenalConfigurado(): (boolean, { string })
+	local faltantes: { string } = {}
+	local armasFolder = ServerStorage:FindFirstChild("ArmasHorda")
+	if not armasFolder then
+		warn("[WaveManager] Validación de arsenal fallida: falta ServerStorage.ArmasHorda")
+		table.insert(faltantes, "ArmasHorda (carpeta)")
+		return false, faltantes
+	end
+
+	local rondas: { number } = {}
+	for rondaTier in pairs(ConfigZombis.ArmasPorOleada) do
+		table.insert(rondas, rondaTier)
+	end
+	table.sort(rondas)
+
+	for _, rondaTier in ipairs(rondas) do
+		local configTier = ConfigZombis.ArmasPorOleada[rondaTier]
+		for _, nombreArma in ipairs(configTier.Armas) do
+			local plantilla = armasFolder:FindFirstChild(nombreArma)
+			local valida, motivo = validarPlantillaArma(plantilla)
+			if not valida then
+				warn(
+					string.format(
+						"[WaveManager] Arma de horda inválida o faltante '%s' (Ronda %d): %s",
+						nombreArma,
+						rondaTier,
+						motivo or "error desconocido"
+					)
+				)
+				table.insert(faltantes, string.format("%s (Ronda %d: %s)", nombreArma, rondaTier, motivo or "inválida"))
+			end
+		end
+	end
+
+	return #faltantes == 0, faltantes
+end
+
+local function entregarArmasRonda(numeroOleada: number): ({ string }, string?)
 	local armasFolder = ServerStorage:FindFirstChild("ArmasHorda")
 	if not armasFolder then
 		warn("[WaveManager] Carpeta ServerStorage.ArmasHorda no encontrada")
-		return
+		return {}, nil
 	end
 
 	local participantes = HordeSession.ObtenerParticipantesVivos()
-	for _, player in ipairs(participantes) do
-		local backpack = player:FindFirstChildOfClass("Backpack")
-		local char = player.Character
-		if backpack and char then
-			for rondaTier, configDesbloqueo in pairs(ConfigZombis.ArmasPorOleada) do
-				if numeroOleada >= rondaTier then
-					for _, nombreArma in ipairs(configDesbloqueo.Armas) do
+	if #participantes == 0 then
+		return {}, nil
+	end
+
+	local tierActualCfg = ConfigZombis.ArmasPorOleada[numeroOleada]
+	local entregadasTierActualSet: { [string]: boolean } = {}
+
+	for rondaTier, configDesbloqueo in pairs(ConfigZombis.ArmasPorOleada) do
+		if numeroOleada >= rondaTier then
+			for _, nombreArma in ipairs(configDesbloqueo.Armas) do
+				local plantilla = armasFolder:FindFirstChild(nombreArma)
+				local valida, motivo = validarPlantillaArma(plantilla)
+				if not valida or not plantilla then
+					if rondaTier == numeroOleada then
+						warn(
+							string.format(
+								"[WaveManager] Se omitió entrega de '%s' en ronda %d: %s",
+								nombreArma,
+								numeroOleada,
+								motivo or "plantilla inválida"
+							)
+						)
+					end
+					continue
+				end
+
+				for _, player in ipairs(participantes) do
+					local backpack = player:FindFirstChildOfClass("Backpack")
+					local char = player.Character
+					if backpack and char then
 						local yaTiene = (backpack:FindFirstChild(nombreArma) ~= nil)
 							or (char:FindFirstChild(nombreArma) ~= nil)
 
-						if not yaTiene then
-							local plantilla = armasFolder:FindFirstChild(nombreArma)
-							if plantilla and plantilla:IsA("Tool") then
-								local nuevaArma = plantilla:Clone()
-								nuevaArma:SetAttribute("EsArmaHorda", true)
-								nuevaArma:SetAttribute("RondaDesbloqueo", rondaTier)
-								nuevaArma.CanBeDropped = false
-								nuevaArma.Parent = backpack
-								print(
-									string.format(
-										"[WaveManager] Arma '%s' entregada a %s (Ronda %d / Tier %d)",
-										nombreArma,
-										player.Name,
-										numeroOleada,
-										rondaTier
-									)
-								)
+						if yaTiene then
+							if rondaTier == numeroOleada then
+								entregadasTierActualSet[nombreArma] = true
 							end
+						else
+							local nuevaArma = plantilla:Clone()
+							nuevaArma:SetAttribute("EsArmaHorda", true)
+							nuevaArma:SetAttribute("RondaDesbloqueo", rondaTier)
+							nuevaArma.CanBeDropped = false
+							nuevaArma.Parent = backpack
+							if rondaTier == numeroOleada then
+								entregadasTierActualSet[nombreArma] = true
+							end
+							print(
+								string.format(
+									"[WaveManager] Arma '%s' entregada a %s (Ronda %d / Tier %d)",
+									nombreArma,
+									player.Name,
+									numeroOleada,
+									rondaTier
+								)
+							)
 						end
 					end
 				end
 			end
 		end
 	end
+
+	if not tierActualCfg then
+		return {}, nil
+	end
+
+	local entregadasTierActual: { string } = {}
+	for _, nombreArma in ipairs(tierActualCfg.Armas) do
+		if entregadasTierActualSet[nombreArma] then
+			table.insert(entregadasTierActual, nombreArma)
+		end
+	end
+
+	if #entregadasTierActual == 0 then
+		return {}, nil
+	end
+	if #entregadasTierActual == #tierActualCfg.Armas then
+		return entregadasTierActual, tierActualCfg.Mensaje
+	end
+
+	return entregadasTierActual,
+		string.format("¡Arsenal desbloqueado: %s!", table.concat(entregadasTierActual, ", "))
 end
 
 local function retirarArmasHorda(player: Player)
@@ -92,13 +229,8 @@ local function retirarArmasHorda(player: Player)
 			return
 		end
 		for _, item in ipairs(contenedor:GetChildren()) do
-			if item:IsA("Tool") then
-				if
-					item:GetAttribute("EsArmaHorda") == true
-					or table.find(ConfigZombis.NombresArmasHorda, item.Name)
-				then
-					item:Destroy()
-				end
+			if item:IsA("Tool") and item:GetAttribute("EsArmaHorda") == true then
+				item:Destroy()
 			end
 		end
 	end
@@ -124,6 +256,7 @@ function WaveManager.ConstruirPayloadParaJugador(
 		ZombisRestantes = restantes,
 		TotalOleada = _totalOleadaActual,
 		Mensaje = mensaje or "",
+		MensajeArmas = _mensajeArmasOleadaActual,
 		TiempoRestante = tiempoRestante or 0,
 		EsParticipante = rol ~= "Espectador",
 		Rol = rol,
@@ -204,7 +337,7 @@ local function seleccionarPuntoAlcanzable(
 		return candidatos[1]
 	end
 
-	local maxPruebas = math.min(3, #candidatos)
+	local maxPruebas = math.min(6, #candidatos)
 	for idx = 1, maxPruebas do
 		local cand = candidatos[idx]
 		local mejorDest = participantesInfo[1].Posicion
@@ -221,8 +354,8 @@ local function seleccionarPuntoAlcanzable(
 		end
 	end
 
-	-- Si los candidatos de Pathfinding fallan en zona abierta sin NavMesh completo, usar el mejor candidato espacial
-	return candidatos[1]
+	-- Nunca aceptar un punto sin ruta verificable hacia los participantes
+	return nil
 end
 
 local function ejecutarOleada(numeroOleada: number, sesionId: number)
@@ -237,15 +370,15 @@ local function ejecutarOleada(numeroOleada: number, sesionId: number)
 	local configOleada = ConfigZombis.ObtenerConfigOleada(numeroOleada)
 	_zombisPorGenerar = configOleada.Cantidad
 	_totalOleadaActual = configOleada.Cantidad
+	_mensajeArmasOleadaActual = ""
 
-	-- Entregar arsenal correspondiente a la ronda actual
-	entregarArmasRonda(numeroOleada)
+	-- Entregar y validar arsenal correspondiente a la ronda actual
+	local _, msgArmas = entregarArmasRonda(numeroOleada)
+	_mensajeArmasOleadaActual = msgArmas or ""
 
-	local mensajeInicio = string.format("OLEADA %d", numeroOleada)
-	local cfgArmas = ConfigZombis.ArmasPorOleada[numeroOleada]
-	if cfgArmas and cfgArmas.Mensaje then
-		mensajeInicio = cfgArmas.Mensaje
-	end
+	local mensajeInicio = if msgArmas and msgArmas ~= ""
+		then msgArmas
+		else string.format("OLEADA %d", numeroOleada)
 
 	notificarATodos(mensajeInicio, 0)
 	print(
@@ -294,11 +427,12 @@ local function ejecutarOleada(numeroOleada: number, sesionId: number)
 				end
 			else
 				fallosConsecutivos += 1
-				if fallosConsecutivos >= maxFallos then
-					warn("[WaveManager] No se encontraron puntos de aparición válidos tras reintentos; finalizando horda.")
-					WaveManager.DetenerHorda("No se encontraron zonas válidas de aparición")
-					return
-				end
+			end
+
+			if fallosConsecutivos >= maxFallos then
+				warn("[WaveManager] Límite de fallos consecutivos de aparición/generación alcanzado; finalizando horda.")
+				WaveManager.DetenerHorda("No se encontraron zonas válidas de aparición")
+				return
 			end
 		end
 
@@ -382,7 +516,9 @@ function WaveManager.IniciarHorda(iniciador: Player): (boolean, string?)
 	_oleadaActual = 0
 	_zombisPorGenerar = 0
 	_totalOleadaActual = 0
+	_mensajeArmasOleadaActual = ""
 
+	WaveManager.ValidarArsenalConfigurado()
 	asegurarMunicionInicialParticipantes()
 	if not HordeSession.TransicionarEstado("CuentaRegresiva") then
 		WaveManager.DetenerHorda("Error en transición de inicio")
@@ -425,6 +561,7 @@ function WaveManager.DetenerHorda(motivo: string?)
 
 	_zombisPorGenerar = 0
 	_totalOleadaActual = 0
+	_mensajeArmasOleadaActual = ""
 
 	if _hiloCiclo and coroutine.running() ~= _hiloCiclo and coroutine.status(_hiloCiclo) ~= "dead" then
 		task.cancel(_hiloCiclo)
@@ -448,6 +585,7 @@ end
 
 function WaveManager.Inicializar()
 	HordeSession.Inicializar()
+	WaveManager.ValidarArsenalConfigurado()
 	HordeSession.EstablecerCallbackParticipantes(function()
 		if HordeSession.EstaActiva() and HordeSession.ObtenerEstado() ~= "Finalizando" then
 			if HordeSession.ContarParticipantesVivos() == 0 then
