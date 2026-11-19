@@ -2,21 +2,18 @@
 --[[
 	HordeService.luau
 	Coordina el NPC Dante cerca del spawn inicial, la validación de interacciones,
-	el inicio seguro de eventos de horda y el ciclo general de supervivencia.
+	el inicio seguro de sesiones de horda y la sincronización con jugadores nuevos.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
-local StarterPack = game:GetService("StarterPack")
 local Workspace = game:GetService("Workspace")
 
 local Datos = require(ReplicatedStorage.Shared.Datos)
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
-local GestorDatos = require(script.Parent.Parent.GestorDatos)
+local HordeSession = require(script.Parent.HordeSession)
 local UtilidadesMapaHorda = require(script.Parent.UtilidadesMapaHorda)
 local WaveManager = require(script.Parent.WaveManager)
-local ZombieService = require(script.Parent.ZombieService)
 
 local ConfigZombis = Datos.Zombis
 local ConfigDante = ConfigZombis.Dante
@@ -76,20 +73,19 @@ local function construirModeloDante(
 	hrp.Size = Vector3.new(2, 2, 1)
 	hrp.Transparency = 1
 	hrp.CanCollide = false
-	hrp.Anchored = true -- Anclado para que Dante mantenga su puesto firme sin ser empujado
+	hrp.Anchored = true
 	hrp.Parent = modelo
 	modelo.PrimaryPart = hrp
 
 	local torso = Instance.new("Part")
 	torso.Name = "Torso"
 	torso.Size = Vector3.new(2, 2, 1)
-	torso.Color = Color3.fromRGB(24, 24, 30) -- Gabardina urbana oscura
+	torso.Color = Color3.fromRGB(24, 24, 30)
 	torso.Material = Enum.Material.Fabric
 	torso.CanCollide = false
 	torso.Anchored = false
 	torso.Parent = modelo
 
-	-- Camisa interior carmesí y solapas de gabardina
 	local camisaInterior = Instance.new("Part")
 	camisaInterior.Name = "CamisaCarmesi"
 	camisaInterior.Size = Vector3.new(0.65, 1.75, 1.06)
@@ -108,7 +104,6 @@ local function construirModeloDante(
 	cuelloAbrigo.Parent = modelo
 	soldarPieza(torso, cuelloAbrigo)
 
-	-- Cinturón táctico con emblema dorado
 	local cinturon = Instance.new("Part")
 	cinturon.Name = "Cinturon"
 	cinturon.Size = Vector3.new(2.08, 0.28, 1.08)
@@ -127,7 +122,6 @@ local function construirModeloDante(
 	hebilla.Parent = modelo
 	soldarPieza(torso, hebilla)
 
-	-- Cabeza, cabello oscuro estilizado y gafas oscuras misteriosas
 	local cabeza = Instance.new("Part")
 	cabeza.Name = "Head"
 	cabeza.Size = Vector3.new(1.2, 1.2, 1.2)
@@ -156,7 +150,6 @@ local function construirModeloDante(
 	gafas.Parent = modelo
 	soldarPieza(cabeza, gafas)
 
-	-- Brazos y mangas de gabardina
 	local brazoIzq = Instance.new("Part")
 	brazoIzq.Name = "Left Arm"
 	brazoIzq.Size = Vector3.new(1, 2, 1)
@@ -193,7 +186,6 @@ local function construirModeloDante(
 	manoDer.Parent = modelo
 	soldarPieza(brazoDer, manoDer)
 
-	-- Piernas (pantalón urbano oscuro)
 	local piernaIzq = Instance.new("Part")
 	piernaIzq.Name = "Left Leg"
 	piernaIzq.Size = Vector3.new(1, 2, 1)
@@ -212,7 +204,6 @@ local function construirModeloDante(
 	piernaDer.Anchored = false
 	piernaDer.Parent = modelo
 
-	-- Luz sutil carmesí para identificarlo fácilmente cerca del spawn
 	local luzPresencia = Instance.new("PointLight")
 	luzPresencia.Name = "LuzDante"
 	luzPresencia.Color = Color3.fromRGB(255, 85, 85)
@@ -220,7 +211,6 @@ local function construirModeloDante(
 	luzPresencia.Brightness = 1.2
 	luzPresencia.Parent = torso
 
-	-- Articulaciones Motor6D
 	crearMotor6D("RootJoint", hrp, torso, CFrame.identity, CFrame.identity)
 	crearMotor6D("Neck", torso, cabeza, CFrame.new(0, 1.0, 0), CFrame.new(0, -0.6, 0))
 	crearMotor6D("Left Shoulder", torso, brazoIzq, CFrame.new(-1.5, 0.5, 0), CFrame.new(0, 0.5, 0))
@@ -228,7 +218,6 @@ local function construirModeloDante(
 	crearMotor6D("Left Hip", torso, piernaIzq, CFrame.new(-0.5, -1.0, 0), CFrame.new(0, 1.0, 0))
 	crearMotor6D("Right Hip", torso, piernaDer, CFrame.new(0.5, -1.0, 0), CFrame.new(0, 1.0, 0))
 
-	-- Humanoid y Animator
 	local humanoid = Instance.new("Humanoid")
 	humanoid.Name = "Humanoid"
 	humanoid.RigType = Enum.HumanoidRigType.R6
@@ -253,7 +242,6 @@ local function construirModeloDante(
 		anim.Parent = carpetaAnims
 	end
 
-	-- Resplandor / Highlight distintivo (ocultado por paredes para no verse a través del mapa)
 	local highlight = Instance.new("Highlight")
 	highlight.Name = "AuraDante"
 	highlight.FillColor = Color3.fromRGB(190, 45, 55)
@@ -264,7 +252,6 @@ local function construirModeloDante(
 	highlight.Adornee = modelo
 	highlight.Parent = modelo
 
-	-- Rótulo superior sobre Dante (visible solo en proximidad a la Cocina, máx 35 studs)
 	local bbg = Instance.new("BillboardGui")
 	bbg.Name = "RotuloDante"
 	bbg.Size = UDim2.fromOffset(230, 56)
@@ -297,7 +284,6 @@ local function construirModeloDante(
 	lbl.TextSize = 13
 	lbl.Parent = marcoLbl
 
-	-- ProximityPrompt de interacción
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "PromptDante"
 	prompt.ObjectText = ConfigDante.Nombre
@@ -319,26 +305,11 @@ local function construirModeloDante(
 	return modelo, hrp, prompt
 end
 
-local function asegurarMunicionInicialParaHorda()
-	local minMunicion = ConfigZombis.General.MunicionMinimaAlIniciar
-	for _, player in ipairs(Players:GetPlayers()) do
-		local datos = GestorDatos.ObtenerDatos(player)
-		if datos then
-			local gomitas = datos.Inventario["Dulce_Gomita"] or 0
-			local bombones = datos.Inventario["Dulce_Bombon"] or 0
-			local total = gomitas + bombones
-			if total < minMunicion then
-				GestorDatos.AgregarDulce(player, "Dulce_Gomita", minMunicion - total)
-			end
-		end
-	end
-end
-
 local function actualizarPromptDante()
 	if not _promptDante then
 		return
 	end
-	if WaveManager.EstaActiva() then
+	if HordeSession.EstaActiva() then
 		_promptDante.ActionText = "Horda en curso..."
 		_promptDante.Enabled = false
 	else
@@ -355,7 +326,6 @@ local function obtenerUbicacionCocinaAbuela(): (Vector3, Vector3)
 		local piso = cocina:FindFirstChild("Piso") :: BasePart?
 		local dintel = cocina:FindFirstChild("Dintel") :: BasePart?
 		if piso and dintel then
-			-- Parado dentro de la cocina sobre el piso, mirando hacia la puerta principal
 			local pos = Vector3.new(piso.Position.X, piso.Position.Y + 3.5, piso.Position.Z + 10)
 			local mirar = Vector3.new(dintel.Position.X, pos.Y, dintel.Position.Z)
 			return pos, mirar
@@ -380,7 +350,7 @@ local function generarDanteEnCocinaAbuela()
 		end
 		_debounceInteraccion[player] = ahora
 
-		if WaveManager.EstaActiva() or _lockInicio then
+		if HordeSession.EstaActiva() or _lockInicio then
 			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
 				Nombre = ConfigDante.Nombre,
 				Titulo = ConfigDante.Titulo,
@@ -402,7 +372,6 @@ local function generarDanteEnCocinaAbuela()
 			return
 		end
 
-		-- Orientar a Dante suavemente hacia el jugador que inicia la conversación
 		local dirJugador = (pHrp.Position - hrp.Position) * Vector3.new(1, 0, 1)
 		if dirJugador.Magnitude > 0.2 then
 			hrp.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + dirJugador.Unit)
@@ -426,154 +395,48 @@ local function generarDanteEnCocinaAbuela()
 	)
 end
 
-local function prepararPlantillaEspadaHorda(): Tool?
-	local existente = ServerStorage:FindFirstChild("EspadaHordaTemplate")
-	if existente and existente:IsA("Tool") then
-		return existente
-	end
-
-	local nombresCandidatos = {
-		"Minecraft Diamond Sword",
-		"Espada del rey",
-		"Classic Sword",
-		"Classic Error Sword",
-	}
-
-	-- Prioridad 1: Buscar en StarterPack (donde el jugador la colocó) y moverla a ServerStorage
-	for _, nombre in ipairs(nombresCandidatos) do
-		local enStarter = StarterPack:FindFirstChild(nombre)
-		if enStarter and enStarter:IsA("Tool") then
-			enStarter.Name = "EspadaHordaTemplate"
-			enStarter.Parent = ServerStorage
-			return enStarter
+local function conectarJugador(player: Player)
+	player.Chatted:Connect(function(mensaje: string)
+		local cmd = string.lower(mensaje)
+		if cmd == "/dante" or cmd == "/iradante" or cmd == "/horda" or cmd == "/cocina" then
+			local char = player.Character
+			local pHrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if pHrp and _hrpDante then
+				pHrp.CFrame = _hrpDante.CFrame
+					* CFrame.new(0, 0, -5)
+					* CFrame.Angles(0, math.rad(180), 0)
+			end
 		end
-	end
+	end)
 
-	-- Prioridad 2: Buscar en Workspace y clonar como plantilla en ServerStorage
-	for _, nombre in ipairs(nombresCandidatos) do
-		local enWorkspace = Workspace:FindFirstChild(nombre)
-		if enWorkspace and enWorkspace:IsA("Tool") then
-			local clon = enWorkspace:Clone()
-			clon.Name = "EspadaHordaTemplate"
-			clon.Parent = ServerStorage
-			return clon
-		end
-	end
-
-	return nil
-end
-
-local function configurarInstakillEspada(espada: Tool, player: Player)
-	local handle = espada:FindFirstChild("Handle")
-	if not handle or not handle:IsA("BasePart") then
-		return
-	end
-
-	local ultimoGolpePorZombi: { [Model]: number } = {}
-	handle.Touched:Connect(function(hit: BasePart)
-		if espada.Parent ~= player.Character then
+	task.delay(1.5, function()
+		if not player:IsDescendantOf(Players) then
 			return
 		end
-		local modeloZombi = ZombieService.EsZombi(hit)
-		if not modeloZombi then
-			return
-		end
-
-		local ahora = os.clock()
-		if ultimoGolpePorZombi[modeloZombi] and (ahora - ultimoGolpePorZombi[modeloZombi]) < 0.2 then
-			return
-		end
-		ultimoGolpePorZombi[modeloZombi] = ahora
-
-		-- Instakill garantizado a cualquier zombi de la horda
-		ZombieService.AplicarDanio(modeloZombi, 999999, player, "EspadaHorda")
+		EventosRemotos.EstadoHordaActualizado:FireClient(
+			player,
+			WaveManager.ConstruirPayloadParaJugador(player, "", 0)
+		)
 	end)
 end
 
-local function entregarEspadaAJugador(player: Player)
-	local plantilla = prepararPlantillaEspadaHorda()
-	if not plantilla then
-		warn("[HordeService] No se encontró ninguna espada plantilla para la horda.")
-		return
-	end
-
-	local char = player.Character
-	local hum = char and char:FindFirstChildOfClass("Humanoid")
-	if not hum or hum.Health <= 0 then
-		return
-	end
-
-	-- Evitar duplicados
-	local backpack = player:FindFirstChildOfClass("Backpack")
-	if backpack then
-		for _, item in ipairs(backpack:GetChildren()) do
-			if item:IsA("Tool") and item:GetAttribute("EsEspadaHorda") == true then
-				item:Destroy()
-			end
-		end
-	end
-	if char then
-		for _, item in ipairs(char:GetChildren()) do
-			if item:IsA("Tool") and item:GetAttribute("EsEspadaHorda") == true then
-				item:Destroy()
-			end
-		end
-	end
-
-	local espada = plantilla:Clone()
-	espada.Name = "Espada Horda"
-	espada:SetAttribute("EsEspadaHorda", true)
-	espada.CanBeDropped = false
-	configurarInstakillEspada(espada, player)
-
-	if backpack then
-		espada.Parent = backpack
-		task.defer(function()
-			if hum and hum.Parent and hum.Health > 0 and espada.Parent then
-				hum:EquipTool(espada)
-			end
-		end)
-	end
-end
-
-local function entregarEspadaATodos()
-	for _, player in ipairs(Players:GetPlayers()) do
-		entregarEspadaAJugador(player)
-	end
-end
-
-local function retirarEspadasDeTodos()
-	for _, player in ipairs(Players:GetPlayers()) do
-		local backpack = player:FindFirstChildOfClass("Backpack")
-		if backpack then
-			for _, item in ipairs(backpack:GetChildren()) do
-				if item:IsA("Tool") and item:GetAttribute("EsEspadaHorda") == true then
-					item:Destroy()
-				end
-			end
-		end
-		local char = player.Character
-		if char then
-			for _, item in ipairs(char:GetChildren()) do
-				if item:IsA("Tool") and item:GetAttribute("EsEspadaHorda") == true then
-					item:Destroy()
-				end
-			end
-		end
-	end
-end
-
 function HordeService.Iniciar()
-	prepararPlantillaEspadaHorda()
-	WaveManager.EstablecerCallbacksCiclo(entregarEspadaATodos, retirarEspadasDeTodos)
+	UtilidadesMapaHorda.ConfigurarCollisionGroups()
 	WaveManager.Inicializar()
 	generarDanteEnCocinaAbuela()
 
-	-- Validación en el servidor al confirmar inicio de horda desde la UI de Dante
+	HordeSession.EstablecerCallbackEstado(function(_nuevoEstado)
+		actualizarPromptDante()
+	end)
+
+	EventosRemotos.ObtenerEstadoHorda.OnServerInvoke = function(player: Player)
+		return WaveManager.ConstruirPayloadParaJugador(player, "", 0)
+	end
+
 	EventosRemotos.SolicitarIniciarHorda.OnServerInvoke = function(
 		player: Player
 	): (boolean, string)
-		if _lockInicio or WaveManager.EstaActiva() then
+		if _lockInicio or HordeSession.EstaActiva() then
 			return false, "Ya hay una horda activa en este momento."
 		end
 
@@ -593,73 +456,22 @@ function HordeService.Iniciar()
 		end
 
 		_lockInicio = true
-		asegurarMunicionInicialParaHorda()
-		WaveManager.IniciarHorda()
+		local exito, errMsg = WaveManager.IniciarHorda(player)
 		actualizarPromptDante()
 		_lockInicio = false
 
+		if not exito then
+			return false, errMsg or "No se pudo iniciar la horda."
+		end
 		return true, ConfigDante.DialogoInicio
 	end
 
-	-- Sincronizar estado si un jugador entra cuando ya hay una oleada en curso
-	Players.PlayerAdded:Connect(function(player: Player)
-		player.CharacterAdded:Connect(function()
-			task.wait(0.4)
-			if WaveManager.EstaActiva() then
-				entregarEspadaAJugador(player)
-			end
-		end)
-
-		-- Comando de ayuda en chat: /dante para teletransportarse frente a Dante en la Cocina de la Abuela
-		player.Chatted:Connect(function(mensaje: string)
-			local cmd = string.lower(mensaje)
-			if cmd == "/dante" or cmd == "/iradante" or cmd == "/horda" or cmd == "/cocina" then
-				local char = player.Character
-				local pHrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-				if pHrp and _hrpDante then
-					pHrp.CFrame = _hrpDante.CFrame
-						* CFrame.new(0, 0, -5)
-						* CFrame.Angles(0, math.rad(180), 0)
-					print(
-						string.format(
-							"[HordeService] Teletransportado %s hacia Dante en la Cocina de la Abuela",
-							player.Name
-						)
-					)
-				end
-			end
-		end)
-
-		task.delay(1.5, function()
-			if not player:IsDescendantOf(Players) then
-				return
-			end
-			EventosRemotos.EstadoHordaActualizado:FireClient(player, {
-				Estado = WaveManager.ObtenerEstado(),
-				Oleada = WaveManager.ObtenerOleadaActual(),
-				ZombisRestantes = 0,
-				TotalOleada = 0,
-				Mensaje = "",
-				TiempoRestante = 0,
-			})
-		end)
-	end)
-
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(conectarJugador, player)
+	end
+	Players.PlayerAdded:Connect(conectarJugador)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		_debounceInteraccion[player] = nil
-	end)
-
-	-- Vigilancia ligera para reactivar el prompt de Dante cuando termina una horda
-	task.spawn(function()
-		local ultimoEstadoActivo = false
-		while true do
-			task.wait(0.5)
-			local activo = WaveManager.EstaActiva()
-			if activo ~= ultimoEstadoActivo then
-				ultimoEstadoActivo = activo
-				actualizarPromptDante()
-			end
-		end
 	end)
 end
 

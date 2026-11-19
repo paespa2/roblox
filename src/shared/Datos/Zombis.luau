@@ -14,12 +14,22 @@ export type ConfigOleada = {
 	EtiquetaVelocidad: string,
 }
 
+export type EfectoEspecialZombi = {
+	Tipo: "Quemadura" | "Congelamiento" | "Veneno",
+	Duracion: number,
+	DanioPorTick: number?,
+	IntervaloTick: number?,
+	FactorVelocidad: number?,
+}
+
 export type VarianteZombi = {
 	Id: string,
 	Nombre: string,
 	MultiplicadorVida: number,
 	MultiplicadorVelocidad: number,
 	MultiplicadorDanio: number,
+	MultiplicadorCooldownAtaque: number?,
+	ResistenciaAturdimiento: number?,
 	Escala: number,
 	ColorPiel: Color3,
 	ColorRopa: Color3,
@@ -27,6 +37,9 @@ export type VarianteZombi = {
 	ColorOjos: Color3,
 	TieneCristalesDulces: boolean,
 	EsDeFuego: boolean?,
+	EsDeHielo: boolean?,
+	EsToxico: boolean?,
+	EfectoEspecial: EfectoEspecialZombi?,
 	TexturaLava: string?,
 	TexturaCara: string?,
 	OleadaMinima: number,
@@ -40,18 +53,64 @@ local Zombis = {
 		IntervaloSpawnSegundos = 0.75,
 		CuentaRegresivaInicial = 5,
 		TiempoEntreOleadas = 6,
+		MaxReintentosSpawn = 12,
 		DistanciaMinSpawnJugador = 22,
 		DistanciaMaxSpawnJugador = 95,
+		DistanciaMinEntreZombis = 5.5,
 		RadioDeteccionStuds = 160,
 		RangoAtaqueStuds = 4.6,
 		RangoImpactoMaximoStuds = 6.2,
 		VentanaImpactoSegundos = 0.28,
+		CooldownDanioJugadorSegundos = 0.55,
 		DuracionAturdimientoGolpe = 0.25,
 		TiempoDespawnMuerto = 2.5,
-		MunicionMinimaAlIniciar = 15,
-		MunicionDropPorMuerte = 2,
-		MultiplicadorHordaEnCurso = true,
+		MunicionMinimaAlIniciar = 25,
+		MunicionDropPorMuerte = 3,
+		MunicionPorOleadaCompletada = 8,
+		BonoOleadaBasePesos = 30,
+		BonoOleadaExtraPesos = 15,
+		BonoOleadaFama = 2,
+		BonoSupervivenciaPesosPorOleada = 15,
+		BonoSupervivenciaFamaPorOleada = 1,
+		MaxLucesDinamicasZombis = 6,
+		DistanciaCullingAnimacion = 140,
+		NombreCollisionGroupZombis = "ZombisHorda",
 		TexturaCara = "rbxassetid://1102142750", -- Archivo 2D Very Scary Face
+	},
+
+	-- Arsenal progresivo entregado a los participantes vivos según la ronda
+	ArmasPorOleada = {
+		[1] = {
+			Armas = { "Uzi", "Hand axes" },
+			Mensaje = "¡Arsenal inicial entregado: Uzi y Hand axes!",
+		},
+		[3] = {
+			Armas = { "Taper 21", "Kinetic" },
+			Mensaje = "¡Arsenal mejorado: Taper 21 y Kinetic desbloqueados!",
+		},
+		[5] = {
+			Armas = { "DMR", "Rhino spear" },
+			Mensaje = "¡Armamento pesado: DMR y Rhino spear desbloqueados!",
+		},
+		[7] = {
+			Armas = { "Burtan AntiMaterialRifle" },
+			Mensaje = "¡Rifle Antimateria Burtan desbloqueado!",
+		},
+		[10] = {
+			Armas = { "Railgun" },
+			Mensaje = "¡ARMA DEFINITIVA DESBLOQUEADA: Railgun!",
+		},
+	} :: { [number]: { Armas: { string }, Mensaje: string } },
+
+	NombresArmasHorda = {
+		"Uzi",
+		"Hand axes",
+		"Taper 21",
+		"Kinetic",
+		"DMR",
+		"Rhino spear",
+		"Burtan AntiMaterialRifle",
+		"Railgun",
 	},
 
 	Dante = {
@@ -65,7 +124,7 @@ local Zombis = {
 		Dialogos = {
 			"Pensé que nunca llegarías. Tenemos un problema... algo está saliendo de las sombras.",
 			"Están llegando. Y créeme, no quieres quedarte aquí cuando aparezcan.",
-			"Si quieres sobrevivir, tendrás que aprender a moverte rápido.",
+			"Si aceptas iniciar la horda, todos los jugadores vivos del servidor entrarán al combate cooperativo.",
 		},
 		DialogoInicio = "¡Prepárate! La primera oleada está comenzando. No dejes que te rodeen.",
 	},
@@ -116,14 +175,14 @@ local Zombis = {
 
 	-- Daño de las dulce-armas existentes contra zombis
 	DanioPorArma = {
-		Arma_CaucheraGomitas = 35,
-		Arma_PistolaCrema = 55,
-		Arma_EscopetaChicle = 85,
-		Arma_MinaCaramelo = 120,
-		Arma_GranadaGaseosa = 110,
-		Arma_BazucaAlgodon = 140,
-		Arma_DinamitaPinata = 220,
-		Arma_CanonChiva = 260,
+		Arma_CaucheraGomitas = 40,
+		Arma_PistolaCrema = 65,
+		Arma_EscopetaChicle = 95,
+		Arma_MinaCaramelo = 135,
+		Arma_GranadaGaseosa = 125,
+		Arma_BazucaAlgodon = 160,
+		Arma_DinamitaPinata = 240,
+		Arma_CanonChiva = 280,
 	} :: { [string]: number },
 
 	-- Variantes visuales y jugables de zombis
@@ -156,6 +215,12 @@ local Zombis = {
 			ColorPantalon = Color3.fromRGB(35, 30, 42),
 			ColorOjos = Color3.fromRGB(140, 255, 90),
 			TieneCristalesDulces = true,
+			EfectoEspecial = {
+				Tipo = "Veneno",
+				Duracion = 2.0,
+				DanioPorTick = 2,
+				IntervaloTick = 1.0,
+			},
 			OleadaMinima = 1,
 			PesoAparicion = 25,
 			RecompensaPesos = 14,
@@ -166,6 +231,7 @@ local Zombis = {
 			MultiplicadorVida = 0.8,
 			MultiplicadorVelocidad = 1.28,
 			MultiplicadorDanio = 1.15,
+			MultiplicadorCooldownAtaque = 0.78,
 			Escala = 0.95,
 			ColorPiel = Color3.fromRGB(136, 102, 98),
 			ColorRopa = Color3.fromRGB(110, 38, 38),
@@ -182,6 +248,8 @@ local Zombis = {
 			MultiplicadorVida = 2.1,
 			MultiplicadorVelocidad = 0.82,
 			MultiplicadorDanio = 1.45,
+			MultiplicadorCooldownAtaque = 1.25,
+			ResistenciaAturdimiento = 0.75,
 			Escala = 1.24,
 			ColorPiel = Color3.fromRGB(88, 102, 86),
 			ColorRopa = Color3.fromRGB(45, 35, 30),
@@ -198,6 +266,7 @@ local Zombis = {
 			MultiplicadorVida = 1.40,
 			MultiplicadorVelocidad = 1.15,
 			MultiplicadorDanio = 1.35,
+			ResistenciaAturdimiento = 0.25,
 			Escala = 1.05,
 			ColorPiel = Color3.fromRGB(25, 25, 25),
 			ColorRopa = Color3.fromRGB(18, 18, 18),
@@ -205,31 +274,89 @@ local Zombis = {
 			ColorOjos = Color3.fromRGB(255, 120, 20),
 			TieneCristalesDulces = false,
 			EsDeFuego = true,
+			EfectoEspecial = {
+				Tipo = "Quemadura",
+				Duracion = 2.4,
+				DanioPorTick = 3,
+				IntervaloTick = 0.8,
+			},
 			TexturaLava = "rbxassetid://102118326",
 			OleadaMinima = 3,
 			PesoAparicion = 35,
 			RecompensaPesos = 24,
 		},
+		{
+			Id = "ZombiHielo",
+			Nombre = "Ice Zombie",
+			MultiplicadorVida = 1.65,
+			MultiplicadorVelocidad = 1.18,
+			MultiplicadorDanio = 1.40,
+			ResistenciaAturdimiento = 0.30,
+			Escala = 1.08,
+			ColorPiel = Color3.fromRGB(0, 255, 255),
+			ColorRopa = Color3.fromRGB(0, 210, 235),
+			ColorPantalon = Color3.fromRGB(0, 175, 215),
+			ColorOjos = Color3.fromRGB(85, 255, 255),
+			TieneCristalesDulces = false,
+			EsDeHielo = true,
+			EfectoEspecial = {
+				Tipo = "Congelamiento",
+				Duracion = 2.0,
+				FactorVelocidad = 0.72,
+			},
+			TexturaCara = "rbxassetid://174393211",
+			OleadaMinima = 6,
+			PesoAparicion = 30,
+			RecompensaPesos = 32,
+		},
+		{
+			Id = "ZombiToxico",
+			Nombre = "Toxic Zombie",
+			MultiplicadorVida = 2.40,
+			MultiplicadorVelocidad = 0.95,
+			MultiplicadorDanio = 1.55,
+			ResistenciaAturdimiento = 0.40,
+			Escala = 1.15,
+			ColorPiel = Color3.fromRGB(44, 101, 29),
+			ColorRopa = Color3.fromRGB(34, 78, 22),
+			ColorPantalon = Color3.fromRGB(28, 60, 18),
+			ColorOjos = Color3.fromRGB(113, 255, 61),
+			TieneCristalesDulces = false,
+			EsToxico = true,
+			EfectoEspecial = {
+				Tipo = "Veneno",
+				Duracion = 3.0,
+				DanioPorTick = 4,
+				IntervaloTick = 1.0,
+			},
+			TexturaCara = "rbxassetid://174330148",
+			OleadaMinima = 10,
+			PesoAparicion = 28,
+			RecompensaPesos = 45,
+		},
 	} :: { VarianteZombi },
 
-	-- Puntos de aparición de respaldo alrededor de Villa Almíbar / Colegio si no hay carpeta Puntos.Zombis
+	-- Puntos exteriores despejados verificados si no existe carpeta Workspace.Puntos.Zombis
 	PuntosAparicionRespaldo = {
-		Vector3.new(62, 63, -145),
-		Vector3.new(132, 63, -140),
-		Vector3.new(135, 63, -90),
-		Vector3.new(60, 63, -88),
-		Vector3.new(98, 63, -72),
-		Vector3.new(40, 63, -115),
-		Vector3.new(-65, 63, -70),
-		Vector3.new(-115, 63, -65),
+		Vector3.new(62, 60, -145),
+		Vector3.new(132, 60, -140),
+		Vector3.new(60, 62, -88),
+		Vector3.new(40, 60, -115),
+		Vector3.new(-65, 62, -70),
+		Vector3.new(-115, 62, -65),
+		Vector3.new(35, 62, -20),
+		Vector3.new(120, 62, -20),
+		Vector3.new(-20, 62, -45),
+		Vector3.new(150, 62, -60),
 	},
 
 	--[[
-		Slots de AnimationId para Roblox Animator.
+		Slots de AnimationId para Roblox Animator (rigs R6).
 		IMPORTANTE: Se dejan vacíos ("") para no inventar IDs externos no verificados.
+		Los AnimationIds R15 existentes en modelos de muestra de ServerStorage no son compatibles con rigs R6.
 		Mientras estén vacíos, ZombieAnimationController y DanteController usan
 		animación procedural mediante Motor6D.Transform.
-		Al colocar un "rbxassetid://TU_ID" válido aquí, Animator lo reproducirá automáticamente.
+		Al colocar un "rbxassetid://TU_ID" válido para R6 aquí, Animator lo reproducirá automáticamente.
 	]]
 	Animaciones = {
 		Dante = {
@@ -270,11 +397,11 @@ function Zombis.ObtenerConfigOleada(numeroOleada: number): ConfigOleada
 
 	local extra = math.max(0, numeroOleada - 5)
 	return {
-		Cantidad = 20 + extra * 5,
-		VelocidadBase = math.min(23.5, 18.2 + extra * 0.6),
-		VidaBase = 230 + extra * 45,
-		DanioBase = math.min(48, 26 + extra * 3),
-		CooldownAtaque = math.max(0.80, 1.0 - extra * 0.03),
+		Cantidad = math.min(60, 20 + extra * 5),
+		VelocidadBase = math.min(22.5, 18.2 + extra * 0.5),
+		VidaBase = 230 + extra * 38,
+		DanioBase = math.min(42, 26 + extra * 2.5),
+		CooldownAtaque = math.max(0.82, 1.0 - extra * 0.025),
 		EtiquetaVelocidad = "Infinita",
 	}
 end

@@ -7,8 +7,31 @@
 
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
+local PhysicsService = game:GetService("PhysicsService")
+local PathfindingService = game:GetService("PathfindingService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Datos = require(ReplicatedStorage.Shared.Datos)
 
 local UtilidadesMapaHorda = {}
+
+local _collisionGroupConfigurado = false
+
+function UtilidadesMapaHorda.ConfigurarCollisionGroups()
+	if _collisionGroupConfigurado then
+		return
+	end
+	_collisionGroupConfigurado = true
+
+	local nombreGrupo = (Datos.Zombis and Datos.Zombis.General and Datos.Zombis.General.NombreCollisionGroupZombis)
+		or "ZombisHorda"
+
+	pcall(function()
+		PhysicsService:RegisterCollisionGroup(nombreGrupo)
+		PhysicsService:CollisionGroupSetCollidable(nombreGrupo, nombreGrupo, false)
+		PhysicsService:CollisionGroupSetCollidable(nombreGrupo, "Default", true)
+	end)
+end
 
 local NOMBRES_IGNORAR_SUELO = {
 	"techo",
@@ -208,14 +231,51 @@ function UtilidadesMapaHorda.BuscarPosicionSeguraCercaDe(
 	return fallback
 end
 
+export type InfoParticipanteSpawn = {
+	Posicion: Vector3,
+	LookVector: Vector3,
+}
+
+local function puntoEsVisibleParaParticipante(
+	posParticipante: Vector3,
+	posSpawn: Vector3,
+	paramsOclusion: RaycastParams
+): boolean
+	local origen = posParticipante + Vector3.new(0, 1.8, 0)
+	local objetivo = posSpawn + Vector3.new(0, 1.5, 0)
+	local dir = objetivo - origen
+	if dir.Magnitude < 1 then
+		return true
+	end
+	local hit = Workspace:Raycast(origen, dir, paramsOclusion)
+	return hit == nil
+end
+
+function UtilidadesMapaHorda.ValidarRutaAlcanzable(origen: Vector3, destino: Vector3): boolean
+	local path = PathfindingService:CreatePath({
+		AgentRadius = 2.0,
+		AgentHeight = 5.5,
+		AgentCanJump = true,
+		AgentCanClimb = false,
+		WaypointSpacing = 5.0,
+	})
+	local ok = pcall(function()
+		path:ComputeAsync(origen, destino)
+	end)
+	return ok and path.Status == Enum.PathStatus.Success
+end
+
 function UtilidadesMapaHorda.ObtenerPuntosAparicionZombis(
 	puntosRespaldo: { Vector3 },
+	participantesInfo: { InfoParticipanteSpawn },
+	posicionesZombis: { Vector3 },
 	distanciaMinJugador: number,
-	distanciaMaxJugador: number
+	distanciaMaxJugador: number,
+	distanciaMinZombis: number
 ): { Vector3 }
 	local candidatos: { Vector3 } = {}
 
-	-- 1. Si el mapa tiene carpeta Workspace.Puntos.Zombis con partes configuradas, priorizarlas
+	-- 1. Priorizar carpeta Workspace.Puntos.Zombis con partes configuradas
 	local puntosFolder = Workspace:FindFirstChild("Puntos")
 	local zombisFolder = puntosFolder and puntosFolder:FindFirstChild("Zombis")
 	if zombisFolder then
@@ -226,14 +286,16 @@ function UtilidadesMapaHorda.ObtenerPuntosAparicionZombis(
 		end
 	end
 
-	-- 2. Si no hay suficientes configurados en Studio, generar anillo dinámico alrededor del spawn/jugadores
-	if #candidatos < 4 then
-		local centroBase = UtilidadesMapaHorda.ObtenerSpawnInicial()
+	-- 2. Completar con puntos exteriores de respaldo y anillo alrededor de participantes/spawn
+	if #candidatos < 6 then
 		for _, pos in ipairs(puntosRespaldo) do
 			table.insert(candidatos, pos)
 		end
 
-		local radios = { 34, 46, 58 }
+		local centroBase = if #participantesInfo > 0
+			then participantesInfo[1].Posicion
+			else UtilidadesMapaHorda.ObtenerSpawnInicial()
+		local radios = { 34, 48, 64 }
 		for _, radio in ipairs(radios) do
 			for anguloDeg = 0, 315, 45 do
 				local rad = math.rad(anguloDeg)
@@ -243,18 +305,21 @@ function UtilidadesMapaHorda.ObtenerPuntosAparicionZombis(
 		end
 	end
 
-	-- 3. Validar suelo, despeje contra muros y distancia segura respecto a jugadores vivos
-	local posicionesJugadores: { Vector3 } = {}
-	for _, player in ipairs(Players:GetPlayers()) do
-		local char = player.Character
-		local hrp = char and char:FindFirstChild("HumanoidRootPart")
-		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if hrp and hrp:IsA("BasePart") and hum and hum.Health > 0 then
-			table.insert(posicionesJugadores, hrp.Position)
+	local exclusionesOclusion: { Instance } = {}
+	local sistema = Workspace:FindFirstChild("HordaSistema")
+	if sistema then
+		table.insert(exclusionesOclusion, sistema)
+	end
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p.Character then
+			table.insert(exclusionesOclusion, p.Character)
 		end
 	end
+	local paramsOclusion = RaycastParams.new()
+	paramsOclusion.FilterType = Enum.RaycastFilterType.Exclude
+	paramsOclusion.FilterDescendantsInstances = exclusionesOclusion
 
-	local validos: { Vector3 } = {}
+	local puntuados: { { Pos: Vector3, Score: number } } = {}
 	for _, cand in ipairs(candidatos) do
 		local posSuelo, haySuelo = UtilidadesMapaHorda.ObtenerPosicionSuelo(cand, 3.0)
 		if not haySuelo then
@@ -264,34 +329,74 @@ function UtilidadesMapaHorda.ObtenerPuntosAparicionZombis(
 		if
 			not UtilidadesMapaHorda.EstaEspacioLibre(
 				posSuelo + Vector3.new(0, 0.8, 0),
-				Vector3.new(3.2, 4.2, 3.2)
+				Vector3.new(3.4, 4.4, 3.4)
 			)
 		then
 			continue
 		end
 
-		local muyCerca = false
-		local alMenosUnoEnRango = #posicionesJugadores == 0
-		for _, pPos in ipairs(posicionesJugadores) do
-			local dist = (posSuelo - pPos).Magnitude
+		-- Evitar superposición con otros zombis activos
+		local muyCercaOtroZombi = false
+		for _, zPos in ipairs(posicionesZombis) do
+			if (posSuelo - zPos).Magnitude < distanciaMinZombis then
+				muyCercaOtroZombi = true
+				break
+			end
+		end
+		if muyCercaOtroZombi then
+			continue
+		end
+
+		-- Validar distancia respecto a participantes vivos
+		local muyCercaJugador = false
+		local enRangoMaximo = #participantesInfo == 0
+		local fueraDeConoFrontal = true
+		local ocultoPorObstaculo = true
+		local mejorDistJugador = math.huge
+
+		for _, infoP in ipairs(participantesInfo) do
+			local delta = posSuelo - infoP.Posicion
+			local dist = delta.Magnitude
 			if dist < distanciaMinJugador then
-				muyCerca = true
+				muyCercaJugador = true
 				break
 			end
 			if dist <= distanciaMaxJugador then
-				alMenosUnoEnRango = true
+				enRangoMaximo = true
+			end
+			if dist < mejorDistJugador then
+				mejorDistJugador = dist
+			end
+
+			local horiz = Vector3.new(delta.X, 0, delta.Z)
+			if horiz.Magnitude > 0.5 then
+				local dot = infoP.LookVector:Dot(horiz.Unit)
+				if dot >= 0.35 then
+					fueraDeConoFrontal = false
+				end
+			end
+
+			if dist <= 75 and puntoEsVisibleParaParticipante(infoP.Posicion, posSuelo, paramsOclusion) then
+				ocultoPorObstaculo = false
 			end
 		end
 
-		if not muyCerca and alMenosUnoEnRango then
-			table.insert(validos, posSuelo)
+		if not muyCercaJugador and enRangoMaximo then
+			local score = math.random() * 15
+			if fueraDeConoFrontal then
+				score += 50
+			end
+			if ocultoPorObstaculo then
+				score += 40
+			end
+			table.insert(puntuados, { Pos = posSuelo, Score = score })
 		end
 	end
 
-	-- Fallback si todos estaban fuera de rango (ej. jugador viajó lejos): generar anillo alrededor de un jugador vivo
-	if #validos == 0 and #posicionesJugadores > 0 then
-		local centro = posicionesJugadores[1]
-		for anguloDeg = 0, 315, 45 do
+	-- Fallback alrededor del primer participante vivo si todos los puntos fijos quedaron fuera de rango
+	if #puntuados == 0 and #participantesInfo > 0 then
+		local centro = participantesInfo[1].Posicion
+		for anguloDeg = 0, 315, 30 do
 			local rad = math.rad(anguloDeg)
 			local cand = centro + Vector3.new(math.cos(rad) * 38, 2, math.sin(rad) * 38)
 			local posSuelo, haySuelo = UtilidadesMapaHorda.ObtenerPosicionSuelo(cand, 3.0)
@@ -299,14 +404,31 @@ function UtilidadesMapaHorda.ObtenerPuntosAparicionZombis(
 				haySuelo
 				and UtilidadesMapaHorda.EstaEspacioLibre(
 					posSuelo + Vector3.new(0, 0.8, 0),
-					Vector3.new(3.2, 4.2, 3.2)
+					Vector3.new(3.4, 4.4, 3.4)
 				)
 			then
-				table.insert(validos, posSuelo)
+				local chocaZombi = false
+				for _, zPos in ipairs(posicionesZombis) do
+					if (posSuelo - zPos).Magnitude < distanciaMinZombis then
+						chocaZombi = true
+						break
+					end
+				end
+				if not chocaZombi then
+					table.insert(puntuados, { Pos = posSuelo, Score = math.random() * 10 })
+				end
 			end
 		end
 	end
 
+	table.sort(puntuados, function(a, b)
+		return a.Score > b.Score
+	end)
+
+	local validos: { Vector3 } = {}
+	for _, item in ipairs(puntuados) do
+		table.insert(validos, item.Pos)
+	end
 	return validos
 end
 

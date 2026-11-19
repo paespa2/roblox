@@ -2,7 +2,8 @@
 --[[
 	HordeUI.luau
 	Interfaz de supervivencia por oleadas estilo Call of Duty Zombies
-	integrada con la identidad visual de El Patrón del Dulce.
+	adaptada a El Patrón del Dulce, con soporte de roles (Participante,
+	Eliminado, Espectador), caché de renderizado y resumen final.
 ]]
 
 local Players = game:GetService("Players")
@@ -33,6 +34,18 @@ local _musicaTension: Sound? = nil
 local _ultimoMensajeAnunciado = ""
 local _ultimaOleadaAnunciada = 0
 local _timerOcultarBanner: thread? = nil
+
+local _cacheOleadaTxt = ""
+local _cacheEstadoTxt = ""
+local _cacheZombisTxt = ""
+
+local function setTextCached(lbl: TextLabel, txt: string, cache: string): string
+	if cache ~= txt then
+		lbl.Text = txt
+		return txt
+	end
+	return cache
+end
 
 local function reproducirSonido(soundId: string, volumen: number?)
 	if soundId == "" then
@@ -130,16 +143,20 @@ local function construirInterfaz()
 	_screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	_screenGui.Parent = PlayerGui
 
-	-- Panel persistente superior derecho (no choca con HUDPrincipal ni HUDEstrellas)
 	_panelHorda = Instance.new("Frame")
 	_panelHorda.Name = "PanelEstadoHorda"
-	_panelHorda.Size = UDim2.fromOffset(250, 92)
+	_panelHorda.Size = UDim2.fromOffset(265, 96)
 	_panelHorda.AnchorPoint = Vector2.new(1, 0)
 	_panelHorda.Position = UDim2.new(1, -20, 0, 20)
 	_panelHorda.BackgroundColor3 = Color3.fromRGB(22, 18, 26)
 	_panelHorda.BackgroundTransparency = 0.12
 	_panelHorda.Visible = false
 	_panelHorda.Parent = _screenGui
+
+	local sizeConsPanel = Instance.new("UISizeConstraint")
+	sizeConsPanel.MinSize = Vector2.new(210, 78)
+	sizeConsPanel.MaxSize = Vector2.new(300, 110)
+	sizeConsPanel.Parent = _panelHorda
 
 	local cornerPanel = Instance.new("UICorner")
 	cornerPanel.CornerRadius = UDim.new(0, 12)
@@ -165,7 +182,7 @@ local function construirInterfaz()
 	_lblEstado = Instance.new("TextLabel")
 	_lblEstado.Name = "TextoEstado"
 	_lblEstado.Size = UDim2.new(1, -20, 0, 20)
-	_lblEstado.Position = UDim2.fromOffset(12, 38)
+	_lblEstado.Position = UDim2.fromOffset(12, 39)
 	_lblEstado.BackgroundTransparency = 1
 	_lblEstado.Font = Enum.Font.GothamBold
 	_lblEstado.Text = "HORDA EN CURSO"
@@ -177,25 +194,29 @@ local function construirInterfaz()
 	_lblZombis = Instance.new("TextLabel")
 	_lblZombis.Name = "ContadorZombis"
 	_lblZombis.Size = UDim2.new(1, -20, 0, 24)
-	_lblZombis.Position = UDim2.fromOffset(12, 58)
+	_lblZombis.Position = UDim2.fromOffset(12, 62)
 	_lblZombis.BackgroundTransparency = 1
 	_lblZombis.Font = Enum.Font.FredokaOne
 	_lblZombis.Text = "🧟 Zombis restantes: 0"
 	_lblZombis.TextColor3 = Color3.fromRGB(235, 240, 250)
-	_lblZombis.TextSize = 15
+	_lblZombis.TextSize = 14
 	_lblZombis.TextXAlignment = Enum.TextXAlignment.Left
 	_lblZombis.Parent = _panelHorda
 
-	-- Banner central dramático para anuncios de oleada
 	_bannerCentral = Instance.new("Frame")
 	_bannerCentral.Name = "BannerOleada"
-	_bannerCentral.Size = UDim2.fromOffset(440, 74)
+	_bannerCentral.Size = UDim2.fromOffset(460, 76)
 	_bannerCentral.AnchorPoint = Vector2.new(0.5, 0)
 	_bannerCentral.Position = UDim2.new(0.5, 0, 0, -120)
 	_bannerCentral.BackgroundColor3 = Color3.fromRGB(28, 16, 22)
 	_bannerCentral.BackgroundTransparency = 0.08
 	_bannerCentral.Visible = false
 	_bannerCentral.Parent = _screenGui
+
+	local sizeConsBanner = Instance.new("UISizeConstraint")
+	sizeConsBanner.MinSize = Vector2.new(300, 68)
+	sizeConsBanner.MaxSize = Vector2.new(520, 92)
+	sizeConsBanner.Parent = _bannerCentral
 
 	local cornerBan = Instance.new("UICorner")
 	cornerBan.CornerRadius = UDim.new(0, 14)
@@ -213,7 +234,7 @@ local function construirInterfaz()
 	_lblBannerTitulo.Font = Enum.Font.FredokaOne
 	_lblBannerTitulo.Text = "OLEADA 1"
 	_lblBannerTitulo.TextColor3 = Color3.fromRGB(255, 95, 95)
-	_lblBannerTitulo.TextSize = 26
+	_lblBannerTitulo.TextSize = 25
 	_lblBannerTitulo.Parent = _bannerCentral
 
 	_lblBannerSub = Instance.new("TextLabel")
@@ -234,6 +255,15 @@ local function manejarActualizacionEstado(datosEstado: {
 	TotalOleada: number,
 	Mensaje: string,
 	TiempoRestante: number,
+	Rol: string?,
+	ParticipantesVivos: number?,
+	TotalParticipantes: number?,
+	ResumenFinal: {
+		Bajas: number,
+		OleadasSobrevividas: number,
+		PesosGanados: number,
+		FamaGanada: number,
+	}?,
 })
 	local estado = datosEstado.Estado
 	local oleada = datosEstado.Oleada or 0
@@ -241,27 +271,61 @@ local function manejarActualizacionEstado(datosEstado: {
 	local total = datosEstado.TotalOleada or 0
 	local mensaje = datosEstado.Mensaje or ""
 	local tiempo = datosEstado.TiempoRestante or 0
+	local rol = datosEstado.Rol or "Espectador"
+	local vivos = datosEstado.ParticipantesVivos or 0
+	local totalPart = datosEstado.TotalParticipantes or 0
 
-	if estado == "Inactiva" then
+	if estado == "Inactiva" or estado == "Finalizando" then
 		_panelHorda.Visible = false
 		_ultimaOleadaAnunciada = 0
 		_ultimoMensajeAnunciado = ""
 		actualizarMusicaTension(false)
-		if mensaje ~= "" then
-			mostrarBannerOleada("HORDA FINALIZADA", mensaje, Color3.fromRGB(190, 80, 90), 3.2)
+
+		if estado == "Inactiva" and (mensaje ~= "" or datosEstado.ResumenFinal) then
+			local res = datosEstado.ResumenFinal
+			local sub = if res
+				then string.format(
+					"%s • %d bajas | %d oleadas | +$%d | +%d Fama",
+					mensaje,
+					res.Bajas or 0,
+					res.OleadasSobrevividas or 0,
+					res.PesosGanados or 0,
+					res.FamaGanada or 0
+				)
+				else mensaje
+			mostrarBannerOleada("HORDA FINALIZADA", sub, Color3.fromRGB(190, 80, 90), 4.2)
 		end
 		return
 	end
 
 	_panelHorda.Visible = true
+
+	-- Espectadores (jugadores nuevos que entraron después del inicio) no oyen música de combate
+	if rol == "Espectador" then
+		actualizarMusicaTension(false)
+		_cacheOleadaTxt = setTextCached(_lblOleada, string.format("👁️ ESPECTADOR — OLEADA %d", math.max(1, oleada)), _cacheOleadaTxt)
+		_cacheEstadoTxt = setTextCached(_lblEstado, string.format("Horda cooperativa en curso (%d/%d vivos)", vivos, totalPart), _cacheEstadoTxt)
+		_cacheZombisTxt = setTextCached(_lblZombis, "Espera a que termine para unirte", _cacheZombisTxt)
+		return
+	end
+
+	-- Participantes eliminados esperan el fin de la sesión sin alertas invasivas
+	if rol == "Eliminado" then
+		actualizarMusicaTension(false)
+		_cacheOleadaTxt = setTextCached(_lblOleada, string.format("☠️ ELIMINADO — OLEADA %d", math.max(1, oleada)), _cacheOleadaTxt)
+		_cacheEstadoTxt = setTextCached(_lblEstado, string.format("Esperando fin de horda (%d/%d vivos)", vivos, totalPart), _cacheEstadoTxt)
+		_cacheZombisTxt = setTextCached(_lblZombis, string.format("🧟 Zombis restantes: %d", restantes), _cacheZombisTxt)
+		return
+	end
+
 	actualizarMusicaTension(true)
 
-	if estado == "CuentaRegresiva" then
-		_lblOleada.Text = "⚠️ LA HORDA SE ACERCA..."
-		_lblEstado.Text = string.format("Primera oleada en %ds", tiempo)
-		_lblZombis.Text = "Prepárate para combatir"
+	if estado == "Preparando" or estado == "CuentaRegresiva" then
+		_cacheOleadaTxt = setTextCached(_lblOleada, "⚠️ LA HORDA SE ACERCA...", _cacheOleadaTxt)
+		_cacheEstadoTxt = setTextCached(_lblEstado, string.format("Oleada 1 en %ds • Vivos: %d", tiempo, vivos), _cacheEstadoTxt)
+		_cacheZombisTxt = setTextCached(_lblZombis, "Prepárate para combatir", _cacheZombisTxt)
 
-		if _ultimoMensajeAnunciado ~= "CuentaRegresiva" then
+		if estado == "CuentaRegresiva" and _ultimoMensajeAnunciado ~= "CuentaRegresiva" then
 			_ultimoMensajeAnunciado = "CuentaRegresiva"
 			reproducirSonido(ConfigZombis.Sonidos.InicioOleada, 0.7)
 			mostrarBannerOleada(
@@ -270,39 +334,40 @@ local function manejarActualizacionEstado(datosEstado: {
 				Color3.fromRGB(255, 165, 50),
 				3.5
 			)
-		else
-			reproducirSonido(ConfigZombis.Sonidos.AlertaUI, 0.35)
+		elseif estado == "CuentaRegresiva" then
+			reproducirSonido(ConfigZombis.Sonidos.AlertaUI, 0.3)
 		end
 	elseif estado == "EnCurso" then
-		_lblOleada.Text = string.format("💀 OLEADA %d", oleada)
-		_lblEstado.Text = "COMBATE ACTIVO"
-		_lblZombis.Text = string.format("🧟 Zombis restantes: %d / %d", restantes, total)
+		_cacheOleadaTxt = setTextCached(_lblOleada, string.format("💀 OLEADA %d", oleada), _cacheOleadaTxt)
+		_cacheEstadoTxt = setTextCached(_lblEstado, string.format("COMBATE ACTIVO • Vivos: %d/%d", vivos, totalPart), _cacheEstadoTxt)
+		_cacheZombisTxt = setTextCached(_lblZombis, string.format("🧟 Zombis restantes: %d / %d", restantes, total), _cacheZombisTxt)
 
 		if _ultimaOleadaAnunciada ~= oleada then
 			_ultimaOleadaAnunciada = oleada
 			_ultimoMensajeAnunciado = "Oleada_" .. tostring(oleada)
 			reproducirSonido(ConfigZombis.Sonidos.InicioOleada, 0.75)
 
-			local subtitulo = if oleada == 3
-				then "🔥 ¡ALERTA: ZOMBIS DE FUEGO Y LAVA EMERGIENDO!"
-				elseif oleada > 3 then string.format("🔥 Horda ardiente activa: %d enemigos aproximándose", total)
+			local subtitulo = if oleada == 10
+				then "☣️ ¡ZOMBIS TÓXICOS! | ⚡ DESBLOQUEADO: RAILGUN"
+				elseif oleada == 7 then "💥 ¡DESBLOQUEADO: BURTAN ANTIMATERIAL RIFLE!"
+				elseif oleada == 6 then "❄️ ¡ALERTA: ICE ZOMBIES EMERGIENDO!"
+				elseif oleada == 5 then "⚡ ¡ARSENAL PESADO: DMR & RHINO SPEAR!"
+				elseif oleada == 3 then "🔥 ¡ZOMBIS DE LAVA! | ⚔️ TAPER 21 & KINETIC"
+				elseif oleada == 1 then "⚔️ ¡ARSENAL INICIAL: UZI Y HACHAS!"
 				else string.format("%d enemigos emergen de las sombras", total)
 
-			local colorBorde = if oleada >= 3
-				then Color3.fromRGB(255, 120, 30)
+			local colorBorde = if oleada >= 10
+				then Color3.fromRGB(113, 255, 61)
+				elseif oleada >= 6 then Color3.fromRGB(85, 255, 255)
+				elseif oleada >= 3 then Color3.fromRGB(255, 120, 30)
 				else Color3.fromRGB(235, 55, 65)
 
-			mostrarBannerOleada(
-				string.format("OLEADA %d", oleada),
-				subtitulo,
-				colorBorde,
-				3.8
-			)
+			mostrarBannerOleada(string.format("OLEADA %d", oleada), subtitulo, colorBorde, 3.8)
 		end
 	elseif estado == "OleadaCompletada" then
-		_lblOleada.Text = string.format("✓ OLEADA %d", oleada)
-		_lblEstado.Text = string.format("Siguiente oleada en %ds", tiempo)
-		_lblZombis.Text = "🧟 Zombis restantes: 0"
+		_cacheOleadaTxt = setTextCached(_lblOleada, string.format("✓ OLEADA %d", oleada), _cacheOleadaTxt)
+		_cacheEstadoTxt = setTextCached(_lblEstado, string.format("Siguiente oleada en %ds", tiempo), _cacheEstadoTxt)
+		_cacheZombisTxt = setTextCached(_lblZombis, "🧟 Zombis restantes: 0", _cacheZombisTxt)
 
 		if _ultimoMensajeAnunciado ~= ("Completada_" .. tostring(oleada)) then
 			_ultimoMensajeAnunciado = "Completada_" .. tostring(oleada)
@@ -329,6 +394,19 @@ function HordeUI.Iniciar()
 	else
 		warn("[HordeUI] No se pudo conectar EstadoHordaActualizado RemoteEvent")
 	end
+
+	-- Sincronizar estado real al iniciar o reaparecer
+	task.spawn(function()
+		local fnEstado = EventosRemotos.ObtenerEstadoHorda
+		if fnEstado and fnEstado:IsA("RemoteFunction") then
+			local ok, payload = pcall(function()
+				return fnEstado:InvokeServer()
+			end)
+			if ok and typeof(payload) == "table" then
+				manejarActualizacionEstado(payload)
+			end
+		end
+	end)
 end
 
 return HordeUI

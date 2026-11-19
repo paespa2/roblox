@@ -117,6 +117,28 @@ function GestorDatos.AgregarPesos(player: Player, cantidad: number): boolean
 	return true
 end
 
+function GestorDatos.AgregarFama(player: Player, cantidad: number): boolean
+	local perfil = perfilesCargados[player]
+	if not perfil or cantidad <= 0 then
+		return false
+	end
+	perfil.Data.Fama += math.floor(cantidad)
+	sincronizarCliente(player)
+	return true
+end
+
+function GestorDatos.TieneArma(player: Player, idArma: string): boolean
+	local perfil = perfilesCargados[player]
+	if not perfil then
+		return false
+	end
+	if idArma == "Arma_CaucheraGomitas" then
+		return true
+	end
+	local desbloqueadas = perfil.Data.ArmasDesbloqueadas
+	return desbloqueadas ~= nil and desbloqueadas[idArma] == true
+end
+
 function GestorDatos.QuitarPesos(player: Player, cantidad: number): boolean
 	local perfil = perfilesCargados[player]
 	if not perfil or cantidad <= 0 then

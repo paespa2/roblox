@@ -114,6 +114,7 @@ local function abrirDialogo(info: {
 	_paginaActual = 1
 	_posDante = info.PosicionDante
 	_enviandoInicio = false
+	_btnComenzar.Text = "COMENZAR HORDA"
 	_dialogoAbierto = true
 
 	local tituloCompleto = (info.Nombre or "Dante")
@@ -386,7 +387,7 @@ function DanteController.Iniciar()
 		warn("[DanteController] No se pudo conectar DanteInteraccion RemoteEvent")
 	end
 
-	local sistema = Workspace:WaitForChild("HordaSistema", 10)
+	local sistema = Workspace:FindFirstChild("HordaSistema")
 	if sistema then
 		local dante = sistema:FindFirstChild("NPC_Dante")
 		if dante and dante:IsA("Model") then
@@ -398,8 +399,21 @@ function DanteController.Iniciar()
 			end
 		end)
 	end
+	Workspace.ChildAdded:Connect(function(child)
+		if child.Name == "HordaSistema" then
+			local dante = child:FindFirstChild("NPC_Dante")
+			if dante and dante:IsA("Model") then
+				vincularModeloDante(dante)
+			end
+			child.ChildAdded:Connect(function(sub)
+				if sub.Name == "NPC_Dante" and sub:IsA("Model") then
+					vincularModeloDante(sub)
+				end
+			end)
+		end
+	end)
 
-	RunService.RenderStepped:Connect(function()
+	RunService.Stepped:Connect(function()
 		local t = os.clock()
 
 		-- Cerrar diálogo automáticamente si el jugador se aleja demasiado
@@ -419,7 +433,16 @@ function DanteController.Iniciar()
 			end
 		end
 
-		-- Animación procedural de Dante cuando no hay AnimationTrack externo asignado
+		-- Animación procedural de Dante cuando está en rango visible y sin AnimationTrack externo
+		local cam = Workspace.CurrentCamera
+		if
+			cam
+			and _posDante
+			and (cam.CFrame.Position - _posDante).Magnitude > 65
+		then
+			return
+		end
+
 		if
 			_motorRootDante
 			and not (_trackIdleDante and _trackIdleDante.IsPlaying)

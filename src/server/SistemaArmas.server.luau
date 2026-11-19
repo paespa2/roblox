@@ -125,19 +125,24 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 	if typeof(idArma) ~= "string" or not Datos.Armas[idArma] then
 		return false, "Arma no reconocida"
 	end
-	if typeof(direccion) ~= "Vector3" then
+	if typeof(direccion) ~= "Vector3" or direccion ~= direccion or direccion.Magnitude < 0.001 then
 		return false, "Dirección inválida"
 	end
 
 	local infoArma = Datos.Armas[idArma]
 	local character = player.Character
-	if not character or not character:FindFirstChild("Head") then
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not character or not character:FindFirstChild("Head") or not humanoid or humanoid.Health <= 0 then
 		return false, "Personaje no disponible"
 	end
 
 	local datosJugador = GestorDatos.ObtenerDatos(player)
 	if not datosJugador then
 		return false, "Datos de jugador no encontrados"
+	end
+
+	if not GestorDatos.TieneArma(player, idArma) then
+		return false, "No tienes esta arma desbloqueada"
 	end
 
 	-- Verificar cadencia
@@ -390,7 +395,8 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 				end
 			end
 		elseif zombiDirecto then
-			ZombieService.AplicarDanio(zombiDirecto, danioZombi, player, idArma)
+			local danioFinal = if hit.Name == "Head" then math.round(danioZombi * 1.35) else danioZombi
+			ZombieService.AplicarDanio(zombiDirecto, danioFinal, player, idArma)
 		else
 			-- Asistencia de impacto cercano (3.8 studs) para hitbox amigable con proyectiles
 			for modeloZombi, _ in pairs(ZombieService.ObtenerZombisActivos()) do
