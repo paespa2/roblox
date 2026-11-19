@@ -58,6 +58,7 @@ local Zombis = {
 		Nombre = "Dante",
 		Titulo = "Vigía de las Sombras",
 		DistanciaInteraccion = 10,
+		DistanciaMaxRotulo = 35,
 		RequiereLineaVision = false,
 		DuracionHoldPrompt = 0.2,
 		DistanciaMaxConfirmacion = 16,

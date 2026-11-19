@@ -252,24 +252,24 @@ local function construirModeloDante(
 		anim.Parent = carpetaAnims
 	end
 
-	-- Resplandor / Highlight distintivo (visible a distancia)
+	-- Resplandor / Highlight distintivo (ocultado por paredes para no verse a través del mapa)
 	local highlight = Instance.new("Highlight")
 	highlight.Name = "AuraDante"
 	highlight.FillColor = Color3.fromRGB(190, 45, 55)
 	highlight.FillTransparency = 0.7
 	highlight.OutlineColor = Color3.fromRGB(255, 220, 80)
 	highlight.OutlineTransparency = 0.1
-	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 	highlight.Adornee = modelo
 	highlight.Parent = modelo
 
-	-- Rótulo superior distintivo (visible hasta 500 studs)
+	-- Rótulo superior sobre Dante (visible solo en proximidad a la Cocina, máx 35 studs)
 	local bbg = Instance.new("BillboardGui")
 	bbg.Name = "RotuloDante"
 	bbg.Size = UDim2.fromOffset(230, 56)
 	bbg.StudsOffset = Vector3.new(0, 3.2, 0)
-	bbg.AlwaysOnTop = true
-	bbg.MaxDistance = 500
+	bbg.AlwaysOnTop = false
+	bbg.MaxDistance = ConfigDante.DistanciaMaxRotulo or 35
 	bbg.Parent = cabeza
 
 	local marcoLbl = Instance.new("Frame")
