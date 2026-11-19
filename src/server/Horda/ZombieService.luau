@@ -155,27 +155,37 @@ local function construirRigZombi(variante: any, escala: number): (Model, Humanoi
 	cabeza.Anchored = false
 	cabeza.Parent = modelo
 
-	-- Ojos brillantes amenazantes visibles a distancia
-	for _, xOjo in ipairs({ -0.25 * escala, 0.25 * escala }) do
-		local ojo = Instance.new("Part")
-		ojo.Name = "OjoBrillante"
-		ojo.Size = Vector3.new(0.22 * escala, 0.16 * escala, 0.12 * escala)
-		ojo.Color = variante.ColorOjos
-		ojo.Material = Enum.Material.Neon
-		ojo.CFrame = cabeza.CFrame * CFrame.new(xOjo, 0.12 * escala, -0.58 * escala)
-		ojo.Parent = modelo
-		soldarAccesorio(cabeza, ojo)
-	end
+	-- Cara 2D personalizada (Very scary face) o fallback procedural
+	local idCara = variante.TexturaCara or ConfigZombis.General.TexturaCara
+	if idCara and idCara ~= "" then
+		local caraDecal = Instance.new("Decal")
+		caraDecal.Name = "face"
+		caraDecal.Texture = idCara
+		caraDecal.Face = Enum.NormalId.Front
+		caraDecal.Parent = cabeza
+	else
+		-- Ojos brillantes amenazantes visibles a distancia
+		for _, xOjo in ipairs({ -0.25 * escala, 0.25 * escala }) do
+			local ojo = Instance.new("Part")
+			ojo.Name = "OjoBrillante"
+			ojo.Size = Vector3.new(0.22 * escala, 0.16 * escala, 0.12 * escala)
+			ojo.Color = variante.ColorOjos
+			ojo.Material = Enum.Material.Neon
+			ojo.CFrame = cabeza.CFrame * CFrame.new(xOjo, 0.12 * escala, -0.58 * escala)
+			ojo.Parent = modelo
+			soldarAccesorio(cabeza, ojo)
+		end
 
-	-- Mandíbula deteriorada / expresión amenazante
-	local boca = Instance.new("Part")
-	boca.Name = "Mandibula"
-	boca.Size = Vector3.new(0.58 * escala, 0.16 * escala, 0.12 * escala)
-	boca.Color = Color3.fromRGB(30, 18, 18)
-	boca.Material = Enum.Material.SmoothPlastic
-	boca.CFrame = cabeza.CFrame * CFrame.new(0, -0.26 * escala, -0.57 * escala)
-	boca.Parent = modelo
-	soldarAccesorio(cabeza, boca)
+		-- Mandíbula deteriorada / expresión amenazante
+		local boca = Instance.new("Part")
+		boca.Name = "Mandibula"
+		boca.Size = Vector3.new(0.58 * escala, 0.16 * escala, 0.12 * escala)
+		boca.Color = Color3.fromRGB(30, 18, 18)
+		boca.Material = Enum.Material.SmoothPlastic
+		boca.CFrame = cabeza.CFrame * CFrame.new(0, -0.26 * escala, -0.57 * escala)
+		boca.Parent = modelo
+		soldarAccesorio(cabeza, boca)
+	end
 
 	-- Brazos articulados con mangas rasgadas
 	local brazoIzq = Instance.new("Part")
@@ -276,6 +286,10 @@ local function construirRigZombi(variante: any, escala: number): (Model, Humanoi
 			parte.Material = Enum.Material.Basalt
 
 			for _, cara in ipairs(caras) do
+				-- Preservar la cara frontal aterradora en la cabeza
+				if parte == cabeza and cara == Enum.NormalId.Front and (idCara and idCara ~= "") then
+					continue
+				end
 				local dec = Instance.new("Decal")
 				dec.Name = "LavaDecal"
 				dec.Texture = texturaLava
@@ -594,12 +608,14 @@ function ZombieService.GenerarZombi(
 	end)
 
 	emitirEfectoAparicion(hrp, variante.ColorOjos)
-	if game:GetService("RunService"):IsRunning() then
-		EventosRemotos.ZombieEventoVisual:FireAllClients({
-			Tipo = "Aparicion",
-			Posicion = posicion,
-			VarianteId = variante.Id,
-		})
+	if game:GetService("RunService"):IsRunning() and #Players:GetPlayers() > 0 then
+		pcall(function()
+			EventosRemotos.ZombieEventoVisual:FireAllClients({
+				Tipo = "Aparicion",
+				Posicion = posicion,
+				VarianteId = variante.Id,
+			})
+		end)
 	end
 
 	local registro: RegistroZombi = {

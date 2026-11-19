@@ -28,6 +28,7 @@ export type VarianteZombi = {
 	TieneCristalesDulces: boolean,
 	EsDeFuego: boolean?,
 	TexturaLava: string?,
+	TexturaCara: string?,
 	OleadaMinima: number,
 	PesoAparicion: number,
 	RecompensaPesos: number,
@@ -50,6 +51,7 @@ local Zombis = {
 		MunicionMinimaAlIniciar = 15,
 		MunicionDropPorMuerte = 2,
 		MultiplicadorHordaEnCurso = true,
+		TexturaCara = "rbxassetid://1102142750", -- Archivo 2D Very Scary Face
 	},
 
 	Dante = {
