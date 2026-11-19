@@ -62,9 +62,10 @@ local function construirModeloDante(
 	mirarHacia: Vector3
 ): (Model, BasePart, ProximityPrompt)
 	local carpetaSistema = UtilidadesMapaHorda.ObtenerCarpetaSistema()
-	local previo = carpetaSistema:FindFirstChild("NPC_Dante")
-	if previo then
-		previo:Destroy()
+	for _, desc in ipairs(carpetaSistema:GetDescendants()) do
+		if desc.Name == "NPC_Dante" and desc:IsA("Model") then
+			desc:Destroy()
+		end
 	end
 
 	local modelo = Instance.new("Model")
