@@ -566,10 +566,13 @@ function ZombieAI.Detener()
 	_activo = false
 	_sesionIdActiva = 0
 	table.clear(_ultimoDanioJugador)
-	if _bucleThread and coroutine.running() ~= _bucleThread and coroutine.status(_bucleThread) ~= "dead" then
-		task.cancel(_bucleThread)
+	if _bucleThread then
+		local h = _bucleThread
+		_bucleThread = nil
+		if coroutine.running() ~= h then
+			pcall(task.cancel, h)
+		end
 	end
-	_bucleThread = nil
 end
 
 return ZombieAI

@@ -99,8 +99,8 @@ local function mostrarBannerOleada(
 	if _timerOcultarBanner then
 		local h = _timerOcultarBanner
 		_timerOcultarBanner = nil
-		if coroutine.running() ~= h and coroutine.status(h) ~= "dead" then
-			task.cancel(h)
+		if coroutine.running() ~= h then
+			pcall(task.cancel, h)
 		end
 	end
 

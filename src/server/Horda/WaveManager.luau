@@ -563,10 +563,13 @@ function WaveManager.DetenerHorda(motivo: string?)
 	_totalOleadaActual = 0
 	_mensajeArmasOleadaActual = ""
 
-	if _hiloCiclo and coroutine.running() ~= _hiloCiclo and coroutine.status(_hiloCiclo) ~= "dead" then
-		task.cancel(_hiloCiclo)
+	if _hiloCiclo then
+		local h = _hiloCiclo
+		_hiloCiclo = nil
+		if coroutine.running() ~= h then
+			pcall(task.cancel, h)
+		end
 	end
-	_hiloCiclo = nil
 
 	ZombieAI.Detener()
 	ZombieService.LimpiarTodosZombis()

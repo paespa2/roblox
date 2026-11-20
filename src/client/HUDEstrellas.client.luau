@@ -178,8 +178,8 @@ local function cancelarTimerAlerta()
 	if timerCierreAlerta then
 		local h = timerCierreAlerta
 		timerCierreAlerta = nil
-		if coroutine.running() ~= h and coroutine.status(h) ~= "dead" then
-			task.cancel(h)
+		if coroutine.running() ~= h then
+			pcall(task.cancel, h)
 		end
 	end
 end
@@ -187,7 +187,9 @@ end
 local function cerrarBannerAlerta()
 	cancelarTimerAlerta()
 	if tweenAlertaActual then
-		tweenAlertaActual:Cancel()
+		pcall(function()
+			tweenAlertaActual:Cancel()
+		end)
 	end
 	tweenAlertaActual = TweenService:Create(
 		bannerAlerta,

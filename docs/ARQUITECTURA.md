@@ -67,6 +67,7 @@ Todos los intercambios cliente-servidor se canalizan a través del módulo `Even
 | `HordaActualizada` | `RemoteEvent` | Servidor → Cliente | Informa zombis restantes en tiempo real. |
 | `HordaFinalizada` | `RemoteEvent` | Servidor → Cliente | Transmite victoria, derrota, oleada alcanzada y recompensas. |
 | `ZombieEventoVisual` | `RemoteEvent` | Servidor → Cliente | Señales visuales de zombis (animaciones, golpes, rugidos). |
+| `ObtenerDatosMapaGPS` | `RemoteFunction` | Cliente → Servidor | Distribuye los 505 bloques geométricos del mapa urbano para radar y GPS. |
 
 ---
 
@@ -90,6 +91,7 @@ src/
 │   │   └── ZombieAnimationController.luau   # Fallbacks procedurales de animación
 │   ├── HUDEstrellas.client.luau             # Notificaciones de persecución policial
 │   ├── HUDPrincipal.client.luau             # Barra de estadísticas, dinero y banners
+│   ├── SistemaMapaGPS.client.luau           # Minimapa adaptable (P/M/G), radar y GPS 3D en la calle
 │   ├── ControlArmas.client.luau             # Manejo de armas, mira y recarga
 │   └── SistemaHordaCliente.client.luau      # Bootstrap del cliente de hordas
 ├── server/                     # Servicios y controladores autoritativos
@@ -101,12 +103,16 @@ src/
 │   │   └── UtilidadesMapaHorda.luau         # Generación y validación de puntos de spawn
 │   ├── SistemaArmas.server.luau             # Registro de impactos y cálculo de daño
 │   ├── SistemaCocina.server.luau            # Minijuego de cocina y recetas
+│   ├── SistemaMapaServidor.server.luau      # Escaneo autoritativo y entrega de geometría cartográfica
+│   ├── SistemaMisionFincas.server.luau      # NPCs de misiones para fincas y tycoon exterior
 │   ├── SistemaPersecucion.server.luau       # Patrullas de policía dental y estrellas
 │   └── SistemaHordaZombis.server.luau       # Bootstrap del servidor de hordas
 └── shared/                     # Configuraciones inmutables y contratos
     ├── Datos/                  # Tablas de datos de armas, zombis, mejoras, tiendas
     │   ├── Zombis.luau                      # Configuración de oleadas, stats y Dante
+    │   ├── PuntosMapa.luau                  # Catálogo de POIs, coordenadas y categorías GPS
     │   └── ...
+    ├── ConstructorR6.luau      # Ensamblador procedimental de humanoides R6 (ASCII puro)
     └── Eventos/
         └── EventosRemotos.luau              # Módulo de transporte remoto unificado
 ```

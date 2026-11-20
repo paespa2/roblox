@@ -10,6 +10,7 @@ local Datos = {
 	Rutina = require(script.Rutina),
 	Capitulos = require(script.Capitulos),
 	Zombis = require(script.Zombis),
+	PuntosMapa = require(script.PuntosMapa),
 }
 
 return Datos

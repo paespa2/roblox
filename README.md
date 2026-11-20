@@ -22,6 +22,12 @@
   - Armas temáticas de confitería (Chicle-Pistola, Escopeta de Caramelo, etc.) con validación de disparos en servidor, raycasting y recarga.
 - **🚗 Tráfico y Transporte Público:**
   - Red de transporte urbano con paradas de taxi (Don Libardo), chiva tradicional, tráfico vehicular sincronizado y cebras peatonales.
+- **🗺️ Sistema de Cartografía, Minimapa Adaptable y GPS 3D:**
+  - Minimapa radar en tiempo real con 3 tamaños configurables (`[P]` Pequeño, `[M]` Mediano, `[G]` Grande) mediante animación con `TweenService` y redimensionado interactivo libre con tirador (`⤢`).
+  - Mapa táctico panorámico (`[M]`) con buscador en vivo, filtros por categorías y cálculo dinámico de distancias.
+  - Navegación GPS tridimensional con trazado de caminos de neón sobre el asfalto (`PathfindingService`) y detección de llegada.
+- **🌾 Misiones de Fincas Exteriores (Tycoon Gateway):**
+  - NPCs de misión con historia y reputación (Don Efraín, Doña Carmenza, Capataz Ramiro) ensamblados con `ConstructorR6` para desbloquear el acceso a fincas cafeteras y cañaverales.
 
 ---
 
@@ -99,5 +105,6 @@ El repositorio cuenta con estándares estrictos de formato y análisis estático
 ## 📖 Documentación Adicional
 
 - [Arquitectura Técnica Completa](docs/ARQUITECTURA.md)
+- [Sistema de Cartografía, Minimapa Adaptable y GPS 3D](docs/SISTEMA_MAPA_GPS.md)
 - [Especificación del Sistema de Zombis y Hordas](docs/SISTEMA_HORDAS_ZOMBIS.md)
 - [Guía de Desarrollo y Convenciones para Agentes de IA](docs/GUIA_PARA_IA.md)

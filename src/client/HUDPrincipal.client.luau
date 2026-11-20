@@ -341,8 +341,8 @@ local function cancelarTimerBanner()
 	if timerCierreBanner then
 		local h = timerCierreBanner
 		timerCierreBanner = nil
-		if coroutine.running() ~= h and coroutine.status(h) ~= "dead" then
-			task.cancel(h)
+		if coroutine.running() ~= h then
+			pcall(task.cancel, h)
 		end
 	end
 end
