@@ -542,7 +542,22 @@ local tweenDialogoSalida: Tween? = nil
 local paginasActuales: { string } = {}
 local indicePaginaActual: number = 1
 
+local tokenDialogoEfimero = 0
+local timerDialogoEfimero: thread? = nil
+
+local function cancelarTimerDialogo()
+	if timerDialogoEfimero then
+		local h = timerDialogoEfimero
+		timerDialogoEfimero = nil
+		if coroutine.running() ~= h then
+			pcall(task.cancel, h)
+		end
+	end
+end
+
 local function cerrarDialogo()
+	tokenDialogoEfimero += 1
+	cancelarTimerDialogo()
 	if tweenDialogoSalida then
 		tweenDialogoSalida:Cancel()
 	end
@@ -570,7 +585,35 @@ local function reproducirSonidoClick()
 	end)
 end
 
-local function actualizarVistaPagina()
+local actualizarVistaPagina: () -> ()
+local programarCierreEfimero: () -> ()
+
+programarCierreEfimero = function()
+	tokenDialogoEfimero += 1
+	local miToken = tokenDialogoEfimero
+	cancelarTimerDialogo()
+
+	local dur = Players.LocalPlayer:GetAttribute("TiempoDialogo")
+	if dur == nil then
+		dur = 6
+	end
+	if type(dur) == "number" and dur > 0 then
+		timerDialogoEfimero = task.delay(dur, function()
+			if miToken == tokenDialogoEfimero and cuadroDialogo.Visible then
+				if indicePaginaActual < #paginasActuales then
+					indicePaginaActual += 1
+					if type(actualizarVistaPagina) == "function" then
+						actualizarVistaPagina()
+					end
+				else
+					cerrarDialogo()
+				end
+			end
+		end)
+	end
+end
+
+actualizarVistaPagina = function()
 	local texto = paginasActuales[indicePaginaActual] or ""
 	mensajeLabel.Text = texto
 
@@ -597,9 +640,12 @@ local function actualizarVistaPagina()
 		botonSiguiente.BackgroundColor3 = Color3.fromRGB(35, 135, 75)
 		strokeSig.Color = Color3.fromRGB(60, 185, 110)
 	end
+
+	programarCierreEfimero()
 end
 
 local function avanzarPagina()
+	cancelarTimerDialogo()
 	if indicePaginaActual < #paginasActuales then
 		indicePaginaActual += 1
 		reproducirSonidoClick()
@@ -613,6 +659,7 @@ botonCerrarDialogo.MouseButton1Click:Connect(cerrarDialogo)
 botonSiguiente.MouseButton1Click:Connect(avanzarPagina)
 
 botonSkip.MouseButton1Click:Connect(function()
+	cancelarTimerDialogo()
 	if #paginasActuales > 1 then
 		indicePaginaActual = #paginasActuales
 		reproducirSonidoClick()
