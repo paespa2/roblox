@@ -69,6 +69,19 @@ local function alEntrarJugador(player: Player)
 	if exito and perfil ~= nil then
 		perfil:AddUserId(player.UserId)
 		perfil:Reconcile()
+		if not perfil.Data.VehiculosComprados then
+			perfil.Data.VehiculosComprados =
+				{ ["Vehiculo_Bicicleta"] = true, ["Vehiculo_Moto"] = true }
+		else
+			perfil.Data.VehiculosComprados["Vehiculo_Moto"] = true
+			perfil.Data.VehiculosComprados["Vehiculo_Bicicleta"] = true
+		end
+		if
+			not perfil.Data.VehiculoEquipado
+			or perfil.Data.VehiculoEquipado == "Vehiculo_Bicicleta"
+		then
+			perfil.Data.VehiculoEquipado = "Vehiculo_Moto"
+		end
 		perfil:ListenToRelease(function()
 			perfilesCargados[player] = nil
 			player:Kick("Tu sesión fue abierta en otro servidor. Por favor vuelve a entrar.")

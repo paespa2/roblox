@@ -53,12 +53,44 @@ local function construirArcoSalidaFincas(parent: Instance)
 	local yBase = 60.3
 
 	for _, sx in ipairs({ -11.5, 11.5 }) do
-		crearParte("BasePiedra", Vector3.new(2.8, 4.0, 2.8), CFrame.new(sx, yBase + 2.0, zArco), Color3.fromRGB(130, 128, 120), Enum.Material.Cobblestone, arco, true)
-		crearParte("PilarMadera", Vector3.new(1.4, 14.0, 1.4), CFrame.new(sx, yBase + 10.0, zArco), Color3.fromRGB(116, 73, 43), Enum.Material.WoodPlanks, arco, true)
+		crearParte(
+			"BasePiedra",
+			Vector3.new(2.8, 4.0, 2.8),
+			CFrame.new(sx, yBase + 2.0, zArco),
+			Color3.fromRGB(130, 128, 120),
+			Enum.Material.Cobblestone,
+			arco,
+			true
+		)
+		crearParte(
+			"PilarMadera",
+			Vector3.new(1.4, 14.0, 1.4),
+			CFrame.new(sx, yBase + 10.0, zArco),
+			Color3.fromRGB(116, 73, 43),
+			Enum.Material.WoodPlanks,
+			arco,
+			true
+		)
 	end
 
-	crearParte("VigaSuperior", Vector3.new(25.5, 1.4, 1.8), CFrame.new(0, yBase + 16.5, zArco), Color3.fromRGB(116, 73, 43), Enum.Material.WoodPlanks, arco, false)
-	local letrero = crearParte("LetreroPortal", Vector3.new(20.0, 3.8, 0.6), CFrame.new(0, yBase + 18.8, zArco), Color3.fromRGB(40, 115, 55), Enum.Material.SmoothPlastic, arco, false)
+	crearParte(
+		"VigaSuperior",
+		Vector3.new(25.5, 1.4, 1.8),
+		CFrame.new(0, yBase + 16.5, zArco),
+		Color3.fromRGB(116, 73, 43),
+		Enum.Material.WoodPlanks,
+		arco,
+		false
+	)
+	local letrero = crearParte(
+		"LetreroPortal",
+		Vector3.new(20.0, 3.8, 0.6),
+		CFrame.new(0, yBase + 18.8, zArco),
+		Color3.fromRGB(40, 115, 55),
+		Enum.Material.SmoothPlastic,
+		arco,
+		false
+	)
 
 	for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
 		local gui = Instance.new("SurfaceGui")
@@ -77,12 +109,44 @@ local function construirArcoSalidaFincas(parent: Instance)
 		lbl.Parent = gui
 	end
 
-	crearParte("PisoCasetaFincas", Vector3.new(10, 0.5, 10), CFrame.new(-18, yBase + 0.25, -365), Color3.fromRGB(175, 165, 145), Enum.Material.Cobblestone, arco, true)
-	crearParte("EscritorioRegistro", Vector3.new(5.5, 2.8, 2.2), CFrame.new(-15.5, yBase + 1.6, -365), Color3.fromRGB(125, 80, 45), Enum.Material.Wood, arco, true)
-	crearParte("TechoCasetaFincas", Vector3.new(11, 0.8, 11), CFrame.new(-18, yBase + 9.5, -365), Color3.fromRGB(165, 65, 45), Enum.Material.Slate, arco, false)
+	crearParte(
+		"PisoCasetaFincas",
+		Vector3.new(10, 0.5, 10),
+		CFrame.new(-18, yBase + 0.25, -365),
+		Color3.fromRGB(175, 165, 145),
+		Enum.Material.Cobblestone,
+		arco,
+		true
+	)
+	crearParte(
+		"EscritorioRegistro",
+		Vector3.new(5.5, 2.8, 2.2),
+		CFrame.new(-15.5, yBase + 1.6, -365),
+		Color3.fromRGB(125, 80, 45),
+		Enum.Material.Wood,
+		arco,
+		true
+	)
+	crearParte(
+		"TechoCasetaFincas",
+		Vector3.new(11, 0.8, 11),
+		CFrame.new(-18, yBase + 9.5, -365),
+		Color3.fromRGB(165, 65, 45),
+		Enum.Material.Slate,
+		arco,
+		false
+	)
 	for _, ox in ipairs({ -4.5, 4.5 }) do
 		for _, oz in ipairs({ -4.5, 4.5 }) do
-			crearParte("PosteCaseta", Vector3.new(0.5, 9.0, 0.5), CFrame.new(-18 + ox, yBase + 4.8, -365 + oz), Color3.fromRGB(95, 60, 35), Enum.Material.Wood, arco, true)
+			crearParte(
+				"PosteCaseta",
+				Vector3.new(0.5, 9.0, 0.5),
+				CFrame.new(-18 + ox, yBase + 4.8, -365 + oz),
+				Color3.fromRGB(95, 60, 35),
+				Enum.Material.Wood,
+				arco,
+				true
+			)
 		end
 	end
 end
@@ -113,10 +177,14 @@ local function crearNPCMision(parent: Instance, info: any): ProximityPrompt
 	fondo.BackgroundColor3 = Color3.fromRGB(24, 34, 28)
 	fondo.BackgroundTransparency = 0.15
 	fondo.Parent = bbg
-	Instance.new("UICorner", fondo).CornerRadius = UDim.new(0, 10)
-	local stroke = Instance.new("UIStroke", fondo)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = fondo
+
+	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromRGB(240, 195, 55)
 	stroke.Thickness = 2
+	stroke.Parent = fondo
 
 	local lbl = Instance.new("TextLabel")
 	lbl.Size = UDim2.fromScale(0.95, 0.9)
@@ -194,7 +262,11 @@ local function inicializarMisionFincas()
 		local pesos = if datos then (datos.PesosDulces or 0) else 0
 		local fama = if datos then (datos.Fama or 0) else 0
 
-		if not misionActiva[player.UserId] and pesos < COSTO_ESCRITURA_FINCA and fama < FAMA_REQUERIDA_FINCA then
+		if
+			not misionActiva[player.UserId]
+			and pesos < COSTO_ESCRITURA_FINCA
+			and fama < FAMA_REQUERIDA_FINCA
+		then
 			misionActiva[player.UserId] = true
 			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
 				Nombre = "Don Efraín",
@@ -335,7 +407,9 @@ local function inicializarMisionFincas()
 		end)
 	end
 
-	print("El Patrón del Dulce: Portal y NPCs de Misión de Fincas Exteriores (Don Efraín, Doña Carmenza, Capataz Ramiro) inicializados.")
+	print(
+		"El Patrón del Dulce: Portal y NPCs de Misión de Fincas Exteriores (Don Efraín, Doña Carmenza, Capataz Ramiro) inicializados."
+	)
 end
 
 task.spawn(inicializarMisionFincas)

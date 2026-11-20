@@ -435,11 +435,7 @@ function DanteController.Iniciar()
 
 		-- Animación procedural de Dante cuando está en rango visible y sin AnimationTrack externo
 		local cam = Workspace.CurrentCamera
-		if
-			cam
-			and _posDante
-			and (cam.CFrame.Position - _posDante).Magnitude > 65
-		then
+		if cam and _posDante and (cam.CFrame.Position - _posDante).Magnitude > 65 then
 			return
 		end
 

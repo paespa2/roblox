@@ -31,7 +31,8 @@ local function configurarFisicaVehiculoConducible(
 	if not contrapeso then
 		contrapeso = Instance.new("Part")
 		contrapeso.Name = "ContrapesoBajo"
-		contrapeso.Size = Vector3.new(math.max(chasis.Size.X * 0.7, 1.4), 0.4, math.max(chasis.Size.Z * 0.7, 2.6))
+		contrapeso.Size =
+			Vector3.new(math.max(chasis.Size.X * 0.7, 1.4), 0.4, math.max(chasis.Size.Z * 0.7, 2.6))
 		contrapeso.CFrame = chasis.CFrame * CFrame.new(0, -chasis.Size.Y * 0.55, 0)
 		contrapeso.Transparency = 1
 		contrapeso.CanCollide = false
@@ -258,7 +259,8 @@ local function crearPalmaDeCera(pos: Vector3, altura: number, parent: Instance)
 	tronco.Name = "Tronco"
 	tronco.Shape = Enum.PartType.Cylinder
 	tronco.Size = Vector3.new(altura, 1.4, 1.4)
-	tronco.CFrame = CFrame.new(pos + Vector3.new(0, altura / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	tronco.CFrame = CFrame.new(pos + Vector3.new(0, altura / 2, 0))
+		* CFrame.Angles(0, 0, math.rad(90))
 	tronco.Color = Color3.fromRGB(175, 170, 160)
 	tronco.Material = Enum.Material.Wood
 	tronco.Anchored = true
@@ -397,7 +399,9 @@ local function crearTaxiAmarillo(pos: Vector3, rotY: number, parent: Instance)
 			rueda.Name = "Rueda"
 			rueda.Shape = Enum.PartType.Cylinder
 			rueda.Size = Vector3.new(1.0, 2.4, 2.4)
-			rueda.CFrame = chasis.CFrame * CFrame.new(x, -0.7, z) * CFrame.Angles(0, 0, math.rad(90))
+			rueda.CFrame = chasis.CFrame
+				* CFrame.new(x, -0.7, z)
+				* CFrame.Angles(0, 0, math.rad(90))
 			rueda.Color = Color3.fromRGB(30, 30, 35)
 			rueda.Material = Enum.Material.Rubber
 			rueda.Anchored = false
@@ -469,7 +473,8 @@ local function crearCamperoWillys(pos: Vector3, rotY: number, parent: Instance)
 		local bulto = Instance.new("Part")
 		bulto.Name = "BultoCafe"
 		bulto.Size = Vector3.new(2.4, 1.4, 2.0)
-		bulto.CFrame = chasis.CFrame * CFrame.new((i % 2 == 0 and 1.3 or -1.3), 1.2, 1.5 + (i * 1.0))
+		bulto.CFrame = chasis.CFrame
+			* CFrame.new((i % 2 == 0 and 1.3 or -1.3), 1.2, 1.5 + (i * 1.0))
 		bulto.Color = Color3.fromRGB(165, 140, 105)
 		bulto.Material = Enum.Material.Fabric
 		bulto.Anchored = false
@@ -485,7 +490,9 @@ local function crearCamperoWillys(pos: Vector3, rotY: number, parent: Instance)
 			rueda.Name = "RuedaCampero"
 			rueda.Shape = Enum.PartType.Cylinder
 			rueda.Size = Vector3.new(1.2, 2.8, 2.8)
-			rueda.CFrame = chasis.CFrame * CFrame.new(x, -0.6, z) * CFrame.Angles(0, 0, math.rad(90))
+			rueda.CFrame = chasis.CFrame
+				* CFrame.new(x, -0.6, z)
+				* CFrame.Angles(0, 0, math.rad(90))
 			rueda.Color = Color3.fromRGB(25, 25, 25)
 			rueda.Material = Enum.Material.Rubber
 			rueda.Anchored = false
@@ -1143,7 +1150,10 @@ local function construirFincaLaMelcocha(parent: Instance)
 			Nombre = "Trapiche de la Finca",
 			Titulo = "¡Cosecha Fresca!",
 			Icono = "🌾",
-			Mensaje = string.format("¡Molienda exitosa! Obtuviste melaza fresca y $%d pesos dulces para tu imperio.", ganancia),
+			Mensaje = string.format(
+				"¡Molienda exitosa! Obtuviste melaza fresca y $%d pesos dulces para tu imperio.",
+				ganancia
+			),
 		})
 	end)
 
@@ -1357,7 +1367,10 @@ local function construirPistaYAvionetaDulcera(parent: Instance)
 				Nombre = "Capitán Chepe",
 				Titulo = "¡Vuelo Despejado!",
 				Icono = "🛩️",
-				Mensaje = string.format("¡Avioneta cargada y despegando hacia la capital! Recibes $%d pesos por la exportación. ¡El imperio crece!", pago),
+				Mensaje = string.format(
+					"¡Avioneta cargada y despegando hacia la capital! Recibes $%d pesos por la exportación. ¡El imperio crece!",
+					pago
+				),
 			})
 		else
 			EventosRemotos.MostrarDialogoNPC:FireClient(player, {
@@ -1556,7 +1569,13 @@ end
 -- ====================================================================
 -- 5B. SEÑALIZACIÓN VIAL URBANA, CRUCES PEATONALES Y SEGURIDAD VIAL
 -- ====================================================================
-local function crearPasoDeCebra(posCentro: Vector3, rotY: number, franjas: number, largoFranja: number, parent: Instance)
+local function crearPasoDeCebra(
+	posCentro: Vector3,
+	rotY: number,
+	franjas: number,
+	largoFranja: number,
+	parent: Instance
+)
 	local cruceModelo = Instance.new("Model")
 	cruceModelo.Name = "CrucePeatonal"
 
@@ -1624,7 +1643,8 @@ local function crearSenalTransitoVertical(
 	local placa = Instance.new("Part")
 	placa.Name = "Placa"
 	placa.Size = Vector3.new(3.0, 3.0, 0.2)
-	placa.CFrame = CFrame.new(info.Posicion + Vector3.new(0, 6.2, 0)) * CFrame.Angles(0, math.rad(info.RotacionY), 0)
+	placa.CFrame = CFrame.new(info.Posicion + Vector3.new(0, 6.2, 0))
+		* CFrame.Angles(0, math.rad(info.RotacionY), 0)
 	placa.Color = info.ColorFondo
 	placa.Material = Enum.Material.SmoothPlastic
 	placa.Anchored = true
@@ -1678,7 +1698,12 @@ local function crearSenalTransitoVertical(
 	return modelo
 end
 
-local function crearVallaSeguridadPeatonal(posBase: Vector3, rotY: number, modulos: number, parent: Instance)
+local function crearVallaSeguridadPeatonal(
+	posBase: Vector3,
+	rotY: number,
+	modulos: number,
+	parent: Instance
+)
 	local vallaMod = Instance.new("Model")
 	vallaMod.Name = "VallaPeatonalEscolar"
 
@@ -1958,7 +1983,11 @@ local function inicializarDecoracionYAmbiente()
 		for _, desc in ipairs(mapa:GetDescendants()) do
 			if desc:IsA("BasePart") then
 				local n = desc.Name:lower()
-				if (n:find("lineacentral") or n:find("rayacentral") or n:find("franjaamarilla")) and not n:find("cebra") and not n:find("paso") then
+				if
+					(n:find("lineacentral") or n:find("rayacentral") or n:find("franjaamarilla"))
+					and not n:find("cebra")
+					and not n:find("paso")
+				then
 					desc.Material = Enum.Material.Neon
 					desc.Color = Color3.fromRGB(255, 230, 45)
 				end
@@ -1966,7 +1995,9 @@ local function inicializarDecoracionYAmbiente()
 		end
 	end)
 
-	print("El Patrón del Dulce: Decoración exterior, parques, interiores y landmarks inicializados")
+	print(
+		"El Patrón del Dulce: Decoración exterior, parques, interiores y landmarks inicializados"
+	)
 end
 
 task.spawn(inicializarDecoracionYAmbiente)

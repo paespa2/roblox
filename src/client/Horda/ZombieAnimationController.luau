@@ -13,8 +13,11 @@ local Workspace = game:GetService("Workspace")
 local Datos = require(ReplicatedStorage.Shared.Datos)
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
 
-local DistanciaCulling = (Datos.Zombis and Datos.Zombis.General and Datos.Zombis.General.DistanciaCullingAnimacion)
-	or 140
+local DistanciaCulling = (
+	Datos.Zombis
+	and Datos.Zombis.General
+	and Datos.Zombis.General.DistanciaCullingAnimacion
+) or 140
 
 local ZombieAnimationController = {}
 
@@ -98,11 +101,16 @@ local function registrarZombi(modelo: Model)
 	local carpetaAnims = hum:FindFirstChild("Animaciones")
 	if animator and carpetaAnims and carpetaAnims:IsA("Folder") then
 		pistas.Idle = cargarPista(animator, carpetaAnims, "Idle", true, Enum.AnimationPriority.Idle)
-		pistas.Walk = cargarPista(animator, carpetaAnims, "Walk", true, Enum.AnimationPriority.Movement)
-		pistas.Run = cargarPista(animator, carpetaAnims, "Run", true, Enum.AnimationPriority.Movement)
-		pistas.Attack = cargarPista(animator, carpetaAnims, "Attack", false, Enum.AnimationPriority.Action)
-		pistas.Hit = cargarPista(animator, carpetaAnims, "Hit", false, Enum.AnimationPriority.Action)
-		pistas.Death = cargarPista(animator, carpetaAnims, "Death", false, Enum.AnimationPriority.Action2)
+		pistas.Walk =
+			cargarPista(animator, carpetaAnims, "Walk", true, Enum.AnimationPriority.Movement)
+		pistas.Run =
+			cargarPista(animator, carpetaAnims, "Run", true, Enum.AnimationPriority.Movement)
+		pistas.Attack =
+			cargarPista(animator, carpetaAnims, "Attack", false, Enum.AnimationPriority.Action)
+		pistas.Hit =
+			cargarPista(animator, carpetaAnims, "Hit", false, Enum.AnimationPriority.Action)
+		pistas.Death =
+			cargarPista(animator, carpetaAnims, "Death", false, Enum.AnimationPriority.Action2)
 	end
 
 	_zombisRegistrados[modelo] = {
@@ -142,7 +150,11 @@ local function registrarZombi(modelo: Model)
 	end)
 end
 
-local function cambiarPistaLocomocion(datos: DatosAnimZombi, nuevaPista: AnimationTrack?, velRatio: number)
+local function cambiarPistaLocomocion(
+	datos: DatosAnimZombi,
+	nuevaPista: AnimationTrack?,
+	velRatio: number
+)
 	if datos.PistaActivaLocomocion ~= nuevaPista then
 		if datos.PistaActivaLocomocion and datos.PistaActivaLocomocion.IsPlaying then
 			datos.PistaActivaLocomocion:Stop(0.15)
@@ -192,11 +204,31 @@ local function animarZombi(datos: DatosAnimZombi, t: number, dt: number, camPos:
 		end
 		local progreso = math.clamp((t - (datos.InicioMuerte :: number)) / 0.45, 0, 1)
 		local anguloCaida = math.rad(88 * progreso)
-		suavizarJoint(datos.RootJoint, CFrame.new(0, -2.2 * progreso, 0.8 * progreso) * CFrame.Angles(-anguloCaida, 0, 0), alpha)
-		suavizarJoint(datos.LeftShoulder, CFrame.Angles(math.rad(30 * progreso), 0, math.rad(-25 * progreso)), alpha)
-		suavizarJoint(datos.RightShoulder, CFrame.Angles(math.rad(40 * progreso), 0, math.rad(25 * progreso)), alpha)
-		suavizarJoint(datos.LeftHip, CFrame.Angles(math.rad(15 * progreso), 0, math.rad(-8 * progreso)), alpha)
-		suavizarJoint(datos.RightHip, CFrame.Angles(math.rad(10 * progreso), 0, math.rad(8 * progreso)), alpha)
+		suavizarJoint(
+			datos.RootJoint,
+			CFrame.new(0, -2.2 * progreso, 0.8 * progreso) * CFrame.Angles(-anguloCaida, 0, 0),
+			alpha
+		)
+		suavizarJoint(
+			datos.LeftShoulder,
+			CFrame.Angles(math.rad(30 * progreso), 0, math.rad(-25 * progreso)),
+			alpha
+		)
+		suavizarJoint(
+			datos.RightShoulder,
+			CFrame.Angles(math.rad(40 * progreso), 0, math.rad(25 * progreso)),
+			alpha
+		)
+		suavizarJoint(
+			datos.LeftHip,
+			CFrame.Angles(math.rad(15 * progreso), 0, math.rad(-8 * progreso)),
+			alpha
+		)
+		suavizarJoint(
+			datos.RightHip,
+			CFrame.Angles(math.rad(10 * progreso), 0, math.rad(8 * progreso)),
+			alpha
+		)
 		return
 	end
 
@@ -237,8 +269,16 @@ local function animarZombi(datos: DatosAnimZombi, t: number, dt: number, camPos:
 		local fase = math.clamp(tiempoDesdeAtaque / 0.45, 0, 1)
 		local zarpazo = math.sin(fase * math.pi)
 		suavizarJoint(datos.RootJoint, CFrame.Angles(math.rad(-22 * zarpazo), 0, 0), alpha)
-		suavizarJoint(datos.LeftShoulder, CFrame.Angles(math.rad(135 - 95 * zarpazo), 0, math.rad(-10)), alpha)
-		suavizarJoint(datos.RightShoulder, CFrame.Angles(math.rad(135 - 95 * zarpazo), 0, math.rad(10)), alpha)
+		suavizarJoint(
+			datos.LeftShoulder,
+			CFrame.Angles(math.rad(135 - 95 * zarpazo), 0, math.rad(-10)),
+			alpha
+		)
+		suavizarJoint(
+			datos.RightShoulder,
+			CFrame.Angles(math.rad(135 - 95 * zarpazo), 0, math.rad(10)),
+			alpha
+		)
 		return
 	end
 
@@ -253,10 +293,26 @@ local function animarZombi(datos: DatosAnimZombi, t: number, dt: number, camPos:
 			return
 		end
 		local vaiven = math.sin(t * 2.2 + datos.Desfase)
-		suavizarJoint(datos.RootJoint, CFrame.new(0, vaiven * 0.04, 0) * CFrame.Angles(math.rad(-4), 0, vaiven * 0.03), alpha)
-		suavizarJoint(datos.Neck, CFrame.Angles(math.rad(6), math.sin(t * 1.1 + datos.Desfase) * 0.18, 0), alpha)
-		suavizarJoint(datos.LeftShoulder, CFrame.Angles(math.rad(25 + vaiven * 4), 0, math.rad(-5)), alpha)
-		suavizarJoint(datos.RightShoulder, CFrame.Angles(math.rad(22 - vaiven * 4), 0, math.rad(5)), alpha)
+		suavizarJoint(
+			datos.RootJoint,
+			CFrame.new(0, vaiven * 0.04, 0) * CFrame.Angles(math.rad(-4), 0, vaiven * 0.03),
+			alpha
+		)
+		suavizarJoint(
+			datos.Neck,
+			CFrame.Angles(math.rad(6), math.sin(t * 1.1 + datos.Desfase) * 0.18, 0),
+			alpha
+		)
+		suavizarJoint(
+			datos.LeftShoulder,
+			CFrame.Angles(math.rad(25 + vaiven * 4), 0, math.rad(-5)),
+			alpha
+		)
+		suavizarJoint(
+			datos.RightShoulder,
+			CFrame.Angles(math.rad(22 - vaiven * 4), 0, math.rad(5)),
+			alpha
+		)
 		suavizarJoint(datos.LeftHip, CFrame.identity, alpha)
 		suavizarJoint(datos.RightHip, CFrame.identity, alpha)
 	elseif corriendo then
@@ -269,10 +325,22 @@ local function animarZombi(datos: DatosAnimZombi, t: number, dt: number, camPos:
 		local ciclo = (t * freq) + datos.Desfase
 		local paso = math.sin(ciclo)
 		local inclinacion = if esCorredor then math.rad(-20) else math.rad(-14)
-		suavizarJoint(datos.RootJoint, CFrame.new(0, math.abs(paso) * 0.16, 0) * CFrame.Angles(inclinacion, paso * 0.08, 0), alpha)
+		suavizarJoint(
+			datos.RootJoint,
+			CFrame.new(0, math.abs(paso) * 0.16, 0) * CFrame.Angles(inclinacion, paso * 0.08, 0),
+			alpha
+		)
 		suavizarJoint(datos.Neck, CFrame.Angles(math.rad(12), -paso * 0.08, 0), alpha)
-		suavizarJoint(datos.LeftShoulder, CFrame.Angles(math.rad(96) + paso * 0.36, 0, math.rad(-8)), alpha)
-		suavizarJoint(datos.RightShoulder, CFrame.Angles(math.rad(96) - paso * 0.36, 0, math.rad(8)), alpha)
+		suavizarJoint(
+			datos.LeftShoulder,
+			CFrame.Angles(math.rad(96) + paso * 0.36, 0, math.rad(-8)),
+			alpha
+		)
+		suavizarJoint(
+			datos.RightShoulder,
+			CFrame.Angles(math.rad(96) - paso * 0.36, 0, math.rad(8)),
+			alpha
+		)
 		suavizarJoint(datos.LeftHip, CFrame.Angles(-paso * 0.70, 0, 0), alpha)
 		suavizarJoint(datos.RightHip, CFrame.Angles(paso * 0.70, 0, 0), alpha)
 	else
@@ -286,10 +354,27 @@ local function animarZombi(datos: DatosAnimZombi, t: number, dt: number, camPos:
 		local paso = math.sin(ciclo)
 		local ampBrazo = if esBruto then 0.12 else 0.18
 		local ampPierna = if esBruto then 0.40 else 0.50
-		suavizarJoint(datos.RootJoint, CFrame.new(0, math.abs(paso) * 0.08, 0) * CFrame.Angles(math.rad(-7), 0, math.cos(ciclo) * 0.06), alpha)
-		suavizarJoint(datos.Neck, CFrame.Angles(math.rad(6), math.sin(ciclo * 0.5) * 0.14, math.rad(8)), alpha)
-		suavizarJoint(datos.LeftShoulder, CFrame.Angles(math.rad(76) + paso * ampBrazo, 0, math.rad(-6)), alpha)
-		suavizarJoint(datos.RightShoulder, CFrame.Angles(math.rad(72) - paso * ampBrazo, 0, math.rad(6)), alpha)
+		suavizarJoint(
+			datos.RootJoint,
+			CFrame.new(0, math.abs(paso) * 0.08, 0)
+				* CFrame.Angles(math.rad(-7), 0, math.cos(ciclo) * 0.06),
+			alpha
+		)
+		suavizarJoint(
+			datos.Neck,
+			CFrame.Angles(math.rad(6), math.sin(ciclo * 0.5) * 0.14, math.rad(8)),
+			alpha
+		)
+		suavizarJoint(
+			datos.LeftShoulder,
+			CFrame.Angles(math.rad(76) + paso * ampBrazo, 0, math.rad(-6)),
+			alpha
+		)
+		suavizarJoint(
+			datos.RightShoulder,
+			CFrame.Angles(math.rad(72) - paso * ampBrazo, 0, math.rad(6)),
+			alpha
+		)
 		suavizarJoint(datos.LeftHip, CFrame.Angles(-paso * ampPierna, 0, 0), alpha)
 		suavizarJoint(datos.RightHip, CFrame.Angles(paso * ampPierna, 0, 0), alpha)
 	end

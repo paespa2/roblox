@@ -36,6 +36,7 @@ local PlantillaPerfil: PerfilJugador = {
 	MejorasCompradas = {},
 	VehiculosComprados = {
 		["Vehiculo_Bicicleta"] = true,
+		["Vehiculo_Moto"] = true,
 	},
 	ArmasDesbloqueadas = {
 		["Arma_CaucheraGomitas"] = true,
@@ -44,7 +45,7 @@ local PlantillaPerfil: PerfilJugador = {
 	CapituloActual = 1,
 	PasoTutorial = 0,
 	TutorialCompletado = false,
-	VehiculoEquipado = "Vehiculo_Bicicleta",
+	VehiculoEquipado = "Vehiculo_Moto",
 	EstrellasBusqueda = 0,
 	PuntosCalor = 0,
 	CondenaInternado = 0,

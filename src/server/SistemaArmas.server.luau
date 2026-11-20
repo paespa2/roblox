@@ -132,7 +132,12 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 	local infoArma = Datos.Armas[idArma]
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if not character or not character:FindFirstChild("Head") or not humanoid or humanoid.Health <= 0 then
+	if
+		not character
+		or not character:FindFirstChild("Head")
+		or not humanoid
+		or humanoid.Health <= 0
+	then
 		return false, "Personaje no disponible"
 	end
 
@@ -395,7 +400,9 @@ EventosRemotos.DispararArma.OnServerInvoke = function(
 				end
 			end
 		elseif zombiDirecto then
-			local danioFinal = if hit.Name == "Head" then math.round(danioZombi * 1.35) else danioZombi
+			local danioFinal = if hit.Name == "Head"
+				then math.round(danioZombi * 1.35)
+				else danioZombi
 			ZombieService.AplicarDanio(zombiDirecto, danioFinal, player, idArma)
 		else
 			-- Asistencia de impacto cercano (3.8 studs) para hitbox amigable con proyectiles

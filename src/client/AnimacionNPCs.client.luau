@@ -55,10 +55,12 @@ local function registrarNPC(npc: Model)
 	end
 
 	local cabeza = npc:FindFirstChild("Head") :: BasePart?
-	local brazoDer = (npc:FindFirstChild("BrazoDer") or npc:FindFirstChild("RightUpperArm"))
-		:: BasePart?
-	local brazoIzq = (npc:FindFirstChild("BrazoIzq") or npc:FindFirstChild("LeftUpperArm"))
-		:: BasePart?
+	local brazoDer = (
+		npc:FindFirstChild("BrazoDer") or npc:FindFirstChild("RightUpperArm")
+	) :: BasePart?
+	local brazoIzq = (
+		npc:FindFirstChild("BrazoIzq") or npc:FindFirstChild("LeftUpperArm")
+	) :: BasePart?
 	local cucharon = npc:FindFirstChild("CucharonMadera") :: BasePart?
 	local cola = npc:FindFirstChild("Cola") :: BasePart?
 
@@ -76,8 +78,12 @@ local function registrarNPC(npc: Model)
 		CFrameOriginalCucharon = if cucharon then cucharon.CFrame else nil,
 		CFrameOriginalCola = if cola then cola.CFrame else nil,
 		OffsetRelativoCabeza = if cabeza then hrp.CFrame:ToObjectSpace(cabeza.CFrame) else nil,
-		OffsetRelativoBrazoDer = if brazoDer then hrp.CFrame:ToObjectSpace(brazoDer.CFrame) else nil,
-		OffsetRelativoBrazoIzq = if brazoIzq then hrp.CFrame:ToObjectSpace(brazoIzq.CFrame) else nil,
+		OffsetRelativoBrazoDer = if brazoDer
+			then hrp.CFrame:ToObjectSpace(brazoDer.CFrame)
+			else nil,
+		OffsetRelativoBrazoIzq = if brazoIzq
+			then hrp.CFrame:ToObjectSpace(brazoIzq.CFrame)
+			else nil,
 		DesfaseTiempo = math.random() * math.pi * 2,
 		Tipo = detectarTipoNPC(npc.Name),
 	}

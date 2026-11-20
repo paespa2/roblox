@@ -235,7 +235,11 @@ local function aplicarEfectoEspecialAtaque(
 		task.spawn(function()
 			for _ = 1, ticks do
 				task.wait(intervalo)
-				if not HordeSession.EsSesionActiva(sesionId) or not pHum.Parent or pHum.Health <= 0 then
+				if
+					not HordeSession.EsSesionActiva(sesionId)
+					or not pHum.Parent
+					or pHum.Health <= 0
+				then
 					break
 				end
 				pHum:TakeDamage(danioTick)
@@ -297,7 +301,11 @@ local function aplicarEfectoEspecialAtaque(
 		task.spawn(function()
 			for _ = 1, ticks do
 				task.wait(intervalo)
-				if not HordeSession.EsSesionActiva(sesionId) or not pHum.Parent or pHum.Health <= 0 then
+				if
+					not HordeSession.EsSesionActiva(sesionId)
+					or not pHum.Parent
+					or pHum.Health <= 0
+				then
 					break
 				end
 				pHum:TakeDamage(danioTick)
@@ -491,7 +499,9 @@ local function actualizarZombiIndividual(
 		registro.UltimaPosComprobada = posZombi
 		registro.UltimoChequeoAtasco = ahora
 		if desplazamiento < 1.3 then
-			if debeSaltarObstaculoBajo(posZombi, registro.HRP.CFrame.LookVector, paramsVisibilidad) then
+			if
+				debeSaltarObstaculoBajo(posZombi, registro.HRP.CFrame.LookVector, paramsVisibilidad)
+			then
 				registro.Humanoid.Jump = true
 			else
 				necesitaRuta = true
@@ -526,10 +536,14 @@ local function actualizarZombiIndividual(
 		registro.Humanoid:MoveTo(wp.Position)
 	else
 		-- Contingencia segura: nunca atravesar paredes; sondear desvío lateral despejado
-		local desvio = buscarDesvioLateralDespejado(posZombi, posObjetivo - posZombi, paramsVisibilidad)
+		local desvio =
+			buscarDesvioLateralDespejado(posZombi, posObjetivo - posZombi, paramsVisibilidad)
 		if desvio then
 			registro.Humanoid:MoveTo(desvio)
-		elseif tieneLineaVistaDirecta(posZombi, posObjetivo, paramsVisibilidad) and distHorizontal <= 18 then
+		elseif
+			tieneLineaVistaDirecta(posZombi, posObjetivo, paramsVisibilidad)
+			and distHorizontal <= 18
+		then
 			registro.Humanoid:MoveTo(posObjetivo)
 		else
 			registro.Humanoid:MoveTo(posZombi)

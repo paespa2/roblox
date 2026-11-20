@@ -164,4 +164,6 @@ task.spawn(function()
 	end
 end)
 
-print("El Patrón del Dulce: Sistema de Ciclo Día y Noche Activo (Atmósfera y Alumbrado Público)")
+print(
+	"El Patrón del Dulce: Sistema de Ciclo Día y Noche Activo (Atmósfera y Alumbrado Público)"
+)

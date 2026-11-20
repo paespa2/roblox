@@ -39,7 +39,14 @@ local function extraerColor(inst: Instance): (number, number, number)
 	return 85, 95, 110
 end
 
-local function agregarBloque(lista: { BloqueMapaServidor }, inst: Instance, tipo: string, rOverride: number?, gOverride: number?, bOverride: number?)
+local function agregarBloque(
+	lista: { BloqueMapaServidor },
+	inst: Instance,
+	tipo: string,
+	rOverride: number?,
+	gOverride: number?,
+	bOverride: number?
+)
 	if inst:IsA("BasePart") then
 		local size = inst.Size
 		local cf = inst.CFrame
@@ -109,9 +116,7 @@ local function construirGeometria(): { BloqueMapaServidor }
 			local parques = cuadricula:FindFirstChild("Parques")
 			if parques then
 				for _, p in ipairs(parques:GetChildren()) do
-					if p:IsA("BasePart") then
-						agregarBloque(bloques, p, "lote", 68, 168, 76)
-					elseif p:IsA("Model") then
+					if p:IsA("BasePart") or p:IsA("Model") then
 						agregarBloque(bloques, p, "lote", 68, 168, 76)
 					end
 				end
@@ -156,7 +161,14 @@ local function construirGeometria(): { BloqueMapaServidor }
 
 		-- 8. Edificios principales del mapa
 		for _, obj in ipairs(mapaFolder:GetChildren()) do
-			if obj:IsA("Model") and (obj.Name:find("Zona_") or obj.Name:find("Edificio_") or obj.Name:find("Tienda_")) then
+			if
+				obj:IsA("Model")
+				and (
+					obj.Name:find("Zona_")
+					or obj.Name:find("Edificio_")
+					or obj.Name:find("Tienda_")
+				)
+			then
 				agregarBloque(bloques, obj, "zona", 225, 215, 175)
 			end
 		end

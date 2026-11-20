@@ -7,7 +7,12 @@ local Rutina = {
 			[4] = { Tipo = "ComodinRacha", Cantidad = 1, Nombre = "Seguro Dental" },
 			[5] = { Tipo = "PesosDulces", Cantidad = 300, Nombre = "Reinversión Clandestina" },
 			[6] = { Tipo = "Dulce_Arequipe", Cantidad = 8, Nombre = "Dulce Especial" },
-			[7] = { Tipo = "AzucarDorada", Cantidad = 25, PesosExtra = 500, Nombre = "Cofre del Patrón" },
+			[7] = {
+				Tipo = "AzucarDorada",
+				Cantidad = 25,
+				PesosExtra = 500,
+				Nombre = "Cofre del Patrón",
+			},
 		},
 		ComodinId = "ComodinRacha",
 	},

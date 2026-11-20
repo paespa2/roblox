@@ -27,7 +27,13 @@ local function crearParteR6(nombre: string, tamano: Vector3, color: Color3, pare
 	return p
 end
 
-local function crearMotor(nombre: string, p0: BasePart, p1: BasePart, c0: CFrame, c1: CFrame): Motor6D
+local function crearMotor(
+	nombre: string,
+	p0: BasePart,
+	p1: BasePart,
+	c0: CFrame,
+	c1: CFrame
+): Motor6D
 	local m = Instance.new("Motor6D")
 	m.Name = nombre
 	m.Part0 = p0
@@ -43,7 +49,8 @@ function ConstructorR6.CrearManiquiR6(cfg: any)
 	modelo.Name = cfg.Nombre
 
 	local skinColor = cfg.ColorPiel or Color3.fromRGB(238, 198, 164)
-	local cfBase = CFrame.new(cfg.Posicion + Vector3.new(0, 3.0, 0)) * CFrame.Angles(0, math.rad(cfg.RotacionY or 0), 0)
+	local cfBase = CFrame.new(cfg.Posicion + Vector3.new(0, 3.0, 0))
+		* CFrame.Angles(0, math.rad(cfg.RotacionY or 0), 0)
 
 	local hrp = crearParteR6("HumanoidRootPart", Vector3.new(2, 2, 1), cfg.ColorRopa, modelo)
 	hrp.Transparency = 1
@@ -74,9 +81,11 @@ function ConstructorR6.CrearManiquiR6(cfg: any)
 	local rightLeg = crearParteR6("Right Leg", Vector3.new(1, 2, 1), cfg.ColorPantalon, modelo)
 
 	if cfg.SombreroColor then
-		local ala = crearParteR6("SombreroAla", Vector3.new(2.3, 0.18, 2.3), cfg.SombreroColor, modelo)
+		local ala =
+			crearParteR6("SombreroAla", Vector3.new(2.3, 0.18, 2.3), cfg.SombreroColor, modelo)
 		ala.Material = Enum.Material.Fabric
-		local copa = crearParteR6("SombreroCopa", Vector3.new(1.3, 0.65, 1.3), cfg.SombreroColor, modelo)
+		local copa =
+			crearParteR6("SombreroCopa", Vector3.new(1.3, 0.65, 1.3), cfg.SombreroColor, modelo)
 		copa.Material = Enum.Material.Fabric
 		local w1 = Instance.new("Weld")
 		w1.Part0 = head
@@ -92,10 +101,19 @@ function ConstructorR6.CrearManiquiR6(cfg: any)
 
 	crearMotor("RootJoint", hrp, torso, CFrame.new(0, 0, 0), CFrame.new(0, 0, 0))
 	local neck = crearMotor("Neck", torso, head, CFrame.new(0, 1.0, 0), CFrame.new(0, -0.5, 0))
-	local leftShoulder = crearMotor("Left Shoulder", torso, leftArm, CFrame.new(-1.5, 0.5, 0), CFrame.new(0, 0.5, 0))
-	local rightShoulder = crearMotor("Right Shoulder", torso, rightArm, CFrame.new(1.5, 0.5, 0), CFrame.new(0, 0.5, 0))
-	local leftHip = crearMotor("Left Hip", torso, leftLeg, CFrame.new(-0.5, -1.0, 0), CFrame.new(0, 1.0, 0))
-	local rightHip = crearMotor("Right Hip", torso, rightLeg, CFrame.new(0.5, -1.0, 0), CFrame.new(0, 1.0, 0))
+	local leftShoulder =
+		crearMotor("Left Shoulder", torso, leftArm, CFrame.new(-1.5, 0.5, 0), CFrame.new(0, 0.5, 0))
+	local rightShoulder = crearMotor(
+		"Right Shoulder",
+		torso,
+		rightArm,
+		CFrame.new(1.5, 0.5, 0),
+		CFrame.new(0, 0.5, 0)
+	)
+	local leftHip =
+		crearMotor("Left Hip", torso, leftLeg, CFrame.new(-0.5, -1.0, 0), CFrame.new(0, 1.0, 0))
+	local rightHip =
+		crearMotor("Right Hip", torso, rightLeg, CFrame.new(0.5, -1.0, 0), CFrame.new(0, 1.0, 0))
 
 	local hum = Instance.new("Humanoid")
 	hum.RigType = Enum.HumanoidRigType.R6

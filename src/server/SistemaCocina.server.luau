@@ -453,7 +453,8 @@ local function configurarDonaMelcocha()
 						end
 					end)
 
-					mensaje = mensaje .. "\n\n✨ ¡Doña Melcocha te dio su Bendición! (+15% de velocidad y sigilo durante 2 minutos)."
+					mensaje = mensaje
+						.. "\n\n✨ ¡Doña Melcocha te dio su Bendición! (+15% de velocidad y sigilo durante 2 minutos)."
 				end
 
 				EventosRemotos.MostrarDialogoNPC:FireClient(player, {

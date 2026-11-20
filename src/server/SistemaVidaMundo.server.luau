@@ -427,7 +427,11 @@ local function crearVecinoBarrio(
 				Nombre = info.Apodo,
 				Titulo = "¡Venta Callejera!",
 				Icono = "🍬",
-				Mensaje = string.format("¡Uy qué delicia! Te compré 1 %s por $%d pesos dulces. ¡Sigue así, patrón!", nombreD, ganancia),
+				Mensaje = string.format(
+					"¡Uy qué delicia! Te compré 1 %s por $%d pesos dulces. ¡Sigue así, patrón!",
+					nombreD,
+					ganancia
+				),
 			})
 		else
 			local fraseElegida = info.Frases[math.random(1, #info.Frases)]
@@ -587,7 +591,12 @@ local function crearFirulaisElPerrito(parentFolder: Instance)
 			task.wait(0.25)
 			local ahora = os.clock()
 
-			if jugadorSeguido and ahora < tiempoSeguimiento and jugadorSeguido.Parent and jugadorSeguido.Character then
+			if
+				jugadorSeguido
+				and ahora < tiempoSeguimiento
+				and jugadorSeguido.Parent
+				and jugadorSeguido.Character
+			then
 				local char = jugadorSeguido.Character
 				local pHrp = char:FindFirstChild("HumanoidRootPart") :: BasePart?
 				if pHrp then
@@ -814,35 +823,35 @@ local function crearChivaRumbera(parentFolder: Instance)
 		local paradas = {
 			-- 1. Autopista Principal (sentido Este, carril sur frente al colegio y cocina)
 			Vector3.new(-120.0, 60.5, -7.0),
-			Vector3.new(-75.0, 60.5, -7.0),  -- Cruce escolar
-			Vector3.new(-25.0, 60.5, -7.0),  -- Cruce cocina y plazoleta
-			Vector3.new(35.0, 60.5, -7.0),   -- Frente a edificios de apartamentos
-			Vector3.new(85.0, 60.5, -7.0),   -- Esquina comercial de Don Chucho
+			Vector3.new(-75.0, 60.5, -7.0), -- Cruce escolar
+			Vector3.new(-25.0, 60.5, -7.0), -- Cruce cocina y plazoleta
+			Vector3.new(35.0, 60.5, -7.0), -- Frente a edificios de apartamentos
+			Vector3.new(85.0, 60.5, -7.0), -- Esquina comercial de Don Chucho
 			-- 2. Conexión hacia el Cuadro Oriente y el inicio del Zigzag
 			Vector3.new(85.0, 60.5, 25.0),
 			Vector3.new(45.0, 60.5, 45.0),
-			Vector3.new(4.2, 60.5, 65.0),    -- Entrada al Zigzag de montaña
+			Vector3.new(4.2, 60.5, 65.0), -- Entrada al Zigzag de montaña
 			-- 3. Ascenso por el Zigzag de la Ladera pasando por los Retenes
-			Vector3.new(4.2, 68.8, 105.0),   -- Aproximación a Retén 1
-			Vector3.new(4.2, 69.2, 125.0),   -- Pasando por el Retén Policial 1 (isletas)
-			Vector3.new(8.0, 75.0, 165.0),   -- Curva panorámica del zigzag
-			Vector3.new(16.0, 83.2, 215.0),  -- Frente al Hospital San Rafael
-			Vector3.new(10.0, 88.0, 270.0),  -- Curva media de ladera
-			Vector3.new(4.2, 92.0, 320.0),   -- Subiendo hacia el Retén 2
-			Vector3.new(4.2, 96.4, 355.0),   -- Pasando por el Retén Policial 2 (isletas superiores)
-			Vector3.new(14.0, 96.5, 380.0),  -- Terraza del Mirador del Valle
+			Vector3.new(4.2, 68.8, 105.0), -- Aproximación a Retén 1
+			Vector3.new(4.2, 69.2, 125.0), -- Pasando por el Retén Policial 1 (isletas)
+			Vector3.new(8.0, 75.0, 165.0), -- Curva panorámica del zigzag
+			Vector3.new(16.0, 83.2, 215.0), -- Frente al Hospital San Rafael
+			Vector3.new(10.0, 88.0, 270.0), -- Curva media de ladera
+			Vector3.new(4.2, 92.0, 320.0), -- Subiendo hacia el Retén 2
+			Vector3.new(4.2, 96.4, 355.0), -- Pasando por el Retén Policial 2 (isletas superiores)
+			Vector3.new(14.0, 96.5, 380.0), -- Terraza del Mirador del Valle
 			Vector3.new(-45.0, 98.0, 395.0), -- Carretera alta de montaña
-			Vector3.new(-75.0, 100.0, 395.0),-- Portón de Finca La Melcocha
+			Vector3.new(-75.0, 100.0, 395.0), -- Portón de Finca La Melcocha
 			-- 4. Descenso por el Cuadro Occidente (Sector de Don Ábaco)
 			Vector3.new(-95.0, 88.0, 340.0), -- Curva alta del cuadro occidental
 			Vector3.new(-98.0, 78.0, 260.0), -- Tramo medio de la calle de Don Ábaco
 			Vector3.new(-98.0, 68.0, 170.0), -- Frente a la Tienda de Don Ábaco
-			Vector3.new(-98.0, 60.5, 75.0),  -- Esquina del cuadro occidental
-			Vector3.new(-98.0, 60.5, 25.0),  -- Bocacalle hacia la autopista
+			Vector3.new(-98.0, 60.5, 75.0), -- Esquina del cuadro occidental
+			Vector3.new(-98.0, 60.5, 25.0), -- Bocacalle hacia la autopista
 			-- 5. Reincorporación a la Autopista Principal en sentido Oeste (carril norte frente a edificios)
-			Vector3.new(-75.0, 60.5, 7.0),   -- Frente al paso de cebra escolar
-			Vector3.new(-120.0, 60.5, 7.0),  -- Glorieta de retorno del colegio
-			Vector3.new(-140.0, 60.5, 0.0),  -- Giro de retorno
+			Vector3.new(-75.0, 60.5, 7.0), -- Frente al paso de cebra escolar
+			Vector3.new(-120.0, 60.5, 7.0), -- Glorieta de retorno del colegio
+			Vector3.new(-140.0, 60.5, 0.0), -- Giro de retorno
 		}
 
 		local idx = 1
@@ -993,17 +1002,17 @@ local function crearPatrullaPolicialMovil(parentFolder: Instance)
 	-- Recorrido de patrullaje continuo en el Zigzag de los Retenes y el Hospital
 	task.spawn(function()
 		local rutaPatrulla = {
-			Vector3.new(4.2, 69.2, 125.0),   -- Retén 1
-			Vector3.new(8.0, 75.0, 165.0),   -- Subida zigzag
-			Vector3.new(16.0, 83.2, 215.0),  -- Hospital San Rafael
-			Vector3.new(10.0, 88.0, 270.0),  -- Curva panorámica
-			Vector3.new(4.2, 96.4, 355.0),   -- Retén 2 (Mirador)
-			Vector3.new(14.0, 96.5, 380.0),  -- Terraza mirador
-			Vector3.new(4.2, 96.4, 355.0),   -- Retorno Retén 2
-			Vector3.new(-4.2, 88.0, 270.0),  -- Bajada zigzag
-			Vector3.new(-4.2, 83.2, 215.0),  -- Frente al hospital
-			Vector3.new(-4.2, 75.0, 165.0),  -- Curva baja
-			Vector3.new(-4.2, 69.2, 125.0),  -- Retén 1
+			Vector3.new(4.2, 69.2, 125.0), -- Retén 1
+			Vector3.new(8.0, 75.0, 165.0), -- Subida zigzag
+			Vector3.new(16.0, 83.2, 215.0), -- Hospital San Rafael
+			Vector3.new(10.0, 88.0, 270.0), -- Curva panorámica
+			Vector3.new(4.2, 96.4, 355.0), -- Retén 2 (Mirador)
+			Vector3.new(14.0, 96.5, 380.0), -- Terraza mirador
+			Vector3.new(4.2, 96.4, 355.0), -- Retorno Retén 2
+			Vector3.new(-4.2, 88.0, 270.0), -- Bajada zigzag
+			Vector3.new(-4.2, 83.2, 215.0), -- Frente al hospital
+			Vector3.new(-4.2, 75.0, 165.0), -- Curva baja
+			Vector3.new(-4.2, 69.2, 125.0), -- Retén 1
 		}
 
 		local idx = 1
@@ -1088,7 +1097,7 @@ local function crearCamperoTraficoAmbiente(parentFolder: Instance)
 			Vector3.new(85.0, 68.0, 170.0), -- Tienda Don Chucho
 			Vector3.new(45.0, 68.0, 170.0),
 			Vector3.new(-45.0, 68.0, 170.0),
-			Vector3.new(-98.0, 68.0, 170.0),-- Tienda Don Ábaco
+			Vector3.new(-98.0, 68.0, 170.0), -- Tienda Don Ábaco
 			Vector3.new(-98.0, 60.5, 30.0),
 			Vector3.new(-98.0, 60.5, -7.0),
 			Vector3.new(-120.0, 60.5, -7.0),
@@ -1212,13 +1221,13 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(45, 40, 50),
 			Icono = "🧺",
 			Ruta = {
-				Vector3.new(-60, 60, 22),   -- Acera norte frente a edificios de apartamentos
-				Vector3.new(-25, 60, 22),   -- Llega al cruce peatonal de cebra
-				Vector3.new(-25, 60, -22),  -- Cruza por la cebra a la acera de la cocina
-				Vector3.new(20, 60, -22),   -- Camina por la acera sur hacia la plaza
-				Vector3.new(35, 60, -22),   -- Llega a la cebra comercial
-				Vector3.new(35, 60, 22),    -- Cruza por la cebra de vuelta a la acera norte
-				Vector3.new(-60, 60, 22),   -- Retorna por el andén de apartamentos
+				Vector3.new(-60, 60, 22), -- Acera norte frente a edificios de apartamentos
+				Vector3.new(-25, 60, 22), -- Llega al cruce peatonal de cebra
+				Vector3.new(-25, 60, -22), -- Cruza por la cebra a la acera de la cocina
+				Vector3.new(20, 60, -22), -- Camina por la acera sur hacia la plaza
+				Vector3.new(35, 60, -22), -- Llega a la cebra comercial
+				Vector3.new(35, 60, 22), -- Cruza por la cebra de vuelta a la acera norte
+				Vector3.new(-60, 60, 22), -- Retorna por el andén de apartamentos
 			},
 			Frase = "¡Camino segura por las aceras y cruzo siempre por la cebra!",
 		},
@@ -1230,9 +1239,9 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			Icono = "🌾",
 			Ruta = {
 				Vector3.new(-110, 60, -22), -- Acera sur frente a canchas del colegio
-				Vector3.new(-75, 60, -22),  -- Cruce escolar del colegio
-				Vector3.new(-35, 60, -22),  -- Frente a la cocina inicial
-				Vector3.new(-75, 60, -22),  -- Retorna por el andén escolar
+				Vector3.new(-75, 60, -22), -- Cruce escolar del colegio
+				Vector3.new(-35, 60, -22), -- Frente a la cocina inicial
+				Vector3.new(-75, 60, -22), -- Retorna por el andén escolar
 			},
 			Frase = "¡Buenas tardes patrón! Qué ordenadas que están las aceras de Villa Almíbar.",
 		},
@@ -1244,13 +1253,13 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			Icono = "🏃‍♂️",
 			Ruta = {
 				Vector3.new(-75, 60, -22), -- Salida del portón escolar
-				Vector3.new(-75, 60, 22),  -- Cruza la autopista por la cebra escolar
-				Vector3.new(35, 60, 22),   -- Camina por la acera norte frente a los edificios
-				Vector3.new(90, 60, 22),   -- Llega a la cebra de Don Chucho
-				Vector3.new(90, 60, 45),   -- Entra a la tienda por la acera comercial
-				Vector3.new(90, 60, 22),   -- Sale de la tienda
-				Vector3.new(35, 60, 22),   -- Regresa por la acera norte
-				Vector3.new(-75, 60, 22),  -- Llega a la cebra escolar
+				Vector3.new(-75, 60, 22), -- Cruza la autopista por la cebra escolar
+				Vector3.new(35, 60, 22), -- Camina por la acera norte frente a los edificios
+				Vector3.new(90, 60, 22), -- Llega a la cebra de Don Chucho
+				Vector3.new(90, 60, 45), -- Entra a la tienda por la acera comercial
+				Vector3.new(90, 60, 22), -- Sale de la tienda
+				Vector3.new(35, 60, 22), -- Regresa por la acera norte
+				Vector3.new(-75, 60, 22), -- Llega a la cebra escolar
 				Vector3.new(-75, 60, -22), -- Cruza de regreso al colegio
 			},
 			Frase = "¡Llevo un encargo cruzando por las cebras escolares y sin pisar la calle!",
@@ -1262,12 +1271,12 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			ColorPantalon = Color3.fromRGB(35, 75, 130),
 			Icono = "👨‍⚕️",
 			Ruta = {
-				Vector3.new(35, 60, 22),    -- Plaza central
-				Vector3.new(45, 60, 45),    -- Andén de conexión hacia el zigzag
-				Vector3.new(12, 69, 105),   -- Andén lateral antes del Retén 1
-				Vector3.new(16, 75, 160),   -- Andén en curva de ladera
+				Vector3.new(35, 60, 22), -- Plaza central
+				Vector3.new(45, 60, 45), -- Andén de conexión hacia el zigzag
+				Vector3.new(12, 69, 105), -- Andén lateral antes del Retén 1
+				Vector3.new(16, 75, 160), -- Andén en curva de ladera
 				Vector3.new(22, 83.2, 215), -- Explanada de Urgencias del Hospital San Rafael
-				Vector3.new(16, 75, 160),   -- Retorno por el andén
+				Vector3.new(16, 75, 160), -- Retorno por el andén
 				Vector3.new(12, 69, 105),
 				Vector3.new(45, 60, 45),
 			},
@@ -1281,7 +1290,7 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 			Icono = "🚴",
 			Ruta = {
 				Vector3.new(22, 83.2, 215), -- Patio del hospital
-				Vector3.new(15, 90, 310),   -- Sendero panorámico hacia la cima
+				Vector3.new(15, 90, 310), -- Sendero panorámico hacia la cima
 				Vector3.new(10, 96.4, 350), -- Paso peatonal del Retén 2
 				Vector3.new(20, 96.5, 380), -- Terraza del Mirador del Valle
 				Vector3.new(10, 96.4, 350),
@@ -1388,7 +1397,11 @@ local function crearPeatonesCaminando(parentFolder: Instance)
 					Nombre = info.Apodo,
 					Titulo = "¡Venta Callejera!",
 					Icono = "🍬",
-					Mensaje = string.format("¡Uy qué delicia! Te compré 1 %s por $%d pesos. ¡Gracias patrón!", nombreD, ganancia),
+					Mensaje = string.format(
+						"¡Uy qué delicia! Te compré 1 %s por $%d pesos. ¡Gracias patrón!",
+						nombreD,
+						ganancia
+					),
 				})
 			else
 				EventosRemotos.MostrarDialogoNPC:FireClient(player, {

@@ -629,19 +629,24 @@ local function procesarMuerteZombi(registro: RegistroZombi)
 		local atacante = registro.UltimoAtacante
 		if not atacante then
 			local tagCreator = registro.Humanoid:FindFirstChild("creator")
-			if tagCreator and tagCreator:IsA("ObjectValue") and tagCreator.Value and tagCreator.Value:IsA("Player") then
+			if
+				tagCreator
+				and tagCreator:IsA("ObjectValue")
+				and tagCreator.Value
+				and tagCreator.Value:IsA("Player")
+			then
 				atacante = tagCreator.Value
 				registro.UltimoAtacante = atacante
 			end
 		end
-		if atacante and HordeSession.EsParticipanteVivo(atacante) and atacante:IsDescendantOf(Players) then
+		if
+			atacante
+			and HordeSession.EsParticipanteVivo(atacante)
+			and atacante:IsDescendantOf(Players)
+		then
 			GestorDatos.AgregarPesos(atacante, registro.Variante.RecompensaPesos)
 			GestorDatos.AgregarFama(atacante, 1)
-			GestorDatos.AgregarDulce(
-				atacante,
-				"Dulce_Gomita",
-				General.MunicionDropPorMuerte
-			)
+			GestorDatos.AgregarDulce(atacante, "Dulce_Gomita", General.MunicionDropPorMuerte)
 			HordeSession.RegistrarBaja(atacante, registro.Variante.RecompensaPesos, 1)
 		end
 
@@ -708,7 +713,8 @@ function ZombieService.GenerarZombi(
 	local vidaFinal = math.round(configOleada.VidaBase * variante.MultiplicadorVida)
 	local velocidadFinal = configOleada.VelocidadBase * variante.MultiplicadorVelocidad
 	local danioFinal = math.round(configOleada.DanioBase * variante.MultiplicadorDanio)
-	local cooldownFinal = configOleada.CooldownAtaque * (variante.MultiplicadorCooldownAtaque or 1.0)
+	local cooldownFinal = configOleada.CooldownAtaque
+		* (variante.MultiplicadorCooldownAtaque or 1.0)
 
 	humanoid.MaxHealth = vidaFinal
 	humanoid.Health = vidaFinal

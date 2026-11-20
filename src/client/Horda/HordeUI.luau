@@ -303,18 +303,39 @@ local function manejarActualizacionEstado(datosEstado: {
 	-- Espectadores (jugadores nuevos que entraron después del inicio) no oyen música de combate
 	if rol == "Espectador" then
 		actualizarMusicaTension(false)
-		_cacheOleadaTxt = setTextCached(_lblOleada, string.format("👁️ ESPECTADOR — OLEADA %d", math.max(1, oleada)), _cacheOleadaTxt)
-		_cacheEstadoTxt = setTextCached(_lblEstado, string.format("Horda cooperativa en curso (%d/%d vivos)", vivos, totalPart), _cacheEstadoTxt)
-		_cacheZombisTxt = setTextCached(_lblZombis, "Espera a que termine para unirte", _cacheZombisTxt)
+		_cacheOleadaTxt = setTextCached(
+			_lblOleada,
+			string.format("👁️ ESPECTADOR — OLEADA %d", math.max(1, oleada)),
+			_cacheOleadaTxt
+		)
+		_cacheEstadoTxt = setTextCached(
+			_lblEstado,
+			string.format("Horda cooperativa en curso (%d/%d vivos)", vivos, totalPart),
+			_cacheEstadoTxt
+		)
+		_cacheZombisTxt =
+			setTextCached(_lblZombis, "Espera a que termine para unirte", _cacheZombisTxt)
 		return
 	end
 
 	-- Participantes eliminados esperan el fin de la sesión sin alertas invasivas
 	if rol == "Eliminado" then
 		actualizarMusicaTension(false)
-		_cacheOleadaTxt = setTextCached(_lblOleada, string.format("☠️ ELIMINADO — OLEADA %d", math.max(1, oleada)), _cacheOleadaTxt)
-		_cacheEstadoTxt = setTextCached(_lblEstado, string.format("Esperando fin de horda (%d/%d vivos)", vivos, totalPart), _cacheEstadoTxt)
-		_cacheZombisTxt = setTextCached(_lblZombis, string.format("🧟 Zombis restantes: %d", restantes), _cacheZombisTxt)
+		_cacheOleadaTxt = setTextCached(
+			_lblOleada,
+			string.format("☠️ ELIMINADO — OLEADA %d", math.max(1, oleada)),
+			_cacheOleadaTxt
+		)
+		_cacheEstadoTxt = setTextCached(
+			_lblEstado,
+			string.format("Esperando fin de horda (%d/%d vivos)", vivos, totalPart),
+			_cacheEstadoTxt
+		)
+		_cacheZombisTxt = setTextCached(
+			_lblZombis,
+			string.format("🧟 Zombis restantes: %d", restantes),
+			_cacheZombisTxt
+		)
 		return
 	end
 
@@ -322,7 +343,11 @@ local function manejarActualizacionEstado(datosEstado: {
 
 	if estado == "Preparando" or estado == "CuentaRegresiva" then
 		_cacheOleadaTxt = setTextCached(_lblOleada, "⚠️ LA HORDA SE ACERCA...", _cacheOleadaTxt)
-		_cacheEstadoTxt = setTextCached(_lblEstado, string.format("Oleada 1 en %ds • Vivos: %d", tiempo, vivos), _cacheEstadoTxt)
+		_cacheEstadoTxt = setTextCached(
+			_lblEstado,
+			string.format("Oleada 1 en %ds • Vivos: %d", tiempo, vivos),
+			_cacheEstadoTxt
+		)
 		_cacheZombisTxt = setTextCached(_lblZombis, "Prepárate para combatir", _cacheZombisTxt)
 
 		if estado == "CuentaRegresiva" and _ultimoMensajeAnunciado ~= "CuentaRegresiva" then
@@ -338,9 +363,18 @@ local function manejarActualizacionEstado(datosEstado: {
 			reproducirSonido(ConfigZombis.Sonidos.AlertaUI, 0.3)
 		end
 	elseif estado == "EnCurso" then
-		_cacheOleadaTxt = setTextCached(_lblOleada, string.format("💀 OLEADA %d", oleada), _cacheOleadaTxt)
-		_cacheEstadoTxt = setTextCached(_lblEstado, string.format("COMBATE ACTIVO • Vivos: %d/%d", vivos, totalPart), _cacheEstadoTxt)
-		_cacheZombisTxt = setTextCached(_lblZombis, string.format("🧟 Zombis restantes: %d / %d", restantes, total), _cacheZombisTxt)
+		_cacheOleadaTxt =
+			setTextCached(_lblOleada, string.format("💀 OLEADA %d", oleada), _cacheOleadaTxt)
+		_cacheEstadoTxt = setTextCached(
+			_lblEstado,
+			string.format("COMBATE ACTIVO • Vivos: %d/%d", vivos, totalPart),
+			_cacheEstadoTxt
+		)
+		_cacheZombisTxt = setTextCached(
+			_lblZombis,
+			string.format("🧟 Zombis restantes: %d / %d", restantes, total),
+			_cacheZombisTxt
+		)
 
 		if _ultimaOleadaAnunciada ~= oleada then
 			_ultimaOleadaAnunciada = oleada
@@ -369,8 +403,13 @@ local function manejarActualizacionEstado(datosEstado: {
 			mostrarBannerOleada(string.format("OLEADA %d", oleada), subtitulo, colorBorde, 3.8)
 		end
 	elseif estado == "OleadaCompletada" then
-		_cacheOleadaTxt = setTextCached(_lblOleada, string.format("✓ OLEADA %d", oleada), _cacheOleadaTxt)
-		_cacheEstadoTxt = setTextCached(_lblEstado, string.format("Siguiente oleada en %ds", tiempo), _cacheEstadoTxt)
+		_cacheOleadaTxt =
+			setTextCached(_lblOleada, string.format("✓ OLEADA %d", oleada), _cacheOleadaTxt)
+		_cacheEstadoTxt = setTextCached(
+			_lblEstado,
+			string.format("Siguiente oleada en %ds", tiempo),
+			_cacheEstadoTxt
+		)
 		_cacheZombisTxt = setTextCached(_lblZombis, "🧟 Zombis restantes: 0", _cacheZombisTxt)
 
 		if _ultimoMensajeAnunciado ~= ("Completada_" .. tostring(oleada)) then

@@ -23,8 +23,11 @@ function UtilidadesMapaHorda.ConfigurarCollisionGroups()
 	end
 	_collisionGroupConfigurado = true
 
-	local nombreGrupo = (Datos.Zombis and Datos.Zombis.General and Datos.Zombis.General.NombreCollisionGroupZombis)
-		or "ZombisHorda"
+	local nombreGrupo = (
+		Datos.Zombis
+		and Datos.Zombis.General
+		and Datos.Zombis.General.NombreCollisionGroupZombis
+	) or "ZombisHorda"
 
 	pcall(function()
 		PhysicsService:RegisterCollisionGroup(nombreGrupo)
@@ -319,7 +322,9 @@ local function evaluarCandidatoSpawn(
 			end
 		end
 
-		if dist <= 75 and puntoEsVisibleParaParticipante(infoP.Posicion, posSuelo, paramsOclusion) then
+		if
+			dist <= 75 and puntoEsVisibleParaParticipante(infoP.Posicion, posSuelo, paramsOclusion)
+		then
 			ocultoPorObstaculo = false
 		end
 	end
@@ -421,7 +426,8 @@ function UtilidadesMapaHorda.ObtenerPuntosAparicionZombis(
 			for _, radio in ipairs({ 32, 38, 46 }) do
 				for anguloDeg = 0, 330, 30 do
 					local rad = math.rad(anguloDeg)
-					local cand = centro + Vector3.new(math.cos(rad) * radio, 2, math.sin(rad) * radio)
+					local cand = centro
+						+ Vector3.new(math.cos(rad) * radio, 2, math.sin(rad) * radio)
 					local posSuelo, score = evaluarCandidatoSpawn(
 						cand,
 						participantesInfo,

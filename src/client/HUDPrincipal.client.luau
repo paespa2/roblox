@@ -751,10 +751,16 @@ local function mostrarDialogoNPC(info: {
 	-- 2. Clasificación Inteligente:
 	-- Mensajes cortos (< 100 caracteres y sin párrafos dobles \n\n) son NOTIFICACIONES EFÍMERAS.
 	-- Desaparecen solas en 3.2 segundos o se descartan con [X], sin bloquear la pantalla ni los controles.
-	local esTextoCorto = (#textoCrudo < 100) and not string.find(textoCrudo, "\n\n") and type(info.Mensaje) ~= "table"
+	local esTextoCorto = (#textoCrudo < 100)
+		and not string.find(textoCrudo, "\n\n")
+		and type(info.Mensaje) ~= "table"
 	if info.EsNotificacionEfimera or esTextoCorto then
 		local prefijo = string.format("%s %s:", info.Icono or "💬", info.Nombre)
-		mostrarBanner(string.format("%s %s", prefijo, textoCrudo), Color3.fromRGB(245, 185, 60), 3.2)
+		mostrarBanner(
+			string.format("%s %s", prefijo, textoCrudo),
+			Color3.fromRGB(245, 185, 60),
+			3.2
+		)
 		return
 	end
 

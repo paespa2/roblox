@@ -833,10 +833,13 @@ local function configurar12PoliciasDentales()
 								local calor = GestorDatos.ObtenerPuntosCalor(player)
 
 								if estrellas >= 1 or calor > 15 then
-									local vecPlano = (pHrp.Position - hrp.Position) * Vector3.new(1, 0, 1)
+									local vecPlano = (pHrp.Position - hrp.Position)
+										* Vector3.new(1, 0, 1)
 									local dotVision = hrp.CFrame.LookVector:Dot(vecPlano.Unit)
 									-- Cono de visión de patrulla: A más de 10 studs requiere estar en campo visual frontal
-									local enVision = (dist < 10) or (dotVision > 0.15) or (estrellas >= 3)
+									local enVision = (dist < 10)
+										or (dotVision > 0.15)
+										or (estrellas >= 3)
 									if enVision then
 										distanciaMinima = dist
 										jugadorObjetivo = player
@@ -932,10 +935,7 @@ local function configurar12PoliciasDentales()
 						local paso = dir.Unit * math.min(dist, 13.5 * dt)
 						local nuevaPos = hrp.Position + paso
 						local posSuelo = obtenerPosicionSuelo(nuevaPos, 3.0)
-						hrp.CFrame = CFrame.lookAt(
-							posSuelo,
-							posSuelo + dir.Unit
-						)
+						hrp.CFrame = CFrame.lookAt(posSuelo, posSuelo + dir.Unit)
 					end
 				else
 					-- Modo Patrulla callejera normal
@@ -958,10 +958,7 @@ local function configurar12PoliciasDentales()
 						local paso = dirPatrulla.Unit * math.min(distPatrulla, 7.0 * dt)
 						local nuevaPos = hrp.Position + paso
 						local posSuelo = obtenerPosicionSuelo(nuevaPos, 3.0)
-						hrp.CFrame = CFrame.lookAt(
-							posSuelo,
-							posSuelo + dirPatrulla.Unit
-						)
+						hrp.CFrame = CFrame.lookAt(posSuelo, posSuelo + dirPatrulla.Unit)
 					end
 				end
 			end

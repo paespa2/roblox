@@ -20,6 +20,11 @@
   - HUD interactivo con conteo en tiempo real de oleadas y zombis restantes.
 - **🔫 Sistema de Dulce-Armas:**
   - Armas temáticas de confitería (Chicle-Pistola, Escopeta de Caramelo, etc.) con validación de disparos en servidor, raycasting y recarga.
+- **🛵 Sistema de Vehículos y Conducción Urbana:**
+  - Motos y bicicletas de reparto con arquitectura modular (`ModelosVehiculos`, `VehiculosService`, `VehiculoController`).
+  - Físicas estables en coordenadas de mundo con propulsión `LinearVelocity` en modo Line y giro `AngularVelocity`.
+  - Llantas cilíndricas verticales con esferas de física interna, estabilizador giroscópico e inclinación dinámica (*banking*) en curvas.
+  - Efectos reactivos: audio dinámico de motor, luces LED frontales, luz trasera de freno, pito/bocina (`[H]`), invocación/guardado (`[V]`) y pedaleo procedural.
 - **🚗 Tráfico y Transporte Público:**
   - Red de transporte urbano con paradas de taxi (Don Libardo), chiva tradicional, tráfico vehicular sincronizado y cebras peatonales.
 - **🗺️ Sistema de Cartografía, Minimapa Adaptable y GPS 3D:**
@@ -40,16 +45,20 @@ roblox/
 ├── default.project.json       # Configuración de compilación de Rojo
 ├── docs/                      # Documentación técnica y guías de IA
 │   ├── ARQUITECTURA.md        # Arquitectura modular, persistencia y eventos remotos
+│   ├── SISTEMA_VEHICULOS.md   # Sistema de motos, bicicletas, físicas y conducción
 │   ├── SISTEMA_HORDAS_ZOMBIS.md # Especificación del modo supervivencia y oleadas
+│   ├── SISTEMA_MAPA_GPS.md    # Minimapa adaptable, radar y GPS 3D
 │   └── GUIA_PARA_IA.md        # Manual para agentes de Inteligencia Artificial
 ├── src/
 │   ├── client/                # Lógica del cliente (HUD, animaciones, entradas)
 │   │   ├── Horda/             # Controlador de Dante, interfaz de oleadas y animaciones
+│   │   ├── Vehiculos/         # Controlador de vehículos, físicas y entradas de teclado
 │   │   ├── HUDEstrellas.client.luau
 │   │   ├── HUDPrincipal.client.luau
 │   │   └── ...
 │   ├── server/                # Lógica autoritativa del servidor
 │   │   ├── Horda/             # HordeService, WaveManager, ZombieAI, ZombieService
+│   │   ├── Vehiculos/         # ModelosVehiculos, VehiculosService autoritativo
 │   │   ├── GestorDatos.luau   # Persistencia de perfiles con ProfileService
 │   │   ├── SistemaArmas.server.luau
 │   │   ├── SistemaCocina.server.luau
@@ -105,6 +114,7 @@ El repositorio cuenta con estándares estrictos de formato y análisis estático
 ## 📖 Documentación Adicional
 
 - [Arquitectura Técnica Completa](docs/ARQUITECTURA.md)
+- [Sistema de Vehículos y Conducción Urbana](docs/SISTEMA_VEHICULOS.md)
 - [Sistema de Cartografía, Minimapa Adaptable y GPS 3D](docs/SISTEMA_MAPA_GPS.md)
 - [Especificación del Sistema de Zombis y Hordas](docs/SISTEMA_HORDAS_ZOMBIS.md)
 - [Guía de Desarrollo y Convenciones para Agentes de IA](docs/GUIA_PARA_IA.md)

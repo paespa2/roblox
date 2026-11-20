@@ -158,6 +158,8 @@ local function buscarPorRuta(ruta: { string }): Instance?
 	return actual
 end
 
+local sincronizarPinsVisuales: (() -> ())? = nil
+
 local function resolverPuntosInteres()
 	local lista: { PuntoResuelto } = {}
 	for _, def in ipairs(PuntosMapa.Puntos) do
@@ -200,6 +202,9 @@ local function resolverPuntosInteres()
 	end
 
 	_puntosResueltos = lista
+	if sincronizarPinsVisuales then
+		sincronizarPinsVisuales()
+	end
 end
 
 -- ============================================================================
@@ -282,13 +287,20 @@ lblZonaMini.TextXAlignment = Enum.TextXAlignment.Left
 lblZonaMini.Parent = barraSupMini
 
 -- Botones para tamaños predeterminados: Pequeño (P), Mediano (M), Grande (G)
-local function crearBotonTamano(nombre: string, texto: string, xOffset: number, activo: boolean): TextButton
+local function crearBotonTamano(
+	nombre: string,
+	texto: string,
+	xOffset: number,
+	activo: boolean
+): TextButton
 	local btn = Instance.new("TextButton")
 	btn.Name = "BtnTamano_" .. nombre
 	btn.Size = UDim2.fromOffset(18, 18)
 	btn.AnchorPoint = Vector2.new(1, 0.5)
 	btn.Position = UDim2.new(1, xOffset, 0.5, 0)
-	btn.BackgroundColor3 = if activo then Color3.fromRGB(0, 175, 240) else Color3.fromRGB(38, 46, 60)
+	btn.BackgroundColor3 = if activo
+		then Color3.fromRGB(0, 175, 240)
+		else Color3.fromRGB(38, 46, 60)
 	btn.Font = Enum.Font.GothamBold
 	btn.Text = texto
 	btn.TextColor3 = if activo then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(180, 192, 210)
@@ -481,9 +493,25 @@ strokePillGPS.Color = COLOR_RUTA_GPS
 strokePillGPS.Thickness = 1.8
 strokePillGPS.Parent = pillEstadoGPS
 
+local lblIconoManiobra = Instance.new("TextLabel")
+lblIconoManiobra.Name = "IconoManiobra"
+lblIconoManiobra.Size = UDim2.fromOffset(28, 28)
+lblIconoManiobra.AnchorPoint = Vector2.new(0, 0.5)
+lblIconoManiobra.Position = UDim2.new(0, 8, 0.5, 0)
+lblIconoManiobra.BackgroundColor3 = Color3.fromRGB(18, 42, 60)
+lblIconoManiobra.Font = Enum.Font.FredokaOne
+lblIconoManiobra.Text = "⬆️"
+lblIconoManiobra.TextColor3 = Color3.fromRGB(120, 235, 255)
+lblIconoManiobra.TextSize = 16
+lblIconoManiobra.Parent = pillEstadoGPS
+
+local cornerManiobra = Instance.new("UICorner")
+cornerManiobra.CornerRadius = UDim.new(0, 8)
+cornerManiobra.Parent = lblIconoManiobra
+
 local lblDestinoGPS = Instance.new("TextLabel")
-lblDestinoGPS.Size = UDim2.new(1, -34, 0, 20)
-lblDestinoGPS.Position = UDim2.fromOffset(8, 3)
+lblDestinoGPS.Size = UDim2.new(1, -74, 0, 20)
+lblDestinoGPS.Position = UDim2.fromOffset(42, 3)
 lblDestinoGPS.BackgroundTransparency = 1
 lblDestinoGPS.Font = Enum.Font.FredokaOne
 lblDestinoGPS.Text = "🧭 Destino"
@@ -494,20 +522,21 @@ lblDestinoGPS.TextXAlignment = Enum.TextXAlignment.Left
 lblDestinoGPS.Parent = pillEstadoGPS
 
 local lblDistanciaGPS = Instance.new("TextLabel")
-lblDistanciaGPS.Size = UDim2.new(1, -34, 0, 18)
-lblDistanciaGPS.Position = UDim2.fromOffset(8, 22)
+lblDistanciaGPS.Size = UDim2.new(1, -74, 0, 18)
+lblDistanciaGPS.Position = UDim2.fromOffset(42, 22)
 lblDistanciaGPS.BackgroundTransparency = 1
 lblDistanciaGPS.Font = Enum.Font.GothamBold
 lblDistanciaGPS.Text = "0 m"
 lblDistanciaGPS.TextColor3 = COLOR_RUTA_GPS
-lblDistanciaGPS.TextSize = 12
+lblDistanciaGPS.TextSize = 11
+lblDistanciaGPS.TextTruncate = Enum.TextTruncate.AtEnd
 lblDistanciaGPS.TextXAlignment = Enum.TextXAlignment.Left
 lblDistanciaGPS.Parent = pillEstadoGPS
 
 local btnCancelarGPSMini = Instance.new("TextButton")
-btnCancelarGPSMini.Size = UDim2.fromOffset(22, 22)
+btnCancelarGPSMini.Size = UDim2.fromOffset(24, 24)
 btnCancelarGPSMini.AnchorPoint = Vector2.new(1, 0.5)
-btnCancelarGPSMini.Position = UDim2.new(1, -6, 0.5, 0)
+btnCancelarGPSMini.Position = UDim2.new(1, -8, 0.5, 0)
 btnCancelarGPSMini.BackgroundColor3 = Color3.fromRGB(160, 45, 55)
 btnCancelarGPSMini.Font = Enum.Font.GothamBold
 btnCancelarGPSMini.Text = "✕"
@@ -523,23 +552,37 @@ local function actualizarPosicionPillGPS(altoMinimapa: number?, anchoMinimapa: n
 	local h = altoMinimapa or contenedorMinimapa.AbsoluteSize.Y
 	local w = anchoMinimapa or contenedorMinimapa.AbsoluteSize.X
 	pillEstadoGPS.Position = UDim2.new(1, -20, 1, -(h + 28))
-	pillEstadoGPS.Size = UDim2.fromOffset(math.max(w, 180), 44)
+	pillEstadoGPS.Size = UDim2.fromOffset(math.max(w, 210), 46)
 end
 
 local function aplicarTamanoMinimapa(clave: string, animado: boolean?)
 	local cfg = TAMANOS_MINIMAPA[clave]
-	if not cfg then return end
+	if not cfg then
+		return
+	end
 	_tamanoMinimapaActual = clave
 	_zoomMinimapaActual = cfg.Zoom
 
-	btnTamanoP.BackgroundColor3 = if clave == "P" then Color3.fromRGB(0, 175, 240) else Color3.fromRGB(38, 46, 60)
-	btnTamanoP.TextColor3 = if clave == "P" then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(180, 192, 210)
+	btnTamanoP.BackgroundColor3 = if clave == "P"
+		then Color3.fromRGB(0, 175, 240)
+		else Color3.fromRGB(38, 46, 60)
+	btnTamanoP.TextColor3 = if clave == "P"
+		then Color3.fromRGB(255, 255, 255)
+		else Color3.fromRGB(180, 192, 210)
 
-	btnTamanoM.BackgroundColor3 = if clave == "M" then Color3.fromRGB(0, 175, 240) else Color3.fromRGB(38, 46, 60)
-	btnTamanoM.TextColor3 = if clave == "M" then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(180, 192, 210)
+	btnTamanoM.BackgroundColor3 = if clave == "M"
+		then Color3.fromRGB(0, 175, 240)
+		else Color3.fromRGB(38, 46, 60)
+	btnTamanoM.TextColor3 = if clave == "M"
+		then Color3.fromRGB(255, 255, 255)
+		else Color3.fromRGB(180, 192, 210)
 
-	btnTamanoG.BackgroundColor3 = if clave == "G" then Color3.fromRGB(0, 175, 240) else Color3.fromRGB(38, 46, 60)
-	btnTamanoG.TextColor3 = if clave == "G" then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(180, 192, 210)
+	btnTamanoG.BackgroundColor3 = if clave == "G"
+		then Color3.fromRGB(0, 175, 240)
+		else Color3.fromRGB(38, 46, 60)
+	btnTamanoG.TextColor3 = if clave == "G"
+		then Color3.fromRGB(255, 255, 255)
+		else Color3.fromRGB(180, 192, 210)
 
 	if clave == "P" then
 		btnAbrirMapaMini.Text = "[M]"
@@ -911,13 +954,23 @@ local function asegurarCarpetaRuta3D(): Folder
 	return carpeta
 end
 
-local function limpiarRuta3D()
-	if _carpetaRuta3D then
-		_carpetaRuta3D:ClearAllChildren()
-	end
-end
+-- Estado y animación avanzada de la ruta 3D
+local _puntosRutaSuavizada: { Vector3 } = {}
+local _nodosGiroGPS: { { Pos: Vector3, Angulo: number, Giro: string } } = {}
+local _acumuladosDistancia: { number } = {}
+local _longitudTotalRuta: number = 0
+local _pulsos3D: { Part } = {}
+local _senalesGiro3D: { { Nodo: any, PartAncla: Part, Stroke: UIStroke, LabelDist: TextLabel } } =
+	{}
+local _anilloDestinoInterior: Part? = nil
+local _anilloDestinoExterior: Part? = nil
+local _billboardDestino: BillboardGui? = nil
+local _lblDistanciaDestino3D: TextLabel? = nil
+local _progresoPulsoLuz: number = 0
+local _tiempoAnimacionGPS: number = 0
+local _ultimoNodoSonado: any = nil
 
-local function obtenerAlturaSuelo(pos: Vector3): number
+local function obtenerInfoSuelo(pos: Vector3): (Vector3, Vector3)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	local excluidos: { Instance } = {}
@@ -929,11 +982,138 @@ local function obtenerAlturaSuelo(pos: Vector3): number
 	end
 	params.FilterDescendantsInstances = excluidos
 
-	local resultado = Workspace:Raycast(Vector3.new(pos.X, pos.Y + 40, pos.Z), Vector3.new(0, -120, 0), params)
+	local resultado =
+		Workspace:Raycast(Vector3.new(pos.X, pos.Y + 35, pos.Z), Vector3.new(0, -90, 0), params)
 	if resultado then
-		return resultado.Position.Y
+		return resultado.Position, resultado.Normal
 	end
-	return pos.Y
+	return pos, Vector3.new(0, 1, 0)
+end
+
+local function obtenerAlturaSuelo(pos: Vector3): number
+	local p, _ = obtenerInfoSuelo(pos)
+	return p.Y
+end
+
+local function limpiarRuta3D()
+	if _carpetaRuta3D then
+		_carpetaRuta3D:ClearAllChildren()
+	end
+	table.clear(_puntosRutaSuavizada)
+	table.clear(_acumuladosDistancia)
+	table.clear(_nodosGiroGPS)
+	table.clear(_pulsos3D)
+	table.clear(_senalesGiro3D)
+	_anilloDestinoInterior = nil
+	_anilloDestinoExterior = nil
+	_billboardDestino = nil
+	_lblDistanciaDestino3D = nil
+	_longitudTotalRuta = 0
+	_ultimoNodoSonado = nil
+end
+
+local function suavizarRuta(puntosOriginales: { Vector3 }): { Vector3 }
+	if #puntosOriginales <= 1 then
+		return puntosOriginales
+	end
+	if #puntosOriginales == 2 then
+		local p1, n1 = obtenerInfoSuelo(puntosOriginales[1])
+		local p2, n2 = obtenerInfoSuelo(puntosOriginales[2])
+		return { p1 + n1 * 0.08, p2 + n2 * 0.08 }
+	end
+
+	local resultado: { Vector3 } = {}
+	table.clear(_nodosGiroGPS)
+
+	local pIni, nIni = obtenerInfoSuelo(puntosOriginales[1])
+	table.insert(resultado, pIni + nIni * 0.08)
+
+	for i = 2, #puntosOriginales - 1 do
+		local pPrev = puntosOriginales[i - 1]
+		local pCurr = puntosOriginales[i]
+		local pNext = puntosOriginales[i + 1]
+
+		local vIn = pCurr - pPrev
+		local vOut = pNext - pCurr
+		local distIn = vIn.Magnitude
+		local distOut = vOut.Magnitude
+
+		if distIn > 1.5 and distOut > 1.5 then
+			local dirIn = Vector2.new(vIn.X, vIn.Z).Unit
+			local dirOut = Vector2.new(vOut.X, vOut.Z).Unit
+			local dot = math.clamp(dirIn.X * dirOut.X + dirIn.Y * dirOut.Y, -1, 1)
+			local cross = dirIn.X * dirOut.Y - dirIn.Y * dirOut.X
+			local angulo = math.deg(math.acos(dot))
+
+			if angulo >= 16 then
+				local radio = math.min(7.5, distIn * 0.38, distOut * 0.38)
+				local q1 = pCurr - vIn.Unit * radio
+				local q2 = pCurr + vOut.Unit * radio
+
+				local pQ1, nQ1 = obtenerInfoSuelo(q1)
+				table.insert(resultado, pQ1 + nQ1 * 0.08)
+
+				for step = 1, 3 do
+					local t = step / 4
+					local pBez = (1 - t) * (1 - t) * q1 + 2 * (1 - t) * t * pCurr + t * t * q2
+					local pSuelo, normSuelo = obtenerInfoSuelo(pBez)
+					table.insert(resultado, pSuelo + normSuelo * 0.08)
+				end
+
+				local pQ2, nQ2 = obtenerInfoSuelo(q2)
+				table.insert(resultado, pQ2 + nQ2 * 0.08)
+
+				table.insert(_nodosGiroGPS, {
+					Pos = pCurr,
+					Angulo = angulo,
+					Giro = if cross > 0 then "derecha" else "izquierda",
+				})
+			else
+				local pSuelo, normSuelo = obtenerInfoSuelo(pCurr)
+				table.insert(resultado, pSuelo + normSuelo * 0.08)
+			end
+		else
+			local pSuelo, normSuelo = obtenerInfoSuelo(pCurr)
+			table.insert(resultado, pSuelo + normSuelo * 0.08)
+		end
+	end
+
+	local pFin, nFin = obtenerInfoSuelo(puntosOriginales[#puntosOriginales])
+	table.insert(resultado, pFin + nFin * 0.08)
+
+	return resultado
+end
+
+local function recalcularMetricasRuta()
+	table.clear(_acumuladosDistancia)
+	_acumuladosDistancia = { 0 }
+	local total = 0
+	for i = 1, #_puntosRutaSuavizada - 1 do
+		local d = (_puntosRutaSuavizada[i + 1] - _puntosRutaSuavizada[i]).Magnitude
+		total += d
+		table.insert(_acumuladosDistancia, total)
+	end
+	_longitudTotalRuta = total
+end
+
+local function interpolarPuntoRuta(distDeseada: number): (Vector3?, Vector3?)
+	if #_puntosRutaSuavizada < 2 or _longitudTotalRuta <= 0.1 then
+		return nil, nil
+	end
+	local dTarget = math.clamp(distDeseada, 0, _longitudTotalRuta)
+	for i = 1, #_acumuladosDistancia - 1 do
+		local d0 = _acumuladosDistancia[i]
+		local d1 = _acumuladosDistancia[i + 1]
+		if dTarget >= d0 and dTarget <= d1 then
+			local segLen = d1 - d0
+			local alpha = if segLen > 0.001 then (dTarget - d0) / segLen else 0
+			local pA = _puntosRutaSuavizada[i]
+			local pB = _puntosRutaSuavizada[i + 1]
+			local pInterp = pA:Lerp(pB, alpha)
+			return pInterp, Vector3.new(0, 1, 0)
+		end
+	end
+	return _puntosRutaSuavizada[#_puntosRutaSuavizada], Vector3.new(0, 1, 0)
 end
 
 local function renderizarRuta3D()
@@ -945,39 +1125,206 @@ local function renderizarRuta3D()
 
 	local carpeta = asegurarCarpetaRuta3D()
 	carpeta:ClearAllChildren()
+	table.clear(_pulsos3D)
+	table.clear(_senalesGiro3D)
 
 	local posJugador = obtenerPosicionJugador()
-
-	local puntos = { Vector3.new(posJugador.X, obtenerAlturaSuelo(posJugador) + 0.6, posJugador.Z) }
+	local puntosOriginales = { posJugador }
 	for _, wp in ipairs(_waypointsRuta) do
-		local ySuelo = obtenerAlturaSuelo(wp)
-		table.insert(puntos, Vector3.new(wp.X, ySuelo + 0.6, wp.Z))
+		table.insert(puntosOriginales, wp)
 	end
 
-	for i = 1, #puntos - 1 do
-		local a = puntos[i]
-		local b = puntos[i + 1]
+	_puntosRutaSuavizada = suavizarRuta(puntosOriginales)
+	recalcularMetricasRuta()
+
+	-- A. Ribbon Dual Aerodinámico y Discos de Esquina
+	for i = 1, #_puntosRutaSuavizada - 1 do
+		local a = _puntosRutaSuavizada[i]
+		local b = _puntosRutaSuavizada[i + 1]
 		local delta = b - a
 		local dist = delta.Magnitude
-		if dist > 1 then
-			local tramo = Instance.new("Part")
-			tramo.Name = "TramoGPS_" .. i
-			tramo.Anchored = true
-			tramo.CanCollide = false
-			tramo.CanTouch = false
-			tramo.CanQuery = false
-			tramo.CastShadow = false
-			tramo.Material = Enum.Material.Neon
-			tramo.Color = COLOR_RUTA_GPS
-			tramo.Transparency = 0.25
-			tramo.Size = Vector3.new(1.5, 0.25, dist)
-			tramo.CFrame = CFrame.lookAt((a + b) * 0.5, b)
-			tramo.Parent = carpeta
+
+		if dist > 0.35 then
+			local mid = (a + b) * 0.5
+			local _, normMid = obtenerInfoSuelo(mid)
+			local cf = CFrame.lookAt(mid, mid + delta, normMid)
+
+			-- 1. Base Ribbon (Aura Neón Cyan)
+			local tramoBase = Instance.new("Part")
+			tramoBase.Name = "RutaBase_" .. i
+			tramoBase.Anchored = true
+			tramoBase.CanCollide = false
+			tramoBase.CanTouch = false
+			tramoBase.CanQuery = false
+			tramoBase.CastShadow = false
+			tramoBase.Material = Enum.Material.Neon
+			tramoBase.Color = Color3.fromRGB(0, 205, 255)
+			tramoBase.Transparency = 0.38
+			tramoBase.Size = Vector3.new(1.35, 0.04, dist + 0.1)
+			tramoBase.CFrame = cf
+			tramoBase.Parent = carpeta
+
+			-- 2. Núcleo Láser Central (Luz Brillante)
+			local tramoCore = Instance.new("Part")
+			tramoCore.Name = "RutaCore_" .. i
+			tramoCore.Anchored = true
+			tramoCore.CanCollide = false
+			tramoCore.CanTouch = false
+			tramoCore.CanQuery = false
+			tramoCore.CastShadow = false
+			tramoCore.Material = Enum.Material.Neon
+			tramoCore.Color = Color3.fromRGB(225, 252, 255)
+			tramoCore.Transparency = 0.10
+			tramoCore.Size = Vector3.new(0.38, 0.06, dist + 0.12)
+			tramoCore.CFrame = cf
+			tramoCore.Parent = carpeta
+
+			-- 3. Disco de unión en vértice A para curvas continuas
+			local disco = Instance.new("Part")
+			disco.Name = "RutaDisco_" .. i
+			disco.Anchored = true
+			disco.CanCollide = false
+			disco.CanTouch = false
+			disco.CanQuery = false
+			disco.CastShadow = false
+			disco.Shape = Enum.PartType.Cylinder
+			disco.Material = Enum.Material.Neon
+			disco.Color = Color3.fromRGB(0, 215, 255)
+			disco.Transparency = 0.35
+			disco.Size = Vector3.new(0.045, 1.35, 1.35)
+			disco.CFrame = CFrame.lookAt(a, a + normMid) * CFrame.Angles(0, math.rad(90), 0)
+			disco.Parent = carpeta
 		end
 	end
 
-	local yDest = obtenerAlturaSuelo(destino.Posicion)
-	local posDest = Vector3.new(destino.Posicion.X, yDest, destino.Posicion.Z)
+	-- B. Pulsos de Luz Dinámicos (3 orbes de energía viajando por la ruta)
+	for pIdx = 1, 3 do
+		local pulso = Instance.new("Part")
+		pulso.Name = "PulsoLuz_" .. pIdx
+		pulso.Anchored = true
+		pulso.CanCollide = false
+		pulso.CanTouch = false
+		pulso.CanQuery = false
+		pulso.CastShadow = false
+		pulso.Shape = Enum.PartType.Cylinder
+		pulso.Material = Enum.Material.Neon
+		pulso.Color = Color3.fromRGB(255, 255, 255)
+		pulso.Transparency = 0.08
+		pulso.Size = Vector3.new(0.12, 1.5, 1.5)
+		pulso.Parent = carpeta
+
+		local luz = Instance.new("PointLight")
+		luz.Color = Color3.fromRGB(0, 235, 255)
+		luz.Range = 8.5
+		luz.Brightness = 2.2
+		luz.Shadows = false
+		luz.Parent = pulso
+
+		table.insert(_pulsos3D, pulso)
+	end
+
+	-- C. Señalización 3D Holográfica en Giros y Esquinas
+	for _, nodo in ipairs(_nodosGiroGPS) do
+		if nodo.Angulo >= 22 then
+			local ancla = Instance.new("Part")
+			ancla.Name = "AnclaGiroGPS"
+			ancla.Anchored = true
+			ancla.CanCollide = false
+			ancla.CanTouch = false
+			ancla.CanQuery = false
+			ancla.CastShadow = false
+			ancla.Transparency = 1
+			ancla.Size = Vector3.new(1, 1, 1)
+			ancla.Position = nodo.Pos + Vector3.new(0, 3.6, 0)
+			ancla.Parent = carpeta
+
+			local bb = Instance.new("BillboardGui")
+			bb.Name = "BBGiro"
+			bb.Size = UDim2.fromOffset(56, 46)
+			bb.AlwaysOnTop = true
+			bb.MaxDistance = 160
+			bb.Parent = ancla
+
+			local fondoBB = Instance.new("Frame")
+			fondoBB.Size = UDim2.fromScale(1, 1)
+			fondoBB.BackgroundColor3 = Color3.fromRGB(14, 26, 38)
+			fondoBB.BackgroundTransparency = 0.15
+			fondoBB.Parent = bb
+
+			local cFondo = Instance.new("UICorner")
+			cFondo.CornerRadius = UDim.new(0, 8)
+			cFondo.Parent = fondoBB
+
+			local sFondo = Instance.new("UIStroke")
+			sFondo.Color = COLOR_RUTA_GPS
+			sFondo.Thickness = 1.8
+			sFondo.Parent = fondoBB
+
+			local lblFlecha = Instance.new("TextLabel")
+			lblFlecha.Size = UDim2.new(1, 0, 0, 26)
+			lblFlecha.BackgroundTransparency = 1
+			lblFlecha.Font = Enum.Font.FredokaOne
+			lblFlecha.Text = if nodo.Giro == "derecha" then "↱" else "↰"
+			lblFlecha.TextColor3 = Color3.fromRGB(255, 225, 90)
+			lblFlecha.TextSize = 22
+			lblFlecha.Parent = fondoBB
+
+			local lblDist = Instance.new("TextLabel")
+			lblDist.Size = UDim2.new(1, 0, 0, 16)
+			lblDist.Position = UDim2.fromOffset(0, 26)
+			lblDist.BackgroundTransparency = 1
+			lblDist.Font = Enum.Font.GothamBold
+			lblDist.Text = "-- m"
+			lblDist.TextColor3 = Color3.fromRGB(200, 235, 255)
+			lblDist.TextSize = 10
+			lblDist.Parent = fondoBB
+
+			table.insert(_senalesGiro3D, {
+				Nodo = nodo,
+				PartAncla = ancla,
+				Stroke = sFondo,
+				LabelDist = lblDist,
+			})
+		end
+	end
+
+	-- D. Baliza y Radar Holográfico de Destino
+	local posDestSuelo, normDest = obtenerInfoSuelo(destino.Posicion)
+	local posBaseDest = posDestSuelo + normDest * 0.08
+
+	local anilloExt = Instance.new("Part")
+	anilloExt.Name = "AnilloDestinoExt"
+	anilloExt.Anchored = true
+	anilloExt.CanCollide = false
+	anilloExt.CanTouch = false
+	anilloExt.CanQuery = false
+	anilloExt.CastShadow = false
+	anilloExt.Shape = Enum.PartType.Cylinder
+	anilloExt.Material = Enum.Material.Neon
+	anilloExt.Color = destino.Color
+	anilloExt.Transparency = 0.45
+	anilloExt.Size = Vector3.new(0.08, 12, 12)
+	anilloExt.CFrame = CFrame.lookAt(posBaseDest, posBaseDest + normDest)
+		* CFrame.Angles(0, math.rad(90), 0)
+	anilloExt.Parent = carpeta
+	_anilloDestinoExterior = anilloExt
+
+	local anilloInt = Instance.new("Part")
+	anilloInt.Name = "AnilloDestinoInt"
+	anilloInt.Anchored = true
+	anilloInt.CanCollide = false
+	anilloInt.CanTouch = false
+	anilloInt.CanQuery = false
+	anilloInt.CastShadow = false
+	anilloInt.Shape = Enum.PartType.Cylinder
+	anilloInt.Material = Enum.Material.Neon
+	anilloInt.Color = Color3.fromRGB(255, 255, 255)
+	anilloInt.Transparency = 0.2
+	anilloInt.Size = Vector3.new(0.1, 4.5, 4.5)
+	anilloInt.CFrame = CFrame.lookAt(posBaseDest + normDest * 0.02, posBaseDest + normDest * 1.0)
+		* CFrame.Angles(0, math.rad(90), 0)
+	anilloInt.Parent = carpeta
+	_anilloDestinoInterior = anilloInt
 
 	local baliza = Instance.new("Part")
 	baliza.Name = "BalizaDestinoGPS"
@@ -988,32 +1335,176 @@ local function renderizarRuta3D()
 	baliza.CastShadow = false
 	baliza.Material = Enum.Material.Neon
 	baliza.Color = destino.Color
-	baliza.Transparency = 0.65
-	baliza.Size = Vector3.new(3.2, 65, 3.2)
-	baliza.Position = posDest + Vector3.new(0, 32.5, 0)
+	baliza.Transparency = 0.72
+	baliza.Size = Vector3.new(1.8, 90, 1.8)
+	baliza.Position = posBaseDest + Vector3.new(0, 45, 0)
 	baliza.Parent = carpeta
 
+	local pe = Instance.new("ParticleEmitter")
+	pe.Color = ColorSequence.new(destino.Color, Color3.fromRGB(255, 255, 255))
+	pe.LightEmission = 0.95
+	pe.LightInfluence = 0
+	pe.Size =
+		NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 0) })
+	pe.Transparency =
+		NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
+	pe.Lifetime = NumberRange.new(1.6, 2.4)
+	pe.Rate = 14
+	pe.Speed = NumberRange.new(4, 8)
+	pe.SpreadAngle = Vector2.new(15, 15)
+	pe.Parent = baliza
+
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.fromOffset(200, 56)
-	billboard.StudsOffset = Vector3.new(0, 12, 0)
+	billboard.Size = UDim2.fromOffset(210, 62)
+	billboard.StudsOffset = Vector3.new(0, 14, 0)
 	billboard.AlwaysOnTop = true
-	billboard.MaxDistance = 3000
+	billboard.MaxDistance = 3500
 	billboard.Parent = baliza
+	_billboardDestino = billboard
 
-	local lbl = Instance.new("TextLabel")
-	lbl.Size = UDim2.fromScale(1, 1)
-	lbl.BackgroundColor3 = Color3.fromRGB(14, 22, 32)
-	lbl.BackgroundTransparency = 0.2
-	lbl.Font = Enum.Font.FredokaOne
-	lbl.Text = string.format("%s %s", destino.Icono, destino.Nombre)
-	lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-	lbl.TextSize = 14
-	lbl.TextWrapped = true
-	lbl.Parent = billboard
+	local contenedorBB = Instance.new("Frame")
+	contenedorBB.Size = UDim2.fromScale(1, 1)
+	contenedorBB.BackgroundColor3 = Color3.fromRGB(14, 22, 34)
+	contenedorBB.BackgroundTransparency = 0.12
+	contenedorBB.Parent = billboard
 
-	local cBill = Instance.new("UICorner")
-	cBill.CornerRadius = UDim.new(0, 8)
-	cBill.Parent = lbl
+	local cBB = Instance.new("UICorner")
+	cBB.CornerRadius = UDim.new(0, 10)
+	cBB.Parent = contenedorBB
+
+	local sBB = Instance.new("UIStroke")
+	sBB.Color = destino.Color
+	sBB.Thickness = 2
+	sBB.Parent = contenedorBB
+
+	local lblNomDest = Instance.new("TextLabel")
+	lblNomDest.Size = UDim2.new(1, -16, 0, 26)
+	lblNomDest.Position = UDim2.fromOffset(8, 4)
+	lblNomDest.BackgroundTransparency = 1
+	lblNomDest.Font = Enum.Font.FredokaOne
+	lblNomDest.Text = string.format("%s %s", destino.Icono, destino.Nombre)
+	lblNomDest.TextColor3 = Color3.fromRGB(255, 255, 255)
+	lblNomDest.TextSize = 15
+	lblNomDest.TextTruncate = Enum.TextTruncate.AtEnd
+	lblNomDest.Parent = contenedorBB
+
+	local lblDistDest = Instance.new("TextLabel")
+	lblDistDest.Size = UDim2.new(1, -16, 0, 22)
+	lblDistDest.Position = UDim2.fromOffset(8, 30)
+	lblDistDest.BackgroundTransparency = 1
+	lblDistDest.Font = Enum.Font.GothamBold
+	lblDistDest.Text = "🎯 Calculando distancia..."
+	lblDistDest.TextColor3 = Color3.fromRGB(255, 225, 90)
+	lblDistDest.TextSize = 12
+	lblDistDest.Parent = contenedorBB
+	_lblDistanciaDestino3D = lblDistDest
+end
+
+local function actualizarAnimacionesRuta3D(dt: number, posJugador: Vector3)
+	if not _destinoGPS or #_puntosRutaSuavizada < 2 or not _carpetaRuta3D then
+		return
+	end
+
+	_tiempoAnimacionGPS += dt
+
+	-- 1. Animación fluida de pulsos de luz viajando hacia el destino
+	if _longitudTotalRuta > 2 and #_pulsos3D > 0 then
+		_progresoPulsoLuz = (_progresoPulsoLuz + dt * 28) % _longitudTotalRuta
+		for pIdx, pulso in ipairs(_pulsos3D) do
+			local offsetDist = (_progresoPulsoLuz + (pIdx - 1) * 35) % _longitudTotalRuta
+			local posPulso, normPulso = interpolarPuntoRuta(offsetDist)
+			if posPulso and normPulso then
+				pulso.CFrame = CFrame.lookAt(
+					posPulso + normPulso * 0.12,
+					posPulso + normPulso * 1.0
+				) * CFrame.Angles(0, math.rad(90), 0)
+				pulso.Transparency = 0.05
+					+ 0.12 * math.abs(math.sin(_tiempoAnimacionGPS * 4 + pIdx))
+			else
+				pulso.Transparency = 1
+			end
+		end
+	end
+
+	-- 2. Animación de anillos y baliza en la meta
+	if _anilloDestinoInterior and _anilloDestinoInterior.Parent then
+		local pulsoEscala = 4.2 + math.sin(_tiempoAnimacionGPS * 3.8) * 1.8
+		_anilloDestinoInterior.Size = Vector3.new(0.08, pulsoEscala, pulsoEscala)
+		_anilloDestinoInterior.Transparency = 0.15
+			+ 0.25 * math.abs(math.cos(_tiempoAnimacionGPS * 3.8))
+	end
+
+	if _billboardDestino and _billboardDestino.Parent then
+		_billboardDestino.StudsOffset =
+			Vector3.new(0, 14 + math.sin(_tiempoAnimacionGPS * 2.5) * 0.7, 0)
+	end
+
+	-- 3. Señales flotantes 3D en esquinas e interacción de proximidad
+	local distTotalMeta = (_destinoGPS.Posicion - posJugador).Magnitude
+	if _lblDistanciaDestino3D and _lblDistanciaDestino3D.Parent then
+		_lblDistanciaDestino3D.Text =
+			string.format("🎯 %d m hasta la meta", math.floor(distTotalMeta))
+	end
+
+	local nodoMasCercano: any = nil
+	local distMinTurno = math.huge
+
+	for _, senal in ipairs(_senalesGiro3D) do
+		local nodo = senal.Nodo
+		local ancla = senal.PartAncla
+		if ancla and ancla.Parent then
+			local distAlGiro = (posJugador - nodo.Pos).Magnitude
+			senal.LabelDist.Text = string.format("%d m", math.floor(distAlGiro))
+			ancla.Position = nodo.Pos
+				+ Vector3.new(0, 3.6 + math.sin(_tiempoAnimacionGPS * 3.5) * 0.35, 0)
+
+			if distAlGiro < distMinTurno and distAlGiro > 4 then
+				distMinTurno = distAlGiro
+				nodoMasCercano = nodo
+			end
+
+			if distAlGiro <= 28 then
+				senal.Stroke.Color = Color3.fromRGB(255, 225, 90)
+				senal.Stroke.Thickness = 2.4
+			else
+				senal.Stroke.Color = COLOR_RUTA_GPS
+				senal.Stroke.Thickness = 1.6
+			end
+		end
+	end
+
+	-- 4. Actualizar HUD Pill con Maniobra Activa y Distancia
+	if distTotalMeta <= DISTANCIA_LLEGADA then
+		lblIconoManiobra.Text = "🎯"
+		lblIconoManiobra.TextColor3 = Color3.fromRGB(80, 255, 140)
+		lblDistanciaGPS.Text =
+			string.format("🎯 ¡Llegando a la meta! (%d m)", math.floor(distTotalMeta))
+		strokePillGPS.Color = Color3.fromRGB(80, 255, 140)
+	elseif nodoMasCercano and distMinTurno <= 55 then
+		local esDer = (nodoMasCercano.Giro == "derecha")
+		lblIconoManiobra.Text = if esDer then "↱" else "↰"
+		lblIconoManiobra.TextColor3 = Color3.fromRGB(255, 225, 90)
+		lblDistanciaGPS.Text = string.format(
+			"%s En %d m gira a la %s • Total: %d m",
+			if esDer then "↱" else "↰",
+			math.floor(distMinTurno),
+			if esDer then "derecha" else "izquierda",
+			math.floor(distTotalMeta)
+		)
+		if distMinTurno <= 22 then
+			strokePillGPS.Color = Color3.fromRGB(255, 215, 60)
+		else
+			strokePillGPS.Color = COLOR_RUTA_GPS
+		end
+	else
+		lblIconoManiobra.Text = "⬆️"
+		lblIconoManiobra.TextColor3 = Color3.fromRGB(120, 225, 255)
+		lblDistanciaGPS.Text = string.format(
+			"⬆️ Continúa recto • %d m hasta el destino",
+			math.floor(distTotalMeta)
+		)
+		strokePillGPS.Color = COLOR_RUTA_GPS
+	end
 end
 
 local function calcularRutaGPSAsync()
@@ -1071,6 +1562,9 @@ local function cancelarRutaGPS()
 	limpiarRuta3D()
 	pillEstadoGPS.Visible = false
 	indicadorBordeGPS.Visible = false
+	lblIconoManiobra.Text = "⬆️"
+	lblIconoManiobra.TextColor3 = Color3.fromRGB(120, 235, 255)
+	strokePillGPS.Color = COLOR_RUTA_GPS
 end
 
 local function reproducirSonidoLlegada()
@@ -1100,29 +1594,290 @@ local function iniciarRutaGPS(punto: PuntoResuelto)
 	_ultimoRecalculo = 0
 	pillEstadoGPS.Visible = true
 	actualizarPosicionPillGPS()
+	lblIconoManiobra.Text = "⬆️"
+	lblIconoManiobra.TextColor3 = Color3.fromRGB(120, 235, 255)
 	lblDestinoGPS.Text = string.format("%s %s", punto.Icono, punto.Nombre)
+	lblDistanciaGPS.Text = "🧭 Calculando ruta óptima..."
 	calcularRutaGPSAsync()
 end
 
 -- ============================================================================
 -- RENDERIZADO 2D (MINIMAPA + MAPA COMPLETO)
 -- ============================================================================
-local function crearSegmento2D(padre: Frame, x1: number, y1: number, x2: number, y2: number, grosor: number, color: Color3, zIndex: number)
-	local dx = x2 - x1
-	local dy = y2 - y1
-	local len = math.sqrt(dx * dx + dy * dy)
-	if len < 1 then
-		return
+local renderizarMapaCompleto: () -> ()
+local actualizarDetalleUI: () -> ()
+local actualizarListaLateral: () -> ()
+
+-- 1. Pool persistente de distritos
+local _etiquetasDistritos: { TextLabel } = {}
+local function inicializarDistritosVisuales()
+	for _, lbl in ipairs(_etiquetasDistritos) do
+		lbl:Destroy()
 	end
-	local seg = Instance.new("Frame")
-	seg.AnchorPoint = Vector2.new(0.5, 0.5)
-	seg.Position = UDim2.fromOffset((x1 + x2) * 0.5, (y1 + y2) * 0.5)
-	seg.Size = UDim2.fromOffset(len + grosor * 0.4, grosor)
-	seg.Rotation = math.deg(math.atan2(dy, dx))
-	seg.BackgroundColor3 = color
-	seg.BorderSizePixel = 0
-	seg.ZIndex = zIndex
-	seg.Parent = padre
+	table.clear(_etiquetasDistritos)
+	for _, d in ipairs(DISTRITOS_MAPA) do
+		local lbl = Instance.new("TextLabel")
+		lbl.Name = "Distrito_" .. d.Nombre
+		lbl.AnchorPoint = Vector2.new(0.5, 0.5)
+		lbl.Size = UDim2.fromOffset(180, 20)
+		lbl.BackgroundTransparency = 1
+		lbl.Font = Enum.Font.GothamBlack
+		lbl.Text = d.Nombre
+		lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+		lbl.TextTransparency = 0.72
+		lbl.TextSize = 11
+		lbl.ZIndex = 27
+		lbl.Visible = false
+		lbl.Parent = capaDistritosMapa
+		table.insert(_etiquetasDistritos, lbl)
+	end
+end
+
+-- 2. Pool persistente de jugadores en el mapa
+local flechaJugadorMapa = Instance.new("TextLabel")
+flechaJugadorMapa.Name = "FlechaJugadorMapa"
+flechaJugadorMapa.AnchorPoint = Vector2.new(0.5, 0.5)
+flechaJugadorMapa.Size = UDim2.fromOffset(24, 24)
+flechaJugadorMapa.BackgroundTransparency = 1
+flechaJugadorMapa.Font = Enum.Font.GothamBlack
+flechaJugadorMapa.Text = "▲"
+flechaJugadorMapa.TextColor3 = Color3.fromRGB(80, 255, 140)
+flechaJugadorMapa.TextStrokeTransparency = 0
+flechaJugadorMapa.TextSize = 20
+flechaJugadorMapa.ZIndex = 33
+flechaJugadorMapa.Visible = false
+flechaJugadorMapa.Parent = capaJugadoresMapa
+
+local _poolJugadoresMapa: { Frame } = {}
+local function obtenerDotJugador(idx: number): Frame
+	if _poolJugadoresMapa[idx] then
+		return _poolJugadoresMapa[idx]
+	end
+	local dot = Instance.new("Frame")
+	dot.AnchorPoint = Vector2.new(0.5, 0.5)
+	dot.Size = UDim2.fromOffset(10, 10)
+	dot.BackgroundColor3 = Color3.fromRGB(120, 210, 255)
+	dot.ZIndex = 32
+	dot.Parent = capaJugadoresMapa
+	local cDot = Instance.new("UICorner")
+	cDot.CornerRadius = UDim.new(1, 0)
+	cDot.Parent = dot
+	_poolJugadoresMapa[idx] = dot
+	return dot
+end
+
+-- 3. Pool persistente de segmentos de ruta GPS (Full Map y Minimapa)
+local _poolRutaMapa: { Frame } = {}
+local _poolRutaMini: { Frame } = {}
+
+local function actualizarRutaVisual(
+	pool: { Frame },
+	padre: Frame,
+	waypoints: { Vector3 },
+	inicioX: number,
+	inicioY: number,
+	zoom: number,
+	cx: number,
+	cy: number,
+	panX: number,
+	panY: number,
+	grosor: number,
+	color: Color3,
+	zIndex: number
+)
+	local segIndex = 0
+	if _destinoGPS and #waypoints > 0 then
+		local prevX = cx + (inicioX - panX) * zoom
+		local prevY = cy + (inicioY - panY) * zoom
+		for _, wp in ipairs(waypoints) do
+			local nx = cx + (wp.X - panX) * zoom
+			local ny = cy + (wp.Z - panY) * zoom
+			local dx = nx - prevX
+			local dy = ny - prevY
+			local len = math.sqrt(dx * dx + dy * dy)
+			if len >= 1 then
+				segIndex += 1
+				local seg = pool[segIndex]
+				if not seg then
+					seg = Instance.new("Frame")
+					seg.AnchorPoint = Vector2.new(0.5, 0.5)
+					seg.BorderSizePixel = 0
+					seg.Parent = padre
+					pool[segIndex] = seg
+				end
+				seg.Position = UDim2.fromOffset((prevX + nx) * 0.5, (prevY + ny) * 0.5)
+				seg.Size = UDim2.fromOffset(len + grosor * 0.4, grosor)
+				seg.Rotation = math.deg(math.atan2(dy, dx))
+				seg.BackgroundColor3 = color
+				seg.ZIndex = zIndex
+				seg.Visible = true
+			end
+			prevX, prevY = nx, ny
+		end
+	end
+	for i = segIndex + 1, #pool do
+		pool[i].Visible = false
+	end
+end
+
+-- 4. Pool persistente de puntos de interés (POIs) - Sin parpadeos ni Destroy continuo
+type PinVisualMapa = {
+	Punto: PuntoResuelto,
+	Boton: TextButton,
+	Stroke: UIStroke,
+	Etiqueta: TextLabel,
+}
+
+type PinVisualMini = {
+	Punto: PuntoResuelto,
+	Label: TextLabel,
+	Stroke: UIStroke,
+}
+
+local _pinsVisualesMapa: { [string]: PinVisualMapa } = {}
+local _pinsVisualesMini: { [string]: PinVisualMini } = {}
+
+local function crearPinMapa(p: PuntoResuelto): PinVisualMapa
+	local pin = Instance.new("TextButton")
+	pin.Name = "PinMapa_" .. p.Id
+	pin.AnchorPoint = Vector2.new(0.5, 0.5)
+	pin.Size = UDim2.fromOffset(24, 24)
+	pin.BackgroundColor3 = p.Color
+	pin.Font = Enum.Font.GothamBold
+	pin.Text = p.Icono
+	pin.TextSize = 13
+	pin.ZIndex = 30
+	pin.AutoButtonColor = false
+	pin.Visible = false
+	pin.Parent = capaPOIMapa
+
+	local cPin = Instance.new("UICorner")
+	cPin.CornerRadius = UDim.new(1, 0)
+	cPin.Parent = pin
+
+	local sPin = Instance.new("UIStroke")
+	sPin.Color = Color3.fromRGB(16, 19, 26)
+	sPin.Thickness = 1.2
+	sPin.Parent = pin
+
+	local etiqueta = Instance.new("TextLabel")
+	etiqueta.Name = "Etiqueta"
+	etiqueta.AnchorPoint = Vector2.new(0.5, 0)
+	etiqueta.Position = UDim2.new(0.5, 0, 1, 2)
+	etiqueta.Size = UDim2.fromOffset(130, 16)
+	etiqueta.BackgroundColor3 = Color3.fromRGB(14, 17, 24)
+	etiqueta.BackgroundTransparency = 0.25
+	etiqueta.Font = Enum.Font.GothamBold
+	etiqueta.Text = p.Nombre
+	etiqueta.TextColor3 = Color3.fromRGB(240, 245, 255)
+	etiqueta.TextSize = 10
+	etiqueta.TextTruncate = Enum.TextTruncate.AtEnd
+	etiqueta.ZIndex = 31
+	etiqueta.Visible = false
+	etiqueta.Parent = pin
+
+	local cEt = Instance.new("UICorner")
+	cEt.CornerRadius = UDim.new(0, 4)
+	cEt.Parent = etiqueta
+
+	local idCapturado = p.Id
+	pin.MouseButton1Click:Connect(function()
+		local seleccionado: PuntoResuelto? = nil
+		for _, cand in ipairs(_puntosResueltos) do
+			if cand.Id == idCapturado then
+				seleccionado = cand
+				break
+			end
+		end
+		if seleccionado then
+			_puntoSeleccionado = seleccionado
+			if type(actualizarDetalleUI) == "function" then
+				actualizarDetalleUI()
+			end
+			if type(actualizarListaLateral) == "function" then
+				actualizarListaLateral()
+			end
+			if type(renderizarMapaCompleto) == "function" then
+				renderizarMapaCompleto()
+			end
+		end
+	end)
+
+	return {
+		Punto = p,
+		Boton = pin,
+		Stroke = sPin,
+		Etiqueta = etiqueta,
+	}
+end
+
+local function crearPinMini(p: PuntoResuelto): PinVisualMini
+	local pin = Instance.new("TextLabel")
+	pin.Name = "PinMini_" .. p.Id
+	pin.AnchorPoint = Vector2.new(0.5, 0.5)
+	pin.Size = UDim2.fromOffset(20, 20)
+	pin.BackgroundColor3 = p.Color
+	pin.BackgroundTransparency = 0.1
+	pin.Font = Enum.Font.GothamBold
+	pin.Text = p.Icono
+	pin.TextSize = 12
+	pin.ZIndex = 8
+	pin.Visible = false
+	pin.Parent = capaPOIMini
+
+	local cPin = Instance.new("UICorner")
+	cPin.CornerRadius = UDim.new(1, 0)
+	cPin.Parent = pin
+
+	local sPin = Instance.new("UIStroke")
+	sPin.Color = Color3.fromRGB(16, 19, 26)
+	sPin.Thickness = 1.2
+	sPin.Parent = pin
+
+	return {
+		Punto = p,
+		Label = pin,
+		Stroke = sPin,
+	}
+end
+
+sincronizarPinsVisuales = function()
+	local idsActuales: { [string]: boolean } = {}
+	for _, p in ipairs(_puntosResueltos) do
+		idsActuales[p.Id] = true
+
+		local visualMapa = _pinsVisualesMapa[p.Id]
+		if visualMapa then
+			visualMapa.Punto = p
+			visualMapa.Boton.Text = p.Icono
+			visualMapa.Etiqueta.Text = p.Nombre
+		else
+			_pinsVisualesMapa[p.Id] = crearPinMapa(p)
+		end
+
+		local visualMini = _pinsVisualesMini[p.Id]
+		if visualMini then
+			visualMini.Punto = p
+			visualMini.Label.Text = p.Icono
+			visualMini.Label.BackgroundColor3 = p.Color
+		else
+			_pinsVisualesMini[p.Id] = crearPinMini(p)
+		end
+	end
+
+	for id, visualMapa in pairs(_pinsVisualesMapa) do
+		if not idsActuales[id] then
+			visualMapa.Boton:Destroy()
+			_pinsVisualesMapa[id] = nil
+		end
+	end
+
+	for id, visualMini in pairs(_pinsVisualesMini) do
+		if not idsActuales[id] then
+			visualMini.Label:Destroy()
+			_pinsVisualesMini[id] = nil
+		end
+	end
 end
 
 type ItemGeoVisual = {
@@ -1222,11 +1977,12 @@ local function inicializarPoolsGeometria()
 	end
 end
 
-local function actualizarDetalleUI()
+actualizarDetalleUI = function()
 	local sel = _puntoSeleccionado
 	if not sel then
 		lblDetalleTitulo.Text = "📍 Selecciona un punto o haz clic en el mapa"
-		lblDetalleDesc.Text = "El GPS calculará la ruta óptima y te guiará con señales en la calle."
+		lblDetalleDesc.Text =
+			"El GPS calculará la ruta óptima y te guiará con señales en la calle."
 		btnAccionGPS.Visible = false
 		return
 	end
@@ -1246,8 +2002,6 @@ local function actualizarDetalleUI()
 	end
 end
 
-local actualizarListaLateral
-
 actualizarListaLateral = function()
 	for _, child in ipairs(listaPuntosScroll:GetChildren()) do
 		if child:IsA("Frame") then
@@ -1261,7 +2015,8 @@ actualizarListaLateral = function()
 
 	for _, p in ipairs(_puntosResueltos) do
 		local pasaCat = (_categoriaFiltro == "Todos") or (p.Categoria == _categoriaFiltro)
-		local pasaBusq = (busquedaLower == "") or (string.find(string.lower(p.Nombre), busquedaLower, 1, true) ~= nil)
+		local pasaBusq = (busquedaLower == "")
+			or (string.find(string.lower(p.Nombre), busquedaLower, 1, true) ~= nil)
 		if pasaCat and pasaBusq then
 			local dist = (p.Posicion - posJugador).Magnitude
 			table.insert(filtrados, { Punto = p, Dist = dist })
@@ -1293,7 +2048,10 @@ actualizarListaLateral = function()
 		cCard.Parent = card
 
 		local sCard = Instance.new("UIStroke")
-		sCard.Color = if esActivo then COLOR_RUTA_GPS elseif esSel then p.Color else Color3.fromRGB(45, 54, 70)
+		sCard.Color = if esActivo
+			then COLOR_RUTA_GPS
+			elseif esSel then p.Color
+			else Color3.fromRGB(45, 54, 70)
 		sCard.Thickness = if esActivo or esSel then 1.5 else 1
 		sCard.Parent = card
 
@@ -1341,7 +2099,9 @@ actualizarListaLateral = function()
 		btnIr.Size = UDim2.fromOffset(46, 30)
 		btnIr.AnchorPoint = Vector2.new(1, 0.5)
 		btnIr.Position = UDim2.new(1, -8, 0.5, 0)
-		btnIr.BackgroundColor3 = if esActivo then Color3.fromRGB(185, 55, 65) else Color3.fromRGB(0, 145, 200)
+		btnIr.BackgroundColor3 = if esActivo
+			then Color3.fromRGB(185, 55, 65)
+			else Color3.fromRGB(0, 145, 200)
 		btnIr.Font = Enum.Font.FredokaOne
 		btnIr.Text = if esActivo then "✕" else "🧭 Ir"
 		btnIr.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1381,7 +2141,17 @@ actualizarListaLateral = function()
 	end
 end
 
-local function actualizarBloqueVisual(f: Frame, linea: Frame?, b: BloqueMapa, sx: number, sy: number, sw: number, sh: number, ancho: number, alto: number)
+local function actualizarBloqueVisual(
+	f: Frame,
+	linea: Frame?,
+	_b: BloqueMapa,
+	sx: number,
+	sy: number,
+	sw: number,
+	sh: number,
+	ancho: number,
+	alto: number
+)
 	if sx + sw < 0 or sx - sw > ancho or sy + sh < 0 or sy - sh > alto then
 		f.Visible = false
 		return
@@ -1403,7 +2173,7 @@ local function actualizarBloqueVisual(f: Frame, linea: Frame?, b: BloqueMapa, sx
 	end
 end
 
-local function renderizarMapaCompleto()
+renderizarMapaCompleto = function()
 	if not _mapaAbierto then
 		return
 	end
@@ -1425,109 +2195,80 @@ local function renderizarMapaCompleto()
 		actualizarBloqueVisual(item.FrameMapa, item.LineaViaMapa, b, sx, sy, sw, sh, ancho, alto)
 	end
 
-	-- Etiquetas de distritos
-	for _, c in ipairs(capaDistritosMapa:GetChildren()) do
-		c:Destroy()
-	end
-	for _, d in ipairs(DISTRITOS_MAPA) do
-		local dx = cx + (d.X - _panMapa.X) * _zoomMapa
-		local dy = cy + (d.Z - _panMapa.Y) * _zoomMapa
-		if dx >= -80 and dx <= ancho + 80 and dy >= -30 and dy <= alto + 30 then
-			local lbl = Instance.new("TextLabel")
-			lbl.AnchorPoint = Vector2.new(0.5, 0.5)
-			lbl.Position = UDim2.fromOffset(dx, dy)
-			lbl.Size = UDim2.fromOffset(180, 20)
-			lbl.BackgroundTransparency = 1
-			lbl.Font = Enum.Font.GothamBlack
-			lbl.Text = d.Nombre
-			lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-			lbl.TextTransparency = 0.72
-			lbl.TextSize = 11
-			lbl.ZIndex = 27
-			lbl.Parent = capaDistritosMapa
-		end
-	end
-
-	for _, c in ipairs(capaRutaMapa:GetChildren()) do
-		c:Destroy()
-	end
-	local posJugador, yawJugador = obtenerPosicionJugador()
-	if _destinoGPS and #_waypointsRuta > 0 then
-		local prevX = cx + (posJugador.X - _panMapa.X) * _zoomMapa
-		local prevY = cy + (posJugador.Z - _panMapa.Y) * _zoomMapa
-		for _, wp in ipairs(_waypointsRuta) do
-			local nx = cx + (wp.X - _panMapa.X) * _zoomMapa
-			local ny = cy + (wp.Z - _panMapa.Y) * _zoomMapa
-			crearSegmento2D(capaRutaMapa, prevX, prevY, nx, ny, 3.5, COLOR_RUTA_GPS, 28)
-			prevX, prevY = nx, ny
-		end
-	end
-
-	for _, c in ipairs(capaPOIMapa:GetChildren()) do
-		c:Destroy()
-	end
-	for _, p in ipairs(_puntosResueltos) do
-		if _categoriaFiltro == "Todos" or p.Categoria == _categoriaFiltro or p.EsPersonalizado then
-			local px = cx + (p.Posicion.X - _panMapa.X) * _zoomMapa
-			local py = cy + (p.Posicion.Z - _panMapa.Y) * _zoomMapa
-			if px >= -24 and px <= ancho + 24 and py >= -24 and py <= alto + 24 then
-				local esSel = _puntoSeleccionado and _puntoSeleccionado.Id == p.Id
-				local esGPS = _destinoGPS and _destinoGPS.Id == p.Id
-
-				local pin = Instance.new("TextButton")
-				pin.AnchorPoint = Vector2.new(0.5, 0.5)
-				pin.Position = UDim2.fromOffset(px, py)
-				pin.Size = if esSel or esGPS then UDim2.fromOffset(30, 30) else UDim2.fromOffset(24, 24)
-				pin.BackgroundColor3 = if esGPS then COLOR_RUTA_GPS else p.Color
-				pin.Font = Enum.Font.GothamBold
-				pin.Text = p.Icono
-				pin.TextSize = if esSel or esGPS then 16 else 13
-				pin.ZIndex = if esSel or esGPS then 31 else 30
-				pin.Parent = capaPOIMapa
-
-				local cPin = Instance.new("UICorner")
-				cPin.CornerRadius = UDim.new(1, 0)
-				cPin.Parent = pin
-
-				local sPin = Instance.new("UIStroke")
-				sPin.Color = if esSel or esGPS then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(16, 19, 26)
-				sPin.Thickness = if esSel or esGPS then 2 else 1.2
-				sPin.Parent = pin
-
-				if _zoomMapa >= 0.42 or esSel or esGPS then
-					local etiqueta = Instance.new("TextLabel")
-					etiqueta.AnchorPoint = Vector2.new(0.5, 0)
-					etiqueta.Position = UDim2.new(0.5, 0, 1, 2)
-					etiqueta.Size = UDim2.fromOffset(130, 16)
-					etiqueta.BackgroundColor3 = Color3.fromRGB(14, 17, 24)
-					etiqueta.BackgroundTransparency = 0.25
-					etiqueta.Font = Enum.Font.GothamBold
-					etiqueta.Text = p.Nombre
-					etiqueta.TextColor3 = Color3.fromRGB(240, 245, 255)
-					etiqueta.TextSize = 10
-					etiqueta.TextTruncate = Enum.TextTruncate.AtEnd
-					etiqueta.ZIndex = 31
-					etiqueta.Parent = pin
-
-					local cEt = Instance.new("UICorner")
-					cEt.CornerRadius = UDim.new(0, 4)
-					cEt.Parent = etiqueta
-				end
-
-				pin.MouseButton1Click:Connect(function()
-					_puntoSeleccionado = p
-					actualizarDetalleUI()
-					actualizarListaLateral()
-					renderizarMapaCompleto()
-				end)
+	-- Etiquetas de distritos (persistentes, sin Destroy)
+	for i, d in ipairs(DISTRITOS_MAPA) do
+		local lbl = _etiquetasDistritos[i]
+		if lbl then
+			local dx = cx + (d.X - _panMapa.X) * _zoomMapa
+			local dy = cy + (d.Z - _panMapa.Y) * _zoomMapa
+			if dx >= -80 and dx <= ancho + 80 and dy >= -30 and dy <= alto + 30 then
+				lbl.Position = UDim2.fromOffset(dx, dy)
+				lbl.Visible = true
+			else
+				lbl.Visible = false
 			end
 		end
 	end
 
-	for _, c in ipairs(capaJugadoresMapa:GetChildren()) do
-		c:Destroy()
+	-- Ruta GPS (persistente en pool, sin Destroy)
+	local posJugador, yawJugador = obtenerPosicionJugador()
+	actualizarRutaVisual(
+		_poolRutaMapa,
+		capaRutaMapa,
+		_waypointsRuta,
+		posJugador.X,
+		posJugador.Z,
+		_zoomMapa,
+		cx,
+		cy,
+		_panMapa.X,
+		_panMapa.Y,
+		3.5,
+		COLOR_RUTA_GPS,
+		28
+	)
+
+	-- Pins de POI (persistentes en pool, sin Destroy ni parpadeos)
+	for _, p in ipairs(_puntosResueltos) do
+		local visual = _pinsVisualesMapa[p.Id]
+		if visual then
+			local pasaFiltro = (
+				_categoriaFiltro == "Todos"
+				or p.Categoria == _categoriaFiltro
+				or p.EsPersonalizado
+			)
+			if pasaFiltro then
+				local px = cx + (p.Posicion.X - _panMapa.X) * _zoomMapa
+				local py = cy + (p.Posicion.Z - _panMapa.Y) * _zoomMapa
+				if px >= -24 and px <= ancho + 24 and py >= -24 and py <= alto + 24 then
+					local esSel = _puntoSeleccionado and _puntoSeleccionado.Id == p.Id
+					local esGPS = _destinoGPS and _destinoGPS.Id == p.Id
+
+					visual.Boton.Position = UDim2.fromOffset(px, py)
+					visual.Boton.Size = if esSel or esGPS
+						then UDim2.fromOffset(30, 30)
+						else UDim2.fromOffset(24, 24)
+					visual.Boton.BackgroundColor3 = if esGPS then COLOR_RUTA_GPS else p.Color
+					visual.Boton.TextSize = if esSel or esGPS then 16 else 13
+					visual.Boton.ZIndex = if esSel or esGPS then 31 else 30
+					visual.Stroke.Color = if esSel or esGPS
+						then Color3.fromRGB(255, 255, 255)
+						else Color3.fromRGB(16, 19, 26)
+					visual.Stroke.Thickness = if esSel or esGPS then 2 else 1.2
+					visual.Etiqueta.Visible = (_zoomMapa >= 0.42 or esSel or esGPS)
+					visual.Etiqueta.ZIndex = visual.Boton.ZIndex + 1
+					visual.Boton.Visible = true
+				else
+					visual.Boton.Visible = false
+				end
+			else
+				visual.Boton.Visible = false
+			end
+		end
 	end
 
+	-- Jugadores (persistentes en pool, sin Destroy)
+	local idxPlr = 0
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= LocalPlayer and plr.Character then
 			local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
@@ -1535,36 +2276,23 @@ local function renderizarMapaCompleto()
 				local px = cx + (hrp.Position.X - _panMapa.X) * _zoomMapa
 				local py = cy + (hrp.Position.Z - _panMapa.Y) * _zoomMapa
 				if px >= 0 and px <= ancho and py >= 0 and py <= alto then
-					local dot = Instance.new("Frame")
-					dot.AnchorPoint = Vector2.new(0.5, 0.5)
+					idxPlr += 1
+					local dot = obtenerDotJugador(idxPlr)
 					dot.Position = UDim2.fromOffset(px, py)
-					dot.Size = UDim2.fromOffset(10, 10)
-					dot.BackgroundColor3 = Color3.fromRGB(120, 210, 255)
-					dot.ZIndex = 32
-					dot.Parent = capaJugadoresMapa
-					local cDot = Instance.new("UICorner")
-					cDot.CornerRadius = UDim.new(1, 0)
-					cDot.Parent = dot
+					dot.Visible = true
 				end
 			end
 		end
 	end
+	for i = idxPlr + 1, #_poolJugadoresMapa do
+		_poolJugadoresMapa[i].Visible = false
+	end
 
 	local jx = cx + (posJugador.X - _panMapa.X) * _zoomMapa
 	local jy = cy + (posJugador.Z - _panMapa.Y) * _zoomMapa
-	local flecha = Instance.new("TextLabel")
-	flecha.AnchorPoint = Vector2.new(0.5, 0.5)
-	flecha.Position = UDim2.fromOffset(jx, jy)
-	flecha.Size = UDim2.fromOffset(24, 24)
-	flecha.BackgroundTransparency = 1
-	flecha.Font = Enum.Font.GothamBlack
-	flecha.Text = "▲"
-	flecha.TextColor3 = Color3.fromRGB(80, 255, 140)
-	flecha.TextStrokeTransparency = 0
-	flecha.TextSize = 20
-	flecha.Rotation = yawJugador
-	flecha.ZIndex = 33
-	flecha.Parent = capaJugadoresMapa
+	flechaJugadorMapa.Position = UDim2.fromOffset(jx, jy)
+	flechaJugadorMapa.Rotation = yawJugador
+	flechaJugadorMapa.Visible = true
 end
 
 local function actualizarMinimapa(posJugador: Vector3, yawJugador: number)
@@ -1590,26 +2318,38 @@ local function actualizarMinimapa(posJugador: Vector3, yawJugador: number)
 			local sy = cy + dz * _zoomMinimapaActual
 			local sw = math.max(b.W * _zoomMinimapaActual, 2)
 			local sh = math.max(b.D * _zoomMinimapaActual, 2)
-			actualizarBloqueVisual(item.FrameMini, item.LineaViaMini, b, sx, sy, sw, sh, ancho, alto)
+			actualizarBloqueVisual(
+				item.FrameMini,
+				item.LineaViaMini,
+				b,
+				sx,
+				sy,
+				sw,
+				sh,
+				ancho,
+				alto
+			)
 		end
 	end
 
-	for _, c in ipairs(capaRutaMini:GetChildren()) do
-		c:Destroy()
-	end
-	if _destinoGPS and #_waypointsRuta > 0 then
-		local prevX, prevY = cx, cy
-		for _, wp in ipairs(_waypointsRuta) do
-			local nx = cx + (wp.X - posJugador.X) * _zoomMinimapaActual
-			local ny = cy + (wp.Z - posJugador.Z) * _zoomMinimapaActual
-			crearSegmento2D(capaRutaMini, prevX, prevY, nx, ny, 2.8, COLOR_RUTA_GPS, 6)
-			prevX, prevY = nx, ny
-		end
-	end
+	-- Ruta en minimapa (persistente en pool, sin Destroy)
+	actualizarRutaVisual(
+		_poolRutaMini,
+		capaRutaMini,
+		_waypointsRuta,
+		posJugador.X,
+		posJugador.Z,
+		_zoomMinimapaActual,
+		cx,
+		cy,
+		posJugador.X,
+		posJugador.Z,
+		2.8,
+		COLOR_RUTA_GPS,
+		6
+	)
 
-	for _, c in ipairs(capaPOIMini:GetChildren()) do
-		c:Destroy()
-	end
+	-- POIs en minimapa (persistentes en pool, sin Destroy)
 	local masCercano: PuntoResuelto? = nil
 	local distMin = math.huge
 
@@ -1620,29 +2360,16 @@ local function actualizarMinimapa(posJugador: Vector3, yawJugador: number)
 			masCercano = p
 		end
 
-		local px = cx + (p.Posicion.X - posJugador.X) * _zoomMinimapaActual
-		local py = cy + (p.Posicion.Z - posJugador.Z) * _zoomMinimapaActual
-		if px >= -8 and px <= ancho + 8 and py >= -8 and py <= alto + 8 then
-			local pin = Instance.new("TextLabel")
-			pin.AnchorPoint = Vector2.new(0.5, 0.5)
-			pin.Position = UDim2.fromOffset(px, py)
-			pin.Size = UDim2.fromOffset(20, 20)
-			pin.BackgroundColor3 = p.Color
-			pin.BackgroundTransparency = 0.1
-			pin.Font = Enum.Font.GothamBold
-			pin.Text = p.Icono
-			pin.TextSize = 12
-			pin.ZIndex = 8
-			pin.Parent = capaPOIMini
-
-			local cPin = Instance.new("UICorner")
-			cPin.CornerRadius = UDim.new(1, 0)
-			cPin.Parent = pin
-
-			local sPin = Instance.new("UIStroke")
-			sPin.Color = Color3.fromRGB(16, 19, 26)
-			sPin.Thickness = 1.2
-			sPin.Parent = pin
+		local visual = _pinsVisualesMini[p.Id]
+		if visual then
+			local px = cx + (p.Posicion.X - posJugador.X) * _zoomMinimapaActual
+			local py = cy + (p.Posicion.Z - posJugador.Z) * _zoomMinimapaActual
+			if px >= -8 and px <= ancho + 8 and py >= -8 and py <= alto + 8 then
+				visual.Label.Position = UDim2.fromOffset(px, py)
+				visual.Label.Visible = true
+			else
+				visual.Label.Visible = false
+			end
 		end
 	end
 
@@ -1656,7 +2383,10 @@ local function actualizarMinimapa(posJugador: Vector3, yawJugador: number)
 		local margenX = cx - 14
 		local margenY = cy - 14
 		if math.abs(dx) > margenX or math.abs(dy) > margenY then
-			local escala = math.min(margenX / math.max(math.abs(dx), 0.001), margenY / math.max(math.abs(dy), 0.001))
+			local escala = math.min(
+				margenX / math.max(math.abs(dx), 0.001),
+				margenY / math.max(math.abs(dy), 0.001)
+			)
 			indicadorBordeGPS.Position = UDim2.fromOffset(cx + dx * escala, cy + dy * escala)
 			indicadorBordeGPS.Visible = true
 		else
@@ -1675,8 +2405,12 @@ local _botonesFiltro: { [string]: TextButton } = {}
 local function actualizarEstilosFiltros()
 	for id, btn in pairs(_botonesFiltro) do
 		local activo = (_categoriaFiltro == id)
-		btn.BackgroundColor3 = if activo then Color3.fromRGB(0, 145, 200) else Color3.fromRGB(30, 36, 48)
-		btn.TextColor3 = if activo then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(185, 198, 218)
+		btn.BackgroundColor3 = if activo
+			then Color3.fromRGB(0, 145, 200)
+			else Color3.fromRGB(30, 36, 48)
+		btn.TextColor3 = if activo
+			then Color3.fromRGB(255, 255, 255)
+			else Color3.fromRGB(185, 198, 218)
 	end
 end
 
@@ -1746,11 +2480,13 @@ btnTamanoG.MouseButton1Click:Connect(function()
 end)
 
 btnZoomIn.MouseButton1Click:Connect(function()
-	_zoomMinimapaActual = math.clamp(math.floor((_zoomMinimapaActual + 0.08) * 100) / 100, 0.20, 0.85)
+	_zoomMinimapaActual =
+		math.clamp(math.floor((_zoomMinimapaActual + 0.08) * 100) / 100, 0.20, 0.85)
 end)
 
 btnZoomOut.MouseButton1Click:Connect(function()
-	_zoomMinimapaActual = math.clamp(math.floor((_zoomMinimapaActual - 0.08) * 100) / 100, 0.20, 0.85)
+	_zoomMinimapaActual =
+		math.clamp(math.floor((_zoomMinimapaActual - 0.08) * 100) / 100, 0.20, 0.85)
 end)
 
 local _arrastrandoResize = false
@@ -1758,7 +2494,10 @@ local _posInicialMouse: Vector2 = Vector2.zero
 local _tamInicialFrame: Vector2 = Vector2.zero
 
 tiradorResize.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+	if
+		input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch
+	then
 		_arrastrandoResize = true
 		_posInicialMouse = Vector2.new(input.Position.X, input.Position.Y)
 		_tamInicialFrame = contenedorMinimapa.AbsoluteSize
@@ -1766,7 +2505,10 @@ tiradorResize.InputBegan:Connect(function(input)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+	if
+		input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch
+	then
 		if _arrastrandoResize then
 			_arrastrandoResize = false
 		end
@@ -1774,7 +2516,13 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if _arrastrandoResize and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+	if
+		_arrastrandoResize
+		and (
+			input.UserInputType == Enum.UserInputType.MouseMovement
+			or input.UserInputType == Enum.UserInputType.Touch
+		)
+	then
 		local currentMouse = Vector2.new(input.Position.X, input.Position.Y)
 		local deltaX = _posInicialMouse.X - currentMouse.X
 		local deltaY = _posInicialMouse.Y - currentMouse.Y
@@ -1804,12 +2552,24 @@ UserInputService.InputChanged:Connect(function(input)
 			lblZonaMini.Size = UDim2.new(1, -145, 1, 0)
 		end
 
-		btnTamanoP.BackgroundColor3 = if _tamanoMinimapaActual == "P" then Color3.fromRGB(0, 175, 240) else Color3.fromRGB(38, 46, 60)
-		btnTamanoP.TextColor3 = if _tamanoMinimapaActual == "P" then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(180, 192, 210)
-		btnTamanoM.BackgroundColor3 = if _tamanoMinimapaActual == "M" then Color3.fromRGB(0, 175, 240) else Color3.fromRGB(38, 46, 60)
-		btnTamanoM.TextColor3 = if _tamanoMinimapaActual == "M" then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(180, 192, 210)
-		btnTamanoG.BackgroundColor3 = if _tamanoMinimapaActual == "G" then Color3.fromRGB(0, 175, 240) else Color3.fromRGB(38, 46, 60)
-		btnTamanoG.TextColor3 = if _tamanoMinimapaActual == "G" then Color3.fromRGB(255, 255, 255) else Color3.fromRGB(180, 192, 210)
+		btnTamanoP.BackgroundColor3 = if _tamanoMinimapaActual == "P"
+			then Color3.fromRGB(0, 175, 240)
+			else Color3.fromRGB(38, 46, 60)
+		btnTamanoP.TextColor3 = if _tamanoMinimapaActual == "P"
+			then Color3.fromRGB(255, 255, 255)
+			else Color3.fromRGB(180, 192, 210)
+		btnTamanoM.BackgroundColor3 = if _tamanoMinimapaActual == "M"
+			then Color3.fromRGB(0, 175, 240)
+			else Color3.fromRGB(38, 46, 60)
+		btnTamanoM.TextColor3 = if _tamanoMinimapaActual == "M"
+			then Color3.fromRGB(255, 255, 255)
+			else Color3.fromRGB(180, 192, 210)
+		btnTamanoG.BackgroundColor3 = if _tamanoMinimapaActual == "G"
+			then Color3.fromRGB(0, 175, 240)
+			else Color3.fromRGB(38, 46, 60)
+		btnTamanoG.TextColor3 = if _tamanoMinimapaActual == "G"
+			then Color3.fromRGB(255, 255, 255)
+			else Color3.fromRGB(180, 192, 210)
 
 		actualizarPosicionPillGPS(nuevoAlto, nuevoAncho)
 	end
@@ -1869,7 +2629,10 @@ cajaBusqueda:GetPropertyChangedSignal("Text"):Connect(function()
 end)
 
 lienzoMapa.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+	if
+		input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch
+	then
 		_arrastrando = true
 		_inicioArrastre = Vector2.new(input.Position.X, input.Position.Y)
 		_panInicio = _panMapa
@@ -1889,7 +2652,10 @@ UserInputService.InputChanged:Connect(function(input)
 	if not _arrastrando or not _mapaAbierto then
 		return
 	end
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+	if
+		input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch
+	then
 		local actual = Vector2.new(input.Position.X, input.Position.Y)
 		local delta = actual - _inicioArrastre
 		_arrastroDistancia = math.max(_arrastroDistancia, delta.Magnitude)
@@ -1899,7 +2665,10 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+	if
+		input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch
+	then
 		if _arrastrando and _mapaAbierto and _arrastroDistancia < 6 then
 			local absPos = lienzoMapa.AbsolutePosition
 			local absSize = lienzoMapa.AbsoluteSize
@@ -1915,7 +2684,11 @@ UserInputService.InputEnded:Connect(function(input)
 					Nombre = "Marcador Personalizado",
 					Categoria = "Especial",
 					Icono = "📌",
-					Descripcion = string.format("Destino manual en coordenadas (%.0f, %.0f).", worldX, worldZ),
+					Descripcion = string.format(
+						"Destino manual en coordenadas (%.0f, %.0f).",
+						worldX,
+						worldZ
+					),
 					Color = COLOR_MARCADOR_CUSTOM,
 					Posicion = Vector3.new(worldX, altura, worldZ),
 					EsPersonalizado = true,
@@ -1948,6 +2721,8 @@ end)
 -- INICIALIZACIÓN Y BUCLE EN TIEMPO REAL
 -- ============================================================================
 task.spawn(function()
+	inicializarDistritosVisuales()
+	resolverPuntosInteres()
 	local rf = ReplicatedStorage:WaitForChild("ObtenerDatosMapaGPS", 10)
 	if rf and rf:IsA("RemoteFunction") then
 		local ok, data = pcall(function()
@@ -1973,8 +2748,9 @@ RunService.RenderStepped:Connect(function(dt)
 	actualizarMinimapa(posJugador, yawJugador)
 
 	if _destinoGPS then
-		local distancia = (Vector3.new(_destinoGPS.Posicion.X, posJugador.Y, _destinoGPS.Posicion.Z) - posJugador).Magnitude
-		lblDistanciaGPS.Text = string.format("%d m hasta el destino", math.floor(distancia))
+		local distancia = (
+			Vector3.new(_destinoGPS.Posicion.X, posJugador.Y, _destinoGPS.Posicion.Z) - posJugador
+		).Magnitude
 
 		if distancia <= DISTANCIA_LLEGADA then
 			local nombreLlegada = _destinoGPS.Nombre
@@ -1987,6 +2763,8 @@ RunService.RenderStepped:Connect(function(dt)
 				renderizarMapaCompleto()
 			end
 		else
+			actualizarAnimacionesRuta3D(dt, posJugador)
+
 			_ultimoRecalculo += dt
 			local desvio = (posJugador - _ultimoOrigenCalculo).Magnitude
 			if _ultimoRecalculo >= INTERVALO_RECALCULO_RUTA or desvio >= 28 then

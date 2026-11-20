@@ -123,7 +123,10 @@ function WaveManager.ValidarArsenalConfigurado(): (boolean, { string })
 						motivo or "error desconocido"
 					)
 				)
-				table.insert(faltantes, string.format("%s (Ronda %d: %s)", nombreArma, rondaTier, motivo or "inválida"))
+				table.insert(
+					faltantes,
+					string.format("%s (Ronda %d: %s)", nombreArma, rondaTier, motivo or "inválida")
+				)
 			end
 		end
 	end
@@ -273,7 +276,8 @@ local function notificarATodos(
 )
 	for _, player in ipairs(Players:GetPlayers()) do
 		local resumen = resumenesPorJugador and resumenesPorJugador[player] or nil
-		local payload = WaveManager.ConstruirPayloadParaJugador(player, mensaje, tiempoRestante, resumen)
+		local payload =
+			WaveManager.ConstruirPayloadParaJugador(player, mensaje, tiempoRestante, resumen)
 		EventosRemotos.EstadoHordaActualizado:FireClient(player, payload)
 	end
 end
@@ -303,7 +307,11 @@ local function obtenerPosicionesZombisActivos(): { Vector3 }
 	return posList
 end
 
-local function elegirVarianteForzada(numeroOleada: number, restantesPorGenerar: number, total: number): any?
+local function elegirVarianteForzada(
+	numeroOleada: number,
+	restantesPorGenerar: number,
+	total: number
+): any?
 	if numeroOleada >= 10 and restantesPorGenerar == math.max(1, total - 2) then
 		for _, v in ipairs(ConfigZombis.Variantes) do
 			if v.Id == "ZombiToxico" then
@@ -416,8 +424,15 @@ local function ejecutarOleada(numeroOleada: number, sesionId: number)
 
 			local posSpawn = seleccionarPuntoAlcanzable(candidatos, participantesInfo)
 			if posSpawn then
-				local varForzada = elegirVarianteForzada(numeroOleada, _zombisPorGenerar, configOleada.Cantidad)
-				local creado = ZombieService.GenerarZombi(posSpawn, numeroOleada, configOleada, sesionId, varForzada)
+				local varForzada =
+					elegirVarianteForzada(numeroOleada, _zombisPorGenerar, configOleada.Cantidad)
+				local creado = ZombieService.GenerarZombi(
+					posSpawn,
+					numeroOleada,
+					configOleada,
+					sesionId,
+					varForzada
+				)
 				if creado then
 					_zombisPorGenerar -= 1
 					fallosConsecutivos = 0
@@ -430,7 +445,9 @@ local function ejecutarOleada(numeroOleada: number, sesionId: number)
 			end
 
 			if fallosConsecutivos >= maxFallos then
-				warn("[WaveManager] Límite de fallos consecutivos de aparición/generación alcanzado; finalizando horda.")
+				warn(
+					"[WaveManager] Límite de fallos consecutivos de aparición/generación alcanzado; finalizando horda."
+				)
 				WaveManager.DetenerHorda("No se encontraron zonas válidas de aparición")
 				return
 			end
@@ -477,13 +494,19 @@ local function ejecutarOleada(numeroOleada: number, sesionId: number)
 	end
 
 	task.wait(1.8)
-	if not HordeSession.EsSesionActiva(sesionId) or HordeSession.ObtenerEstado() ~= "OleadaCompletada" then
+	if
+		not HordeSession.EsSesionActiva(sesionId)
+		or HordeSession.ObtenerEstado() ~= "OleadaCompletada"
+	then
 		return
 	end
 
 	local descanso = math.max(1, General.TiempoEntreOleadas - 2)
 	for seg = descanso, 1, -1 do
-		if not HordeSession.EsSesionActiva(sesionId) or HordeSession.ObtenerEstado() ~= "OleadaCompletada" then
+		if
+			not HordeSession.EsSesionActiva(sesionId)
+			or HordeSession.ObtenerEstado() ~= "OleadaCompletada"
+		then
 			return
 		end
 		notificarATodos("OLEADA COMPLETADA", seg)
@@ -529,7 +552,10 @@ function WaveManager.IniciarHorda(iniciador: Player): (boolean, string?)
 
 	_hiloCiclo = task.spawn(function()
 		for seg = General.CuentaRegresivaInicial, 1, -1 do
-			if not HordeSession.EsSesionActiva(sesionId) or HordeSession.ObtenerEstado() ~= "CuentaRegresiva" then
+			if
+				not HordeSession.EsSesionActiva(sesionId)
+				or HordeSession.ObtenerEstado() ~= "CuentaRegresiva"
+			then
 				return
 			end
 			if HordeSession.ContarParticipantesVivos() == 0 then
@@ -543,7 +569,10 @@ function WaveManager.IniciarHorda(iniciador: Player): (boolean, string?)
 		local numeroOleada = 1
 		while HordeSession.EsSesionActiva(sesionId) do
 			ejecutarOleada(numeroOleada, sesionId)
-			if not HordeSession.EsSesionActiva(sesionId) or HordeSession.ObtenerEstado() ~= "OleadaCompletada" then
+			if
+				not HordeSession.EsSesionActiva(sesionId)
+				or HordeSession.ObtenerEstado() ~= "OleadaCompletada"
+			then
 				break
 			end
 			numeroOleada += 1

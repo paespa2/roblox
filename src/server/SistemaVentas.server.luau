@@ -107,7 +107,8 @@ local function procesarVenta(player: Player, idTienda: string, puntoPart: BasePa
 			-- Mecánica de Especialidad: Si es el Dulce del Día de la tienda, paga un 35% extra
 			local esDulceDelDia = (DULCES_DEL_DIA[idTienda] == idDulce)
 			local factorEspecial = if esDulceDelDia then 1.35 else 1.0
-			local ganancia = math.floor(cantidad * valorBase * tiendaInfo.Multiplicador * factorEspecial)
+			local ganancia =
+				math.floor(cantidad * valorBase * tiendaInfo.Multiplicador * factorEspecial)
 
 			if GestorDatos.QuitarDulce(player, idDulce, cantidad) then
 				totalPesos += ganancia
@@ -317,7 +318,9 @@ local function limpiarTarimasYAlinearSuelo(npcsFolder: Folder)
 					local deltaY = nuevaY - hrp.Position.Y
 					if math.abs(deltaY) > 0.05 then
 						if child.PrimaryPart then
-							child:SetPrimaryPartCFrame(child.PrimaryPart.CFrame + Vector3.new(0, deltaY, 0))
+							child:SetPrimaryPartCFrame(
+								child.PrimaryPart.CFrame + Vector3.new(0, deltaY, 0)
+							)
 						else
 							for _, p in ipairs(child:GetDescendants()) do
 								if p:IsA("BasePart") then

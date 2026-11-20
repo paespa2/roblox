@@ -920,7 +920,9 @@ local function inicializarHospitalYExpansiones()
 	construirMiradorCampesino(carpetaHospital)
 	construirPotreroRural(carpetaHospital)
 
-	print("El Patrón del Dulce: Hospital San Rafael, Urgencias 24H, Parque, Mirador y Fauna Inicializados con Éxito")
+	print(
+		"El Patrón del Dulce: Hospital San Rafael, Urgencias 24H, Parque, Mirador y Fauna Inicializados con Éxito"
+	)
 end
 
 task.spawn(inicializarHospitalYExpansiones)

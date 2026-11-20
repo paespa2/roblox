@@ -637,10 +637,7 @@ local function crearAutoridadesEscolares()
 						local paso = dir.Unit * math.min(dist, 11 * dt)
 						local nuevaPos = hrp.Position + paso
 						local posSuelo = obtenerPosicionSuelo(nuevaPos, 3.0)
-						hrp.CFrame = CFrame.lookAt(
-							posSuelo,
-							posSuelo + dir.Unit
-						)
+						hrp.CFrame = CFrame.lookAt(posSuelo, posSuelo + dir.Unit)
 					end
 				else
 					-- En Patrulla normal por el colegio
@@ -658,10 +655,7 @@ local function crearAutoridadesEscolares()
 						local paso = dirPatrulla.Unit * math.min(distPatrulla, 6.5 * dt)
 						local nuevaPos = hrp.Position + paso
 						local posSuelo = obtenerPosicionSuelo(nuevaPos, 3.0)
-						hrp.CFrame = CFrame.lookAt(
-							posSuelo,
-							posSuelo + dirPatrulla.Unit
-						)
+						hrp.CFrame = CFrame.lookAt(posSuelo, posSuelo + dirPatrulla.Unit)
 					end
 				end
 			end

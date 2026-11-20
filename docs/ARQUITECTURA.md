@@ -89,10 +89,13 @@ src/
 │   │   ├── DanteController.luau             # Diálogo 3D con NPC Dante y cámara cinemática
 │   │   ├── HordeUI.luau                     # Interfaz visual de oleadas y zombis restantes
 │   │   └── ZombieAnimationController.luau   # Fallbacks procedurales de animación
+│   ├── Vehiculos/              # Control vehicular interactivo
+│   │   └── VehiculoController.luau          # Manejo de inputs, físicas World Line, banking, audio y luces
 │   ├── HUDEstrellas.client.luau             # Notificaciones de persecución policial
 │   ├── HUDPrincipal.client.luau             # Barra de estadísticas, dinero y banners
 │   ├── SistemaMapaGPS.client.luau           # Minimapa adaptable (P/M/G), radar y GPS 3D en la calle
 │   ├── ControlArmas.client.luau             # Manejo de armas, mira y recarga
+│   ├── ControlVehiculoTeclado.client.luau   # Bootstrap del cliente de vehículos
 │   └── SistemaHordaCliente.client.luau      # Bootstrap del cliente de hordas
 ├── server/                     # Servicios y controladores autoritativos
 │   ├── Horda/                  # Lógica del modo zombis (Call of Duty Zombies)
@@ -101,16 +104,21 @@ src/
 │   │   ├── ZombieService.luau               # Fábrica de zombis, vida, daño y pooling
 │   │   ├── ZombieAI.luau                    # Máquina de estados y PathfindingService
 │   │   └── UtilidadesMapaHorda.luau         # Generación y validación de puntos de spawn
+│   ├── Vehiculos/              # Lógica autoritativa de vehículos
+│   │   ├── ModelosVehiculos.luau            # Fábrica 3D procedural de motos y bicis con ruedas verticales
+│   │   └── VehiculosService.luau            # Ciclo de vida, física autoritativa, red y montaje
 │   ├── SistemaArmas.server.luau             # Registro de impactos y cálculo de daño
 │   ├── SistemaCocina.server.luau            # Minijuego de cocina y recetas
 │   ├── SistemaMapaServidor.server.luau      # Escaneo autoritativo y entrega de geometría cartográfica
 │   ├── SistemaMisionFincas.server.luau      # NPCs de misiones para fincas y tycoon exterior
 │   ├── SistemaPersecucion.server.luau       # Patrullas de policía dental y estrellas
+│   ├── SistemaVehiculos.server.luau         # Bootstrap del servidor de vehículos
 │   └── SistemaHordaZombis.server.luau       # Bootstrap del servidor de hordas
 └── shared/                     # Configuraciones inmutables y contratos
-    ├── Datos/                  # Tablas de datos de armas, zombis, mejoras, tiendas
+    ├── Datos/                  # Tablas de datos de armas, zombis, mejoras, vehículos
     │   ├── Zombis.luau                      # Configuración de oleadas, stats y Dante
     │   ├── PuntosMapa.luau                  # Catálogo de POIs, coordenadas y categorías GPS
+    │   ├── Vehiculos.luau                   # Estadísticas, velocidades y precios de vehículos
     │   └── ...
     ├── ConstructorR6.luau      # Ensamblador procedimental de humanoides R6 (ASCII puro)
     └── Eventos/

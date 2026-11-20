@@ -8,7 +8,6 @@
 ]]
 
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
 local COLOR_ASFALTO = Color3.fromRGB(52, 53, 56)
 local COLOR_BORDILLO = Color3.fromRGB(185, 185, 180)
@@ -20,7 +19,15 @@ local COLOR_GUARDARRAIL = Color3.fromRGB(210, 215, 220)
 local COLOR_OJOS_GATO_AMARILLO = Color3.fromRGB(255, 190, 20)
 local COLOR_OJOS_GATO_ROJO = Color3.fromRGB(255, 50, 40)
 
-local function crearParte(nombre: string, tamano: Vector3, cf: CFrame, color: Color3, material: Enum.Material, padre: Instance, canCollide: boolean?): Part
+local function crearParte(
+	nombre: string,
+	tamano: Vector3,
+	cf: CFrame,
+	color: Color3,
+	material: Enum.Material,
+	padre: Instance,
+	canCollide: boolean?
+): Part
 	local p = Instance.new("Part")
 	p.Name = nombre
 	p.Size = tamano
@@ -43,7 +50,9 @@ end
 -- ====================================================================
 local function reconstruirCurvaEste(mapa: Folder)
 	local carreteraL = mapa:FindFirstChild("Zona_CarreteraLadera")
-	if not carreteraL then return end
+	if not carreteraL then
+		return
+	end
 
 	-- 1. Eliminar partes antiguas con dientes de sierra en la curva Este
 	local centroX = 140
@@ -111,8 +120,14 @@ local function reconstruirCurvaEste(mapa: Folder)
 			yBase,
 			centroZ + radioCentro * math.sin(angRad)
 		)
-		crearParte("CalzadaAsfalto", Vector3.new(anchoCalzada + 0.4, 1.0, lenCuerdaCentro + 0.15),
-			CFrame.new(posAsfalto) * rotCFrame, COLOR_ASFALTO, Enum.Material.Asphalt, carpetaCurva)
+		crearParte(
+			"CalzadaAsfalto",
+			Vector3.new(anchoCalzada + 0.4, 1.0, lenCuerdaCentro + 0.15),
+			CFrame.new(posAsfalto) * rotCFrame,
+			COLOR_ASFALTO,
+			Enum.Material.Asphalt,
+			carpetaCurva
+		)
 
 		-- B) Bordillo Interior (R = 40.0)
 		local posBordilloInt = Vector3.new(
@@ -120,8 +135,14 @@ local function reconstruirCurvaEste(mapa: Folder)
 			yBase + 0.35,
 			centroZ + radioInterior * math.sin(angRad)
 		)
-		crearParte("BordilloInterior", Vector3.new(0.6, 0.8, lenCuerdaInt + 0.1),
-			CFrame.new(posBordilloInt) * rotCFrame, COLOR_BORDILLO, Enum.Material.Concrete, carpetaCurva)
+		crearParte(
+			"BordilloInterior",
+			Vector3.new(0.6, 0.8, lenCuerdaInt + 0.1),
+			CFrame.new(posBordilloInt) * rotCFrame,
+			COLOR_BORDILLO,
+			Enum.Material.Concrete,
+			carpetaCurva
+		)
 
 		-- C) Acera Interior (R = 36.5)
 		local posAceraInt = Vector3.new(
@@ -129,8 +150,14 @@ local function reconstruirCurvaEste(mapa: Folder)
 			yBase + 0.35,
 			centroZ + (radioInterior - anchoAcera / 2) * math.sin(angRad)
 		)
-		crearParte("AceraInterior", Vector3.new(anchoAcera + 0.2, 0.8, lenCuerdaAceraInt + 0.1),
-			CFrame.new(posAceraInt) * rotCFrame, COLOR_ACERA, Enum.Material.Concrete, carpetaCurva)
+		crearParte(
+			"AceraInterior",
+			Vector3.new(anchoAcera + 0.2, 0.8, lenCuerdaAceraInt + 0.1),
+			CFrame.new(posAceraInt) * rotCFrame,
+			COLOR_ACERA,
+			Enum.Material.Concrete,
+			carpetaCurva
+		)
 
 		-- D) Bordillo Exterior (R = 80.0)
 		local posBordilloExt = Vector3.new(
@@ -138,8 +165,14 @@ local function reconstruirCurvaEste(mapa: Folder)
 			yBase + 0.35,
 			centroZ + radioExterior * math.sin(angRad)
 		)
-		crearParte("BordilloExterior", Vector3.new(0.6, 0.8, lenCuerdaExt + 0.1),
-			CFrame.new(posBordilloExt) * rotCFrame, COLOR_BORDILLO, Enum.Material.Concrete, carpetaCurva)
+		crearParte(
+			"BordilloExterior",
+			Vector3.new(0.6, 0.8, lenCuerdaExt + 0.1),
+			CFrame.new(posBordilloExt) * rotCFrame,
+			COLOR_BORDILLO,
+			Enum.Material.Concrete,
+			carpetaCurva
+		)
 
 		-- E) Acera Exterior (R = 83.5)
 		local posAceraExt = Vector3.new(
@@ -147,8 +180,14 @@ local function reconstruirCurvaEste(mapa: Folder)
 			yBase + 0.35,
 			centroZ + (radioExterior + anchoAcera / 2) * math.sin(angRad)
 		)
-		crearParte("AceraExterior", Vector3.new(anchoAcera + 0.2, 0.8, lenCuerdaAceraExt + 0.1),
-			CFrame.new(posAceraExt) * rotCFrame, COLOR_ACERA, Enum.Material.Concrete, carpetaCurva)
+		crearParte(
+			"AceraExterior",
+			Vector3.new(anchoAcera + 0.2, 0.8, lenCuerdaAceraExt + 0.1),
+			CFrame.new(posAceraExt) * rotCFrame,
+			COLOR_ACERA,
+			Enum.Material.Concrete,
+			carpetaCurva
+		)
 
 		-- F) Muro de Contención Exterior (R = 87.2)
 		local posMuro = Vector3.new(
@@ -156,8 +195,14 @@ local function reconstruirCurvaEste(mapa: Folder)
 			yBase - 3.0,
 			centroZ + (radioExterior + anchoAcera + 0.2) * math.sin(angRad)
 		)
-		crearParte("MuroContencion", Vector3.new(1.0, 7.5, lenCuerdaAceraExt + 0.15),
-			CFrame.new(posMuro) * rotCFrame, COLOR_MURO, Enum.Material.Cobblestone, carpetaCurva)
+		crearParte(
+			"MuroContencion",
+			Vector3.new(1.0, 7.5, lenCuerdaAceraExt + 0.15),
+			CFrame.new(posMuro) * rotCFrame,
+			COLOR_MURO,
+			Enum.Material.Cobblestone,
+			carpetaCurva
+		)
 
 		-- G) Guardarraíl Metálico de Seguridad Vial Exterior
 		local posBaranda = Vector3.new(
@@ -165,8 +210,14 @@ local function reconstruirCurvaEste(mapa: Folder)
 			yBase + 1.6,
 			centroZ + (radioExterior + anchoAcera - 0.2) * math.sin(angRad)
 		)
-		crearParte("BarandaGuardarail", Vector3.new(0.3, 0.6, lenCuerdaAceraExt + 0.1),
-			CFrame.new(posBaranda) * rotCFrame, COLOR_GUARDARRAIL, Enum.Material.Metal, carpetaCurva)
+		crearParte(
+			"BarandaGuardarail",
+			Vector3.new(0.3, 0.6, lenCuerdaAceraExt + 0.1),
+			CFrame.new(posBaranda) * rotCFrame,
+			COLOR_GUARDARRAIL,
+			Enum.Material.Metal,
+			carpetaCurva
+		)
 
 		-- Postes verticales de guardarraíl cada 4 segmentos
 		if i % 4 == 1 then
@@ -175,13 +226,26 @@ local function reconstruirCurvaEste(mapa: Folder)
 				yBase + 1.1,
 				centroZ + (radioExterior + anchoAcera - 0.2) * math.sin(angRad)
 			)
-			local poste = crearParte("PosteGuardarail", Vector3.new(0.35, 1.6, 0.35),
-				CFrame.new(posPoste), COLOR_GUARDARRAIL, Enum.Material.Metal, carpetaCurva)
-			
+			local _poste = crearParte(
+				"PosteGuardarail",
+				Vector3.new(0.35, 1.6, 0.35),
+				CFrame.new(posPoste),
+				COLOR_GUARDARRAIL,
+				Enum.Material.Metal,
+				carpetaCurva
+			)
+
 			-- Reflector rojo exterior en el poste
 			local posRefl = posPoste + Vector3.new(0, 0.4, 0)
-			crearParte("ReflectorSeguridad", Vector3.new(0.4, 0.25, 0.1),
-				CFrame.new(posRefl) * rotCFrame, COLOR_OJOS_GATO_ROJO, Enum.Material.Neon, carpetaCurva, false)
+			crearParte(
+				"ReflectorSeguridad",
+				Vector3.new(0.4, 0.25, 0.1),
+				CFrame.new(posRefl) * rotCFrame,
+				COLOR_OJOS_GATO_ROJO,
+				Enum.Material.Neon,
+				carpetaCurva,
+				false
+			)
 		end
 
 		-- H) Señalización Horizontal: Doble Línea Continua Amarilla (Prohibido Adelantar en Curva)
@@ -190,16 +254,30 @@ local function reconstruirCurvaEste(mapa: Folder)
 			yBase + 0.52,
 			centroZ + (radioCentro - 0.5) * math.sin(angRad)
 		)
-		crearParte("DobleLineaAmarilla_1", Vector3.new(0.35, 0.04, lenCuerdaCentro + 0.05),
-			CFrame.new(posLinAmarilla1) * rotCFrame, COLOR_LINEA_AMARILLA, Enum.Material.Neon, carpetaCurva, false)
+		crearParte(
+			"DobleLineaAmarilla_1",
+			Vector3.new(0.35, 0.04, lenCuerdaCentro + 0.05),
+			CFrame.new(posLinAmarilla1) * rotCFrame,
+			COLOR_LINEA_AMARILLA,
+			Enum.Material.Neon,
+			carpetaCurva,
+			false
+		)
 
 		local posLinAmarilla2 = Vector3.new(
 			centroX + (radioCentro + 0.5) * math.cos(angRad),
 			yBase + 0.52,
 			centroZ + (radioCentro + 0.5) * math.sin(angRad)
 		)
-		crearParte("DobleLineaAmarilla_2", Vector3.new(0.35, 0.04, lenCuerdaCentro + 0.05),
-			CFrame.new(posLinAmarilla2) * rotCFrame, COLOR_LINEA_AMARILLA, Enum.Material.Neon, carpetaCurva, false)
+		crearParte(
+			"DobleLineaAmarilla_2",
+			Vector3.new(0.35, 0.04, lenCuerdaCentro + 0.05),
+			CFrame.new(posLinAmarilla2) * rotCFrame,
+			COLOR_LINEA_AMARILLA,
+			Enum.Material.Neon,
+			carpetaCurva,
+			false
+		)
 
 		-- I) Líneas Blancas Termoplásticas de Borde de Calzada
 		local posBordeBlancoInt = Vector3.new(
@@ -207,16 +285,30 @@ local function reconstruirCurvaEste(mapa: Folder)
 			yBase + 0.52,
 			centroZ + (radioInterior + 0.8) * math.sin(angRad)
 		)
-		crearParte("LineaBordeBlanca_Int", Vector3.new(0.35, 0.04, lenCuerdaInt + 0.05),
-			CFrame.new(posBordeBlancoInt) * rotCFrame, COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaCurva, false)
+		crearParte(
+			"LineaBordeBlanca_Int",
+			Vector3.new(0.35, 0.04, lenCuerdaInt + 0.05),
+			CFrame.new(posBordeBlancoInt) * rotCFrame,
+			COLOR_LINEA_BLANCA,
+			Enum.Material.SmoothPlastic,
+			carpetaCurva,
+			false
+		)
 
 		local posBordeBlancoExt = Vector3.new(
 			centroX + (radioExterior - 0.8) * math.cos(angRad),
 			yBase + 0.52,
 			centroZ + (radioExterior - 0.8) * math.sin(angRad)
 		)
-		crearParte("LineaBordeBlanca_Ext", Vector3.new(0.35, 0.04, lenCuerdaExt + 0.05),
-			CFrame.new(posBordeBlancoExt) * rotCFrame, COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaCurva, false)
+		crearParte(
+			"LineaBordeBlanca_Ext",
+			Vector3.new(0.35, 0.04, lenCuerdaExt + 0.05),
+			CFrame.new(posBordeBlancoExt) * rotCFrame,
+			COLOR_LINEA_BLANCA,
+			Enum.Material.SmoothPlastic,
+			carpetaCurva,
+			false
+		)
 
 		-- J) Ojos de Gato / Captafaros Reflectivos en el Centro cada 3 segmentos
 		if i % 3 == 1 then
@@ -225,12 +317,21 @@ local function reconstruirCurvaEste(mapa: Folder)
 				yBase + 0.55,
 				centroZ + radioCentro * math.sin(angRad)
 			)
-			crearParte("OjoDeGato_Amarillo", Vector3.new(0.5, 0.08, 0.5),
-				CFrame.new(posOjoGato) * rotCFrame, COLOR_OJOS_GATO_AMARILLO, Enum.Material.Neon, carpetaCurva, false)
+			crearParte(
+				"OjoDeGato_Amarillo",
+				Vector3.new(0.5, 0.08, 0.5),
+				CFrame.new(posOjoGato) * rotCFrame,
+				COLOR_OJOS_GATO_AMARILLO,
+				Enum.Material.Neon,
+				carpetaCurva,
+				false
+			)
 		end
 	end
 
-	print("Urbanismo Carreteras: Curva Este reconstruida con geometría suave continua (72 segmentos, cero dientes de sierra).")
+	print(
+		"Urbanismo Carreteras: Curva Este reconstruida con geometría suave continua (72 segmentos, cero dientes de sierra)."
+	)
 end
 
 -- ====================================================================
@@ -238,7 +339,9 @@ end
 -- ====================================================================
 local function reconstruirCurvaOeste(mapa: Folder)
 	local carreteraL = mapa:FindFirstChild("Zona_CarreteraLadera")
-	if not carreteraL then return end
+	if not carreteraL then
+		return
+	end
 
 	local centroX = -140
 	local centroZ = 180
@@ -304,8 +407,14 @@ local function reconstruirCurvaOeste(mapa: Folder)
 			yBase,
 			centroZ + radioCentro * math.sin(angRad)
 		)
-		crearParte("CalzadaAsfalto", Vector3.new(anchoCalzada + 0.4, 1.0, lenCuerdaCentro + 0.15),
-			CFrame.new(posAsfalto) * rotCFrame, COLOR_ASFALTO, Enum.Material.Asphalt, carpetaCurva)
+		crearParte(
+			"CalzadaAsfalto",
+			Vector3.new(anchoCalzada + 0.4, 1.0, lenCuerdaCentro + 0.15),
+			CFrame.new(posAsfalto) * rotCFrame,
+			COLOR_ASFALTO,
+			Enum.Material.Asphalt,
+			carpetaCurva
+		)
 
 		-- Bordillo Interior
 		local posBordilloInt = Vector3.new(
@@ -313,8 +422,14 @@ local function reconstruirCurvaOeste(mapa: Folder)
 			yBase + 0.35,
 			centroZ + radioInterior * math.sin(angRad)
 		)
-		crearParte("BordilloInterior", Vector3.new(0.6, 0.8, lenCuerdaInt + 0.1),
-			CFrame.new(posBordilloInt) * rotCFrame, COLOR_BORDILLO, Enum.Material.Concrete, carpetaCurva)
+		crearParte(
+			"BordilloInterior",
+			Vector3.new(0.6, 0.8, lenCuerdaInt + 0.1),
+			CFrame.new(posBordilloInt) * rotCFrame,
+			COLOR_BORDILLO,
+			Enum.Material.Concrete,
+			carpetaCurva
+		)
 
 		-- Acera Interior
 		local posAceraInt = Vector3.new(
@@ -322,8 +437,14 @@ local function reconstruirCurvaOeste(mapa: Folder)
 			yBase + 0.35,
 			centroZ + (radioInterior - anchoAcera / 2) * math.sin(angRad)
 		)
-		crearParte("AceraInterior", Vector3.new(anchoAcera + 0.2, 0.8, lenCuerdaAceraInt + 0.1),
-			CFrame.new(posAceraInt) * rotCFrame, COLOR_ACERA, Enum.Material.Concrete, carpetaCurva)
+		crearParte(
+			"AceraInterior",
+			Vector3.new(anchoAcera + 0.2, 0.8, lenCuerdaAceraInt + 0.1),
+			CFrame.new(posAceraInt) * rotCFrame,
+			COLOR_ACERA,
+			Enum.Material.Concrete,
+			carpetaCurva
+		)
 
 		-- Bordillo Exterior
 		local posBordilloExt = Vector3.new(
@@ -331,8 +452,14 @@ local function reconstruirCurvaOeste(mapa: Folder)
 			yBase + 0.35,
 			centroZ + radioExterior * math.sin(angRad)
 		)
-		crearParte("BordilloExterior", Vector3.new(0.6, 0.8, lenCuerdaExt + 0.1),
-			CFrame.new(posBordilloExt) * rotCFrame, COLOR_BORDILLO, Enum.Material.Concrete, carpetaCurva)
+		crearParte(
+			"BordilloExterior",
+			Vector3.new(0.6, 0.8, lenCuerdaExt + 0.1),
+			CFrame.new(posBordilloExt) * rotCFrame,
+			COLOR_BORDILLO,
+			Enum.Material.Concrete,
+			carpetaCurva
+		)
 
 		-- Acera Exterior
 		local posAceraExt = Vector3.new(
@@ -340,8 +467,14 @@ local function reconstruirCurvaOeste(mapa: Folder)
 			yBase + 0.35,
 			centroZ + (radioExterior + anchoAcera / 2) * math.sin(angRad)
 		)
-		crearParte("AceraExterior", Vector3.new(anchoAcera + 0.2, 0.8, lenCuerdaAceraExt + 0.1),
-			CFrame.new(posAceraExt) * rotCFrame, COLOR_ACERA, Enum.Material.Concrete, carpetaCurva)
+		crearParte(
+			"AceraExterior",
+			Vector3.new(anchoAcera + 0.2, 0.8, lenCuerdaAceraExt + 0.1),
+			CFrame.new(posAceraExt) * rotCFrame,
+			COLOR_ACERA,
+			Enum.Material.Concrete,
+			carpetaCurva
+		)
 
 		-- Muro Contención Exterior
 		local posMuro = Vector3.new(
@@ -349,8 +482,14 @@ local function reconstruirCurvaOeste(mapa: Folder)
 			yBase - 3.0,
 			centroZ + (radioExterior + anchoAcera + 0.2) * math.sin(angRad)
 		)
-		crearParte("MuroContencion", Vector3.new(1.0, 7.5, lenCuerdaAceraExt + 0.15),
-			CFrame.new(posMuro) * rotCFrame, COLOR_MURO, Enum.Material.Cobblestone, carpetaCurva)
+		crearParte(
+			"MuroContencion",
+			Vector3.new(1.0, 7.5, lenCuerdaAceraExt + 0.15),
+			CFrame.new(posMuro) * rotCFrame,
+			COLOR_MURO,
+			Enum.Material.Cobblestone,
+			carpetaCurva
+		)
 
 		-- Guardarraíl Exterior
 		local posBaranda = Vector3.new(
@@ -358,8 +497,14 @@ local function reconstruirCurvaOeste(mapa: Folder)
 			yBase + 1.6,
 			centroZ + (radioExterior + anchoAcera - 0.2) * math.sin(angRad)
 		)
-		crearParte("BarandaGuardarail", Vector3.new(0.3, 0.6, lenCuerdaAceraExt + 0.1),
-			CFrame.new(posBaranda) * rotCFrame, COLOR_GUARDARRAIL, Enum.Material.Metal, carpetaCurva)
+		crearParte(
+			"BarandaGuardarail",
+			Vector3.new(0.3, 0.6, lenCuerdaAceraExt + 0.1),
+			CFrame.new(posBaranda) * rotCFrame,
+			COLOR_GUARDARRAIL,
+			Enum.Material.Metal,
+			carpetaCurva
+		)
 
 		if i % 4 == 1 then
 			local posPoste = Vector3.new(
@@ -367,8 +512,14 @@ local function reconstruirCurvaOeste(mapa: Folder)
 				yBase + 1.1,
 				centroZ + (radioExterior + anchoAcera - 0.2) * math.sin(angRad)
 			)
-			crearParte("PosteGuardarail", Vector3.new(0.35, 1.6, 0.35),
-				CFrame.new(posPoste), COLOR_GUARDARRAIL, Enum.Material.Metal, carpetaCurva)
+			crearParte(
+				"PosteGuardarail",
+				Vector3.new(0.35, 1.6, 0.35),
+				CFrame.new(posPoste),
+				COLOR_GUARDARRAIL,
+				Enum.Material.Metal,
+				carpetaCurva
+			)
 		end
 
 		-- Doble Línea Amarilla Continua
@@ -377,16 +528,30 @@ local function reconstruirCurvaOeste(mapa: Folder)
 			yBase + 0.52,
 			centroZ + (radioCentro - 0.5) * math.sin(angRad)
 		)
-		crearParte("DobleLineaAmarilla_1", Vector3.new(0.35, 0.04, lenCuerdaCentro + 0.05),
-			CFrame.new(posLinAmarilla1) * rotCFrame, COLOR_LINEA_AMARILLA, Enum.Material.Neon, carpetaCurva, false)
+		crearParte(
+			"DobleLineaAmarilla_1",
+			Vector3.new(0.35, 0.04, lenCuerdaCentro + 0.05),
+			CFrame.new(posLinAmarilla1) * rotCFrame,
+			COLOR_LINEA_AMARILLA,
+			Enum.Material.Neon,
+			carpetaCurva,
+			false
+		)
 
 		local posLinAmarilla2 = Vector3.new(
 			centroX + (radioCentro + 0.5) * math.cos(angRad),
 			yBase + 0.52,
 			centroZ + (radioCentro + 0.5) * math.sin(angRad)
 		)
-		crearParte("DobleLineaAmarilla_2", Vector3.new(0.35, 0.04, lenCuerdaCentro + 0.05),
-			CFrame.new(posLinAmarilla2) * rotCFrame, COLOR_LINEA_AMARILLA, Enum.Material.Neon, carpetaCurva, false)
+		crearParte(
+			"DobleLineaAmarilla_2",
+			Vector3.new(0.35, 0.04, lenCuerdaCentro + 0.05),
+			CFrame.new(posLinAmarilla2) * rotCFrame,
+			COLOR_LINEA_AMARILLA,
+			Enum.Material.Neon,
+			carpetaCurva,
+			false
+		)
 
 		-- Líneas Blancas de Borde
 		local posBordeBlancoInt = Vector3.new(
@@ -394,16 +559,30 @@ local function reconstruirCurvaOeste(mapa: Folder)
 			yBase + 0.52,
 			centroZ + (radioInterior + 0.8) * math.sin(angRad)
 		)
-		crearParte("LineaBordeBlanca_Int", Vector3.new(0.35, 0.04, lenCuerdaInt + 0.05),
-			CFrame.new(posBordeBlancoInt) * rotCFrame, COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaCurva, false)
+		crearParte(
+			"LineaBordeBlanca_Int",
+			Vector3.new(0.35, 0.04, lenCuerdaInt + 0.05),
+			CFrame.new(posBordeBlancoInt) * rotCFrame,
+			COLOR_LINEA_BLANCA,
+			Enum.Material.SmoothPlastic,
+			carpetaCurva,
+			false
+		)
 
 		local posBordeBlancoExt = Vector3.new(
 			centroX + (radioExterior - 0.8) * math.cos(angRad),
 			yBase + 0.52,
 			centroZ + (radioExterior - 0.8) * math.sin(angRad)
 		)
-		crearParte("LineaBordeBlanca_Ext", Vector3.new(0.35, 0.04, lenCuerdaExt + 0.05),
-			CFrame.new(posBordeBlancoExt) * rotCFrame, COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaCurva, false)
+		crearParte(
+			"LineaBordeBlanca_Ext",
+			Vector3.new(0.35, 0.04, lenCuerdaExt + 0.05),
+			CFrame.new(posBordeBlancoExt) * rotCFrame,
+			COLOR_LINEA_BLANCA,
+			Enum.Material.SmoothPlastic,
+			carpetaCurva,
+			false
+		)
 	end
 
 	print("Urbanismo Carreteras: Curva Oeste reconstruida con geometría suave continua.")
@@ -426,8 +605,14 @@ local function resolverInterseccionesYSuperposiciones(mapa: Folder)
 	-- A) Intersección Cruce Don Ábaco (X = -98, Z = 0 a 30) con Carretera Principal (Z = 0)
 	-- Creamos una placa de empalme perfecta en la unión en T
 	local posJunctionAbaco = Vector3.new(-98, 59.52, 10)
-	crearParte("CruceInterseccion_Abaco", Vector3.new(28, 0.98, 22),
-		CFrame.new(posJunctionAbaco), COLOR_ASFALTO, Enum.Material.Asphalt, carpetaIntersecciones)
+	crearParte(
+		"CruceInterseccion_Abaco",
+		Vector3.new(28, 0.98, 22),
+		CFrame.new(posJunctionAbaco),
+		COLOR_ASFALTO,
+		Enum.Material.Asphalt,
+		carpetaIntersecciones
+	)
 
 	-- Ochavas curvas de esquina para los peatones y bordillos
 	-- Esquina Noroeste: X = -98 - 14 = -112, Z = 20
@@ -435,10 +620,23 @@ local function resolverInterseccionesYSuperposiciones(mapa: Folder)
 		local rRad = math.rad(deg)
 		local oX = -112 + 6 * (1 - math.cos(rRad))
 		local oZ = 20 - 6 * (1 - math.sin(rRad))
-		crearParte("OchavaBordillo_NO", Vector3.new(0.6, 0.8, 1.2),
-			CFrame.new(oX, 59.87, oZ) * CFrame.Angles(0, -rRad, 0), COLOR_BORDILLO, Enum.Material.Concrete, carpetaIntersecciones)
-		crearParte("OchavaAcera_NO", Vector3.new(3.5, 0.8, 1.2),
-			CFrame.new(oX - 1.8 * math.cos(rRad), 59.87, oZ + 1.8 * math.sin(rRad)) * CFrame.Angles(0, -rRad, 0), COLOR_ACERA, Enum.Material.Concrete, carpetaIntersecciones)
+		crearParte(
+			"OchavaBordillo_NO",
+			Vector3.new(0.6, 0.8, 1.2),
+			CFrame.new(oX, 59.87, oZ) * CFrame.Angles(0, -rRad, 0),
+			COLOR_BORDILLO,
+			Enum.Material.Concrete,
+			carpetaIntersecciones
+		)
+		crearParte(
+			"OchavaAcera_NO",
+			Vector3.new(3.5, 0.8, 1.2),
+			CFrame.new(oX - 1.8 * math.cos(rRad), 59.87, oZ + 1.8 * math.sin(rRad))
+				* CFrame.Angles(0, -rRad, 0),
+			COLOR_ACERA,
+			Enum.Material.Concrete,
+			carpetaIntersecciones
+		)
 	end
 
 	-- Esquina Noreste: X = -98 + 14 = -84, Z = 20
@@ -446,35 +644,68 @@ local function resolverInterseccionesYSuperposiciones(mapa: Folder)
 		local rRad = math.rad(deg)
 		local oX = -84 - 6 * (1 - math.cos(rRad))
 		local oZ = 20 - 6 * (1 - math.sin(rRad))
-		crearParte("OchavaBordillo_NE", Vector3.new(0.6, 0.8, 1.2),
-			CFrame.new(oX, 59.87, oZ) * CFrame.Angles(0, rRad, 0), COLOR_BORDILLO, Enum.Material.Concrete, carpetaIntersecciones)
-		crearParte("OchavaAcera_NE", Vector3.new(3.5, 0.8, 1.2),
-			CFrame.new(oX + 1.8 * math.cos(rRad), 59.87, oZ + 1.8 * math.sin(rRad)) * CFrame.Angles(0, rRad, 0), COLOR_ACERA, Enum.Material.Concrete, carpetaIntersecciones)
+		crearParte(
+			"OchavaBordillo_NE",
+			Vector3.new(0.6, 0.8, 1.2),
+			CFrame.new(oX, 59.87, oZ) * CFrame.Angles(0, rRad, 0),
+			COLOR_BORDILLO,
+			Enum.Material.Concrete,
+			carpetaIntersecciones
+		)
+		crearParte(
+			"OchavaAcera_NE",
+			Vector3.new(3.5, 0.8, 1.2),
+			CFrame.new(oX + 1.8 * math.cos(rRad), 59.87, oZ + 1.8 * math.sin(rRad))
+				* CFrame.Angles(0, rRad, 0),
+			COLOR_ACERA,
+			Enum.Material.Concrete,
+			carpetaIntersecciones
+		)
 	end
 
 	-- B) Intersección Cruce Don Chucho (X = 85, Z = 0 a 30) con Entrada al Zigzag
 	local posJunctionChucho = Vector3.new(85, 59.52, 10)
-	crearParte("CruceInterseccion_Chucho", Vector3.new(28, 0.98, 22),
-		CFrame.new(posJunctionChucho), COLOR_ASFALTO, Enum.Material.Asphalt, carpetaIntersecciones)
+	crearParte(
+		"CruceInterseccion_Chucho",
+		Vector3.new(28, 0.98, 22),
+		CFrame.new(posJunctionChucho),
+		COLOR_ASFALTO,
+		Enum.Material.Asphalt,
+		carpetaIntersecciones
+	)
 
 	-- Esquinas de ochava de Don Chucho
 	for deg = 0, 90, 10 do
 		local rRad = math.rad(deg)
 		local oX = (85 - 14) + 6 * (1 - math.cos(rRad))
 		local oZ = 20 - 6 * (1 - math.sin(rRad))
-		crearParte("OchavaBordillo_Chucho_NO", Vector3.new(0.6, 0.8, 1.2),
-			CFrame.new(oX, 59.87, oZ) * CFrame.Angles(0, -rRad, 0), COLOR_BORDILLO, Enum.Material.Concrete, carpetaIntersecciones)
+		crearParte(
+			"OchavaBordillo_Chucho_NO",
+			Vector3.new(0.6, 0.8, 1.2),
+			CFrame.new(oX, 59.87, oZ) * CFrame.Angles(0, -rRad, 0),
+			COLOR_BORDILLO,
+			Enum.Material.Concrete,
+			carpetaIntersecciones
+		)
 	end
 
 	for deg = 0, 90, 10 do
 		local rRad = math.rad(deg)
 		local oX = (85 + 14) - 6 * (1 - math.cos(rRad))
 		local oZ = 20 - 6 * (1 - math.sin(rRad))
-		crearParte("OchavaBordillo_Chucho_NE", Vector3.new(0.6, 0.8, 1.2),
-			CFrame.new(oX, 59.87, oZ) * CFrame.Angles(0, rRad, 0), COLOR_BORDILLO, Enum.Material.Concrete, carpetaIntersecciones)
+		crearParte(
+			"OchavaBordillo_Chucho_NE",
+			Vector3.new(0.6, 0.8, 1.2),
+			CFrame.new(oX, 59.87, oZ) * CFrame.Angles(0, rRad, 0),
+			COLOR_BORDILLO,
+			Enum.Material.Concrete,
+			carpetaIntersecciones
+		)
 	end
 
-	print("Urbanismo Carreteras: Intersecciones empalmadas limpiamente sin z-fighting ni aceras cortadas.")
+	print(
+		"Urbanismo Carreteras: Intersecciones empalmadas limpiamente sin z-fighting ni aceras cortadas."
+	)
 end
 
 -- ====================================================================
@@ -492,36 +723,96 @@ local function construirSenalizacionAutomovilistica(mapa: Folder)
 	carpetaSenales.Parent = mapa
 
 	-- Función auxiliar para pintar flechas direccionales en el asfalto
-	local function pintarFlechaDireccional(cfCentro: CFrame, esGiroDerecha: boolean?, esGiroIzquierda: boolean?)
+	local function pintarFlechaDireccional(
+		cfCentro: CFrame,
+		esGiroDerecha: boolean?,
+		esGiroIzquierda: boolean?
+	)
 		-- Tallo de la flecha
-		crearParte("FlechaTallo", Vector3.new(1.0, 0.04, 5.0),
-			cfCentro, COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaSenales, false)
-		
+		crearParte(
+			"FlechaTallo",
+			Vector3.new(1.0, 0.04, 5.0),
+			cfCentro,
+			COLOR_LINEA_BLANCA,
+			Enum.Material.SmoothPlastic,
+			carpetaSenales,
+			false
+		)
+
 		if not esGiroDerecha and not esGiroIzquierda then
 			-- Flecha Recta: Punta triangular
-			crearParte("FlechaPuntaIzq", Vector3.new(0.9, 0.04, 2.5),
-				cfCentro * CFrame.new(-0.7, 0, -2.0) * CFrame.Angles(0, math.rad(35), 0), COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaSenales, false)
-			crearParte("FlechaPuntaDer", Vector3.new(0.9, 0.04, 2.5),
-				cfCentro * CFrame.new(0.7, 0, -2.0) * CFrame.Angles(0, -math.rad(35), 0), COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaSenales, false)
+			crearParte(
+				"FlechaPuntaIzq",
+				Vector3.new(0.9, 0.04, 2.5),
+				cfCentro * CFrame.new(-0.7, 0, -2.0) * CFrame.Angles(0, math.rad(35), 0),
+				COLOR_LINEA_BLANCA,
+				Enum.Material.SmoothPlastic,
+				carpetaSenales,
+				false
+			)
+			crearParte(
+				"FlechaPuntaDer",
+				Vector3.new(0.9, 0.04, 2.5),
+				cfCentro * CFrame.new(0.7, 0, -2.0) * CFrame.Angles(0, -math.rad(35), 0),
+				COLOR_LINEA_BLANCA,
+				Enum.Material.SmoothPlastic,
+				carpetaSenales,
+				false
+			)
 		elseif esGiroDerecha then
 			-- Flecha de Giro a la Derecha
-			crearParte("FlechaCurvaDer", Vector3.new(1.0, 0.04, 3.0),
-				cfCentro * CFrame.new(1.2, 0, -1.8) * CFrame.Angles(0, -math.rad(55), 0), COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaSenales, false)
-			crearParte("FlechaPuntaGiro", Vector3.new(0.9, 0.04, 2.2),
-				cfCentro * CFrame.new(2.4, 0, -2.4) * CFrame.Angles(0, -math.rad(90), 0), COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaSenales, false)
+			crearParte(
+				"FlechaCurvaDer",
+				Vector3.new(1.0, 0.04, 3.0),
+				cfCentro * CFrame.new(1.2, 0, -1.8) * CFrame.Angles(0, -math.rad(55), 0),
+				COLOR_LINEA_BLANCA,
+				Enum.Material.SmoothPlastic,
+				carpetaSenales,
+				false
+			)
+			crearParte(
+				"FlechaPuntaGiro",
+				Vector3.new(0.9, 0.04, 2.2),
+				cfCentro * CFrame.new(2.4, 0, -2.4) * CFrame.Angles(0, -math.rad(90), 0),
+				COLOR_LINEA_BLANCA,
+				Enum.Material.SmoothPlastic,
+				carpetaSenales,
+				false
+			)
 		elseif esGiroIzquierda then
 			-- Flecha de Giro a la Izquierda
-			crearParte("FlechaCurvaIzq", Vector3.new(1.0, 0.04, 3.0),
-				cfCentro * CFrame.new(-1.2, 0, -1.8) * CFrame.Angles(0, math.rad(55), 0), COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaSenales, false)
-			crearParte("FlechaPuntaGiro", Vector3.new(0.9, 0.04, 2.2),
-				cfCentro * CFrame.new(-2.4, 0, -2.4) * CFrame.Angles(0, math.rad(90), 0), COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaSenales, false)
+			crearParte(
+				"FlechaCurvaIzq",
+				Vector3.new(1.0, 0.04, 3.0),
+				cfCentro * CFrame.new(-1.2, 0, -1.8) * CFrame.Angles(0, math.rad(55), 0),
+				COLOR_LINEA_BLANCA,
+				Enum.Material.SmoothPlastic,
+				carpetaSenales,
+				false
+			)
+			crearParte(
+				"FlechaPuntaGiro",
+				Vector3.new(0.9, 0.04, 2.2),
+				cfCentro * CFrame.new(-2.4, 0, -2.4) * CFrame.Angles(0, math.rad(90), 0),
+				COLOR_LINEA_BLANCA,
+				Enum.Material.SmoothPlastic,
+				carpetaSenales,
+				false
+			)
 		end
 	end
 
 	-- Función auxiliar para pintar línea de detención (Stop line) en un carril
 	local function pintarLineaDetencion(pos: Vector3, anchoCarril: number, rotY: number)
-		crearParte("LineaDetencionVehicular", Vector3.new(anchoCarril, 0.05, 1.2),
-			CFrame.new(pos) * CFrame.Angles(0, math.rad(rotY), 0), COLOR_LINEA_BLANCA, Enum.Material.SmoothPlastic, carpetaSenales, false)
+		crearParte(
+			"LineaDetencionVehicular",
+			Vector3.new(anchoCarril, 0.05, 1.2),
+			CFrame.new(pos) * CFrame.Angles(0, math.rad(rotY), 0),
+			COLOR_LINEA_BLANCA,
+			Enum.Material.SmoothPlastic,
+			carpetaSenales,
+			false
+		)
 	end
 
 	-- A) Líneas de Detención antes de los Pasos Peatonales Principales
@@ -552,31 +843,56 @@ local function construirSenalizacionAutomovilistica(mapa: Folder)
 	pintarFlechaDireccional(CFrame.new(-105, 60.03, -10) * CFrame.Angles(0, math.rad(-90), 0))
 	pintarFlechaDireccional(CFrame.new(-50, 60.03, -10) * CFrame.Angles(0, math.rad(-90), 0))
 	pintarFlechaDireccional(CFrame.new(5, 60.03, -10) * CFrame.Angles(0, math.rad(-90), 0))
-	pintarFlechaDireccional(CFrame.new(65, 60.03, -10) * CFrame.Angles(0, math.rad(-90), 0), true, false) -- Giro a la derecha hacia la curva este
+	pintarFlechaDireccional(
+		CFrame.new(65, 60.03, -10) * CFrame.Angles(0, math.rad(-90), 0),
+		true,
+		false
+	) -- Giro a la derecha hacia la curva este
 
 	-- Autopista Principal carril Oeste
 	pintarFlechaDireccional(CFrame.new(65, 60.03, 10) * CFrame.Angles(0, math.rad(90), 0))
 	pintarFlechaDireccional(CFrame.new(5, 60.03, 10) * CFrame.Angles(0, math.rad(90), 0))
 	pintarFlechaDireccional(CFrame.new(-50, 60.03, 10) * CFrame.Angles(0, math.rad(90), 0))
-	pintarFlechaDireccional(CFrame.new(-105, 60.03, 10) * CFrame.Angles(0, math.rad(90), 0), false, true) -- Giro a la izquierda hacia la curva oeste
+	pintarFlechaDireccional(
+		CFrame.new(-105, 60.03, 10) * CFrame.Angles(0, math.rad(90), 0),
+		false,
+		true
+	) -- Giro a la izquierda hacia la curva oeste
 
 	-- Calle Don Ábaco (carril sur hacia la autopista)
 	pintarFlechaDireccional(CFrame.new(-98, 59.55, 30) * CFrame.Angles(0, math.rad(180), 0))
 
 	-- C) Señales Verticales Preventivas de Carretera Oficiales
-	local function crearSenalPreventivaRombo(texto: string, icono: string, pos: Vector3, rotY: number)
+	local function crearSenalPreventivaRombo(
+		texto: string,
+		icono: string,
+		pos: Vector3,
+		rotY: number
+	)
 		local modelo = Instance.new("Model")
 		modelo.Name = "SenalPreventiva_" .. icono
 		modelo.Parent = carpetaSenales
 
 		-- Poste metálico galvanizado
-		crearParte("Poste", Vector3.new(0.3, 7.5, 0.3),
-			CFrame.new(pos + Vector3.new(0, 3.75, 0)), Color3.fromRGB(130, 135, 140), Enum.Material.Metal, modelo)
+		crearParte(
+			"Poste",
+			Vector3.new(0.3, 7.5, 0.3),
+			CFrame.new(pos + Vector3.new(0, 3.75, 0)),
+			Color3.fromRGB(130, 135, 140),
+			Enum.Material.Metal,
+			modelo
+		)
 
 		-- Placa rombo amarillo reflectivo SP (girada 45° en Z)
-		local placa = crearParte("PlacaRombo", Vector3.new(3.0, 3.0, 0.2),
-			CFrame.new(pos + Vector3.new(0, 6.2, 0)) * CFrame.Angles(0, math.rad(rotY), math.rad(45)),
-			Color3.fromRGB(255, 200, 20), Enum.Material.SmoothPlastic, modelo)
+		local placa = crearParte(
+			"PlacaRombo",
+			Vector3.new(3.0, 3.0, 0.2),
+			CFrame.new(pos + Vector3.new(0, 6.2, 0))
+				* CFrame.Angles(0, math.rad(rotY), math.rad(45)),
+			Color3.fromRGB(255, 200, 20),
+			Enum.Material.SmoothPlastic,
+			modelo
+		)
 
 		-- SurfaceGui con el pictograma oficial
 		local gui = Instance.new("SurfaceGui")
@@ -626,7 +942,9 @@ local function construirSenalizacionAutomovilistica(mapa: Folder)
 	-- 5. Señal de Pendiente Fuerte / Descenso en Ladera
 	crearSenalPreventivaRombo("PENDIENTE\nFUERTE", "📐", Vector3.new(22, 83.2, 230), 90)
 
-	print("Urbanismo Carreteras: Señalización vial automovilística completa (Stop lines, flechas y rombos preventivos instalados).")
+	print(
+		"Urbanismo Carreteras: Señalización vial automovilística completa (Stop lines, flechas y rombos preventivos instalados)."
+	)
 end
 
 -- ====================================================================
@@ -644,7 +962,9 @@ local function inicializarUrbanismoCarreteras()
 	resolverInterseccionesYSuperposiciones(mapa)
 	construirSenalizacionAutomovilistica(mapa)
 
-	print("El Patrón del Dulce: Red vial arquitectónica y señalización automovilística perfeccionada con éxito.")
+	print(
+		"El Patrón del Dulce: Red vial arquitectónica y señalización automovilística perfeccionada con éxito."
+	)
 end
 
 task.spawn(inicializarUrbanismoCarreteras)
