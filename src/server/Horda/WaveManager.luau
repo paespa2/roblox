@@ -27,6 +27,8 @@ local _oleadaActual = 0
 local _zombisPorGenerar = 0
 local _totalOleadaActual = 0
 local _mensajeArmasOleadaActual = ""
+local _esRondaEspecial = false
+local _esRondaJefe = false
 local _hiloCiclo: thread? = nil
 
 local function asegurarMunicionInicialParticipantes()
@@ -123,10 +125,7 @@ function WaveManager.ValidarArsenalConfigurado(): (boolean, { string })
 						motivo or "error desconocido"
 					)
 				)
-				table.insert(
-					faltantes,
-					string.format("%s (Ronda %d: %s)", nombreArma, rondaTier, motivo or "inválida")
-				)
+				table.insert(faltantes, string.format("%s (Ronda %d: %s)", nombreArma, rondaTier, motivo or "inválida"))
 			end
 		end
 	end
@@ -265,6 +264,9 @@ function WaveManager.ConstruirPayloadParaJugador(
 		Rol = rol,
 		ParticipantesVivos = HordeSession.ContarParticipantesVivos(),
 		TotalParticipantes = HordeSession.ContarParticipantesTotales(),
+		Abatidos = HordeSession.ContarAbatidos(),
+		EsRondaEspecial = _esRondaEspecial,
+		EsRondaJefe = _esRondaJefe,
 		ResumenFinal = resumenFinal,
 	}
 end
@@ -276,8 +278,7 @@ local function notificarATodos(
 )
 	for _, player in ipairs(Players:GetPlayers()) do
 		local resumen = resumenesPorJugador and resumenesPorJugador[player] or nil
-		local payload =
-			WaveManager.ConstruirPayloadParaJugador(player, mensaje, tiempoRestante, resumen)
+		local payload = WaveManager.ConstruirPayloadParaJugador(player, mensaje, tiempoRestante, resumen)
 		EventosRemotos.EstadoHordaActualizado:FireClient(player, payload)
 	end
 end
@@ -307,29 +308,34 @@ local function obtenerPosicionesZombisActivos(): { Vector3 }
 	return posList
 end
 
+local function buscarVariantePorId(id: string): any?
+	for _, v in ipairs(ConfigZombis.Variantes) do
+		if v.Id == id then
+			return v
+		end
+	end
+	return nil
+end
+
 local function elegirVarianteForzada(
 	numeroOleada: number,
 	restantesPorGenerar: number,
-	total: number
+	total: number,
+	esRondaEspecial: boolean,
+	esRondaJefe: boolean
 ): any?
+	if esRondaEspecial then
+		return buscarVariantePorId("ZombiLava")
+	end
+	if esRondaJefe and restantesPorGenerar == total then
+		return buscarVariantePorId("BrutoCaramelo")
+	end
 	if numeroOleada >= 10 and restantesPorGenerar == math.max(1, total - 2) then
-		for _, v in ipairs(ConfigZombis.Variantes) do
-			if v.Id == "ZombiToxico" then
-				return v
-			end
-		end
+		return buscarVariantePorId("ZombiToxico")
 	elseif numeroOleada >= 6 and restantesPorGenerar == math.max(1, total - 1) then
-		for _, v in ipairs(ConfigZombis.Variantes) do
-			if v.Id == "ZombiHielo" then
-				return v
-			end
-		end
+		return buscarVariantePorId("ZombiHielo")
 	elseif numeroOleada >= 3 and restantesPorGenerar == total then
-		for _, v in ipairs(ConfigZombis.Variantes) do
-			if v.Id == "ZombiLava" then
-				return v
-			end
-		end
+		return buscarVariantePorId("ZombiLava")
 	end
 	return nil
 end
@@ -375,7 +381,27 @@ local function ejecutarOleada(numeroOleada: number, sesionId: number)
 	end
 
 	_oleadaActual = numeroOleada
-	local configOleada = ConfigZombis.ObtenerConfigOleada(numeroOleada)
+	local intervaloEspecial = General.IntervaloRondaEspecial or 5
+	local oleadaMinJefe = General.OleadaMinimaJefe or 8
+	local intervaloJefe = General.IntervaloJefe or 4
+
+	_esRondaEspecial = (numeroOleada % intervaloEspecial) == 0
+	_esRondaJefe = (not _esRondaEspecial)
+		and (numeroOleada >= oleadaMinJefe)
+		and (((numeroOleada - oleadaMinJefe) % intervaloJefe) == 0)
+
+	local configBase = ConfigZombis.ObtenerConfigOleada(numeroOleada)
+	local configOleada = if _esRondaEspecial
+		then {
+			Cantidad = math.clamp(6 + numeroOleada, 8, 22),
+			VelocidadBase = configBase.VelocidadBase,
+			VidaBase = configBase.VidaBase,
+			DanioBase = configBase.DanioBase,
+			CooldownAtaque = configBase.CooldownAtaque,
+			EtiquetaVelocidad = "Especial",
+		}
+		else configBase
+
 	_zombisPorGenerar = configOleada.Cantidad
 	_totalOleadaActual = configOleada.Cantidad
 	_mensajeArmasOleadaActual = ""
@@ -424,15 +450,8 @@ local function ejecutarOleada(numeroOleada: number, sesionId: number)
 
 			local posSpawn = seleccionarPuntoAlcanzable(candidatos, participantesInfo)
 			if posSpawn then
-				local varForzada =
-					elegirVarianteForzada(numeroOleada, _zombisPorGenerar, configOleada.Cantidad)
-				local creado = ZombieService.GenerarZombi(
-					posSpawn,
-					numeroOleada,
-					configOleada,
-					sesionId,
-					varForzada
-				)
+				local varForzada = elegirVarianteForzada(numeroOleada, _zombisPorGenerar, configOleada.Cantidad, _esRondaEspecial, _esRondaJefe)
+				local creado = ZombieService.GenerarZombi(posSpawn, numeroOleada, configOleada, sesionId, varForzada)
 				if creado then
 					_zombisPorGenerar -= 1
 					fallosConsecutivos = 0
@@ -445,15 +464,13 @@ local function ejecutarOleada(numeroOleada: number, sesionId: number)
 			end
 
 			if fallosConsecutivos >= maxFallos then
-				warn(
-					"[WaveManager] Límite de fallos consecutivos de aparición/generación alcanzado; finalizando horda."
-				)
+				warn("[WaveManager] Límite de fallos consecutivos de aparición/generación alcanzado; finalizando horda.")
 				WaveManager.DetenerHorda("No se encontraron zonas válidas de aparición")
 				return
 			end
 		end
 
-		task.wait(General.IntervaloSpawnSegundos)
+		task.wait(if _esRondaEspecial then 0.55 else General.IntervaloSpawnSegundos)
 	end
 
 	-- Esperar hasta que TODOS los zombis de esta oleada mueran y no queden pendientes
@@ -478,6 +495,17 @@ local function ejecutarOleada(numeroOleada: number, sesionId: number)
 		return
 	end
 
+	if _esRondaEspecial then
+		local vivosLista = HordeSession.ObtenerParticipantesVivos()
+		local primero = vivosLista[1]
+		local pChar = primero and primero.Character
+		local pHrp = pChar and pChar:FindFirstChild("HumanoidRootPart")
+		local bindDrop = script.Parent.Parent:FindFirstChild("SpawnDropLazarus")
+		if pHrp and pHrp:IsA("BasePart") and bindDrop and bindDrop:IsA("BindableEvent") then
+			bindDrop:Fire(pHrp.Position + Vector3.new(0, 0, 5), "MUNICION_MAXIMA")
+		end
+	end
+
 	notificarATodos("TODOS LOS ENEMIGOS ELIMINADOS", General.TiempoEntreOleadas)
 
 	-- Recompensa únicamente a participantes vivos de la sesión mediante GestorDatos
@@ -494,19 +522,13 @@ local function ejecutarOleada(numeroOleada: number, sesionId: number)
 	end
 
 	task.wait(1.8)
-	if
-		not HordeSession.EsSesionActiva(sesionId)
-		or HordeSession.ObtenerEstado() ~= "OleadaCompletada"
-	then
+	if not HordeSession.EsSesionActiva(sesionId) or HordeSession.ObtenerEstado() ~= "OleadaCompletada" then
 		return
 	end
 
 	local descanso = math.max(1, General.TiempoEntreOleadas - 2)
 	for seg = descanso, 1, -1 do
-		if
-			not HordeSession.EsSesionActiva(sesionId)
-			or HordeSession.ObtenerEstado() ~= "OleadaCompletada"
-		then
+		if not HordeSession.EsSesionActiva(sesionId) or HordeSession.ObtenerEstado() ~= "OleadaCompletada" then
 			return
 		end
 		notificarATodos("OLEADA COMPLETADA", seg)
@@ -540,6 +562,10 @@ function WaveManager.IniciarHorda(iniciador: Player): (boolean, string?)
 	_zombisPorGenerar = 0
 	_totalOleadaActual = 0
 	_mensajeArmasOleadaActual = ""
+	_esRondaEspecial = false
+	_esRondaJefe = false
+	_esRondaEspecial = false
+	_esRondaJefe = false
 
 	WaveManager.ValidarArsenalConfigurado()
 	asegurarMunicionInicialParticipantes()
@@ -552,10 +578,7 @@ function WaveManager.IniciarHorda(iniciador: Player): (boolean, string?)
 
 	_hiloCiclo = task.spawn(function()
 		for seg = General.CuentaRegresivaInicial, 1, -1 do
-			if
-				not HordeSession.EsSesionActiva(sesionId)
-				or HordeSession.ObtenerEstado() ~= "CuentaRegresiva"
-			then
+			if not HordeSession.EsSesionActiva(sesionId) or HordeSession.ObtenerEstado() ~= "CuentaRegresiva" then
 				return
 			end
 			if HordeSession.ContarParticipantesVivos() == 0 then
@@ -569,10 +592,7 @@ function WaveManager.IniciarHorda(iniciador: Player): (boolean, string?)
 		local numeroOleada = 1
 		while HordeSession.EsSesionActiva(sesionId) do
 			ejecutarOleada(numeroOleada, sesionId)
-			if
-				not HordeSession.EsSesionActiva(sesionId)
-				or HordeSession.ObtenerEstado() ~= "OleadaCompletada"
-			then
+			if not HordeSession.EsSesionActiva(sesionId) or HordeSession.ObtenerEstado() ~= "OleadaCompletada" then
 				break
 			end
 			numeroOleada += 1

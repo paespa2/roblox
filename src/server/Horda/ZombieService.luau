@@ -8,6 +8,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Datos = require(ReplicatedStorage.Shared.Datos)
 local EventosRemotos = require(ReplicatedStorage.Shared.Eventos.EventosRemotos)
@@ -52,6 +53,9 @@ export type RegistroZombi = {
 	PathBlockedConn: RBXScriptConnection?,
 	Conexiones: { RBXScriptConnection },
 	BillboardVida: Frame?,
+	BillboardGui: BillboardGui?,
+	EsconditeBarraHasta: number,
+	UltimoCritico: boolean,
 }
 
 local ZombieService = {}
@@ -125,13 +129,13 @@ end
 local function construirRigZombi(
 	variante: Datos.VarianteZombi,
 	escala: number
-): (Model, Humanoid, BasePart, Frame, boolean)
+): (Model, Humanoid, BasePart, Frame, BillboardGui, boolean)
 	local modelo = Instance.new("Model")
 	modelo.Name = "Zombi_" .. variante.Id
 
 	local tonoPiel = variarTonoPiel(variante.ColorPiel)
 	local usaLuz = false
-	local maxLuces = General.MaxLucesDinamicasZombis or 6
+	local maxLuces = General.MaxLucesDinamicasZombis or 8
 
 	local hrp = Instance.new("Part")
 	hrp.Name = "HumanoidRootPart"
@@ -153,32 +157,43 @@ local function construirRigZombi(
 	torso.Anchored = false
 	torso.Parent = modelo
 
-	-- Harapos / detalle de silueta sin inflar Parts
+	-- Desgaste realista / chaleco táctico desgarrado en el pecho
 	local harapo = Instance.new("Part")
 	harapo.Name = "HarapoPecho"
-	harapo.Size = Vector3.new(1.5 * escala, 1.3 * escala, 1.08 * escala)
-	harapo.Color = variante.ColorRopa:Lerp(Color3.new(0.1, 0.1, 0.1), 0.45)
+	harapo.Size = Vector3.new(1.65 * escala, 1.35 * escala, 1.08 * escala)
+	harapo.Color = variante.ColorRopa:Lerp(Color3.fromRGB(22, 20, 20), 0.52)
 	harapo.Material = Enum.Material.CorrodedMetal
-	harapo.CFrame = torso.CFrame * CFrame.new(0.15 * escala, -0.1 * escala, 0)
+	harapo.CFrame = torso.CFrame * CFrame.new(0.08 * escala, -0.05 * escala, 0)
 	harapo.Parent = modelo
 	soldarAccesorio(torso, harapo)
 
-	if variante.Id == "BrutoCaramelo" then
-		local hombrera = Instance.new("Part")
-		hombrera.Name = "HombreraBruto"
-		hombrera.Size = Vector3.new(2.55 * escala, 0.55 * escala, 1.25 * escala)
-		hombrera.Color = Color3.fromRGB(52, 34, 34)
-		hombrera.Material = Enum.Material.Slate
-		hombrera.CFrame = torso.CFrame * CFrame.new(0, 0.8 * escala, 0)
-		hombrera.Parent = modelo
-		soldarAccesorio(torso, hombrera)
+	if variante.EsJefe then
+		local pechera = Instance.new("Part")
+		pechera.Name = "PecheraBlindada"
+		pechera.Size = Vector3.new(2.25 * escala, 1.65 * escala, 1.28 * escala)
+		pechera.Color = Color3.fromRGB(40, 42, 48)
+		pechera.Material = Enum.Material.Metal
+		pechera.CFrame = torso.CFrame * CFrame.new(0, 0.1 * escala, 0)
+		pechera.Parent = modelo
+		soldarAccesorio(torso, pechera)
+
+		for _, signo in ipairs({ -1, 1 }) do
+			local hombrera = Instance.new("Part")
+			hombrera.Name = if signo < 0 then "HombreraIzq" else "HombreraDer"
+			hombrera.Size = Vector3.new(1.15 * escala, 0.75 * escala, 1.25 * escala)
+			hombrera.Color = Color3.fromRGB(34, 36, 42)
+			hombrera.Material = Enum.Material.CorrodedMetal
+			hombrera.CFrame = torso.CFrame * CFrame.new(signo * 1.45 * escala, 0.72 * escala, 0) * CFrame.Angles(0, 0, math.rad(signo * -12))
+			hombrera.Parent = modelo
+			soldarAccesorio(torso, hombrera)
+		end
 	end
 
 	local cabeza = Instance.new("Part")
 	cabeza.Name = "Head"
 	cabeza.Size = Vector3.new(2 * escala, 1 * escala, 1 * escala)
 	cabeza.Color = tonoPiel
-	cabeza.Material = Enum.Material.SmoothPlastic
+	cabeza.Material = Enum.Material.Slate
 	cabeza.CanCollide = false
 	cabeza.CanTouch = true
 	cabeza.Anchored = false
@@ -190,36 +205,76 @@ local function construirRigZombi(
 	meshCabeza.Scale = Vector3.new(1.25, 1.25, 1.25)
 	meshCabeza.Parent = cabeza
 
-	-- Cara 2D personalizada (Very scary face) o fallback procedural
-	local idCara = variante.TexturaCara or ConfigZombis.General.TexturaCara
-	if idCara and idCara ~= "" then
-		local caraDecal = Instance.new("Decal")
-		caraDecal.Name = "face"
-		caraDecal.Texture = idCara
-		caraDecal.Face = Enum.NormalId.Front
-		caraDecal.Parent = cabeza
-	else
-		-- Ojos brillantes amenazantes visibles a distancia
-		for _, xOjo in ipairs({ -0.25 * escala, 0.25 * escala }) do
-			local ojo = Instance.new("Part")
-			ojo.Name = "OjoBrillante"
-			ojo.Size = Vector3.new(0.22 * escala, 0.16 * escala, 0.12 * escala)
-			ojo.Color = variante.ColorOjos
-			ojo.Material = Enum.Material.Neon
-			ojo.CFrame = cabeza.CFrame * CFrame.new(xOjo, 0.12 * escala, -0.58 * escala)
-			ojo.Parent = modelo
-			soldarAccesorio(cabeza, ojo)
-		end
+	-- Rostro realista estilo Call of Duty Zombies: cuencas oscuras + ojos brillantes con estela (Trail)
+	for idxOjo, xOjo in ipairs({ -0.22 * escala, 0.22 * escala }) do
+		local cuenca = Instance.new("Part")
+		cuenca.Name = "CuencaOjo_" .. idxOjo
+		cuenca.Size = Vector3.new(0.28 * escala, 0.22 * escala, 0.1 * escala)
+		cuenca.Color = Color3.fromRGB(16, 14, 14)
+		cuenca.Material = Enum.Material.SmoothPlastic
+		cuenca.CFrame = cabeza.CFrame * CFrame.new(xOjo, 0.12 * escala, -0.54 * escala)
+		cuenca.Parent = modelo
+		soldarAccesorio(cabeza, cuenca)
 
-		-- Mandíbula deteriorada / expresión amenazante
-		local boca = Instance.new("Part")
-		boca.Name = "Mandibula"
-		boca.Size = Vector3.new(0.58 * escala, 0.16 * escala, 0.12 * escala)
-		boca.Color = Color3.fromRGB(30, 18, 18)
-		boca.Material = Enum.Material.SmoothPlastic
-		boca.CFrame = cabeza.CFrame * CFrame.new(0, -0.26 * escala, -0.57 * escala)
-		boca.Parent = modelo
-		soldarAccesorio(cabeza, boca)
+		local ojo = Instance.new("Part")
+		ojo.Name = "OjoBrillante_" .. idxOjo
+		ojo.Size = Vector3.new(0.16 * escala, 0.12 * escala, 0.12 * escala)
+		ojo.Color = variante.ColorOjos
+		ojo.Material = Enum.Material.Neon
+		ojo.CFrame = cabeza.CFrame * CFrame.new(xOjo, 0.12 * escala, -0.57 * escala)
+		ojo.Parent = modelo
+		soldarAccesorio(cabeza, ojo)
+
+		local attTop = Instance.new("Attachment")
+		attTop.Position = Vector3.new(0, 0.04 * escala, 0)
+		attTop.Parent = ojo
+
+		local attBot = Instance.new("Attachment")
+		attBot.Position = Vector3.new(0, -0.04 * escala, 0)
+		attBot.Parent = ojo
+
+		local trail = Instance.new("Trail")
+		trail.Attachment0 = attTop
+		trail.Attachment1 = attBot
+		trail.Lifetime = 0.22
+		trail.MinLength = 0.08
+		trail.LightEmission = 1
+		trail.Color = ColorSequence.new(variante.ColorOjos)
+		trail.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.15),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		trail.Parent = ojo
+	end
+
+	-- Mandíbula oscura hundida
+	local boca = Instance.new("Part")
+	boca.Name = "Mandibula"
+	boca.Size = Vector3.new(0.52 * escala, 0.18 * escala, 0.12 * escala)
+	boca.Color = Color3.fromRGB(26, 14, 14)
+	boca.Material = Enum.Material.SmoothPlastic
+	boca.CFrame = cabeza.CFrame * CFrame.new(0, -0.25 * escala, -0.55 * escala)
+	boca.Parent = modelo
+	soldarAccesorio(cabeza, boca)
+
+	if variante.EsJefe then
+		local casco = Instance.new("Part")
+		casco.Name = "CascoBlindado"
+		casco.Size = Vector3.new(1.36 * escala, 0.72 * escala, 1.38 * escala)
+		casco.Color = Color3.fromRGB(32, 34, 38)
+		casco.Material = Enum.Material.Metal
+		casco.CFrame = cabeza.CFrame * CFrame.new(0, 0.28 * escala, 0.04 * escala)
+		casco.Parent = modelo
+		soldarAccesorio(cabeza, casco)
+
+		local visor = Instance.new("Part")
+		visor.Name = "VisorJefe"
+		visor.Size = Vector3.new(0.95 * escala, 0.14 * escala, 0.14 * escala)
+		visor.Color = Color3.fromRGB(255, 35, 35)
+		visor.Material = Enum.Material.Neon
+		visor.CFrame = cabeza.CFrame * CFrame.new(0, 0.14 * escala, -0.62 * escala)
+		visor.Parent = modelo
+		soldarAccesorio(cabeza, visor)
 	end
 
 	-- Brazos articulados con mangas rasgadas
@@ -227,7 +282,7 @@ local function construirRigZombi(
 	brazoIzq.Name = "Left Arm"
 	brazoIzq.Size = Vector3.new(1 * escala, 2 * escala, 1 * escala)
 	brazoIzq.Color = tonoPiel
-	brazoIzq.Material = Enum.Material.SmoothPlastic
+	brazoIzq.Material = Enum.Material.Slate
 	brazoIzq.CanCollide = false
 	brazoIzq.CanTouch = true
 	brazoIzq.Anchored = false
@@ -246,7 +301,7 @@ local function construirRigZombi(
 	brazoDer.Name = "Right Arm"
 	brazoDer.Size = Vector3.new(1 * escala, 2 * escala, 1 * escala)
 	brazoDer.Color = tonoPiel
-	brazoDer.Material = Enum.Material.SmoothPlastic
+	brazoDer.Material = Enum.Material.Slate
 	brazoDer.CanCollide = false
 	brazoDer.CanTouch = true
 	brazoDer.Anchored = false
@@ -282,109 +337,89 @@ local function construirRigZombi(
 	piernaDer.Anchored = false
 	piernaDer.Parent = modelo
 
-	-- Cristales de azúcar contaminada para variantes especiales
-	if variante.TieneCristalesDulces then
-		local cristal = Instance.new("Part")
-		cristal.Name = "CristalAzucar"
-		cristal.Size = Vector3.new(0.55 * escala, 0.95 * escala, 0.55 * escala)
-		cristal.Color = variante.ColorOjos
-		cristal.Material = Enum.Material.Neon
-		cristal.Transparency = 0.2
-		cristal.CFrame = torso.CFrame
-			* CFrame.new(0.65 * escala, 0.85 * escala, 0.25 * escala)
-			* CFrame.Angles(math.rad(-20), 0, math.rad(-25))
-		cristal.Parent = modelo
-		soldarAccesorio(torso, cristal)
-
-		if _lucesDinamicasActivas < maxLuces then
-			local luzCristal = Instance.new("PointLight")
-			luzCristal.Color = variante.ColorOjos
-			luzCristal.Range = 8
-			luzCristal.Brightness = 1.4
-			luzCristal.Parent = cristal
-			usaLuz = true
-		end
-	end
-
-	-- Efectos visuales optimizados para Zombi de Lava (sin saturar Decals ni luces)
+	-- Efectos visuales realistas para Sabueso Infernal (Zombi de Fuego)
 	if variante.EsDeFuego then
 		local partesLava = { torso, cabeza, brazoIzq, brazoDer, piernaIzq, piernaDer }
 		for _, parte in ipairs(partesLava) do
-			parte.Color = Color3.fromRGB(28, 22, 22)
+			parte.Color = Color3.fromRGB(26, 22, 22)
 			parte.Material = Enum.Material.Basalt
 		end
-		harapo.Color = Color3.fromRGB(220, 95, 25)
+		harapo.Color = Color3.fromRGB(230, 95, 22)
 		harapo.Material = Enum.Material.Neon
 
 		local fuego = Instance.new("Fire")
 		fuego.Name = "LavaFire"
-		fuego.Heat = 7
-		fuego.Size = math.clamp(4.2 * escala, 3, 6)
-		fuego.Color = Color3.fromRGB(240, 130, 40)
-		fuego.SecondaryColor = Color3.fromRGB(150, 60, 20)
+		fuego.Heat = 6
+		fuego.Size = math.clamp(3.6 * escala, 2.8, 5)
+		fuego.Color = Color3.fromRGB(245, 115, 30)
+		fuego.SecondaryColor = Color3.fromRGB(140, 40, 12)
 		fuego.Parent = torso
 
-		if not usaLuz and _lucesDinamicasActivas < maxLuces then
+		if _lucesDinamicasActivas < maxLuces then
 			local luzLava = Instance.new("PointLight")
 			luzLava.Name = "LavaAura"
-			luzLava.Color = Color3.fromRGB(255, 115, 30)
+			luzLava.Color = Color3.fromRGB(255, 110, 25)
 			luzLava.Range = 12 * escala
-			luzLava.Brightness = 1.8
+			luzLava.Brightness = 1.6
 			luzLava.Parent = torso
 			usaLuz = true
 		end
 	end
 
-	-- Efectos visuales optimizados para Ice Zombie
+	-- Efectos visuales realistas para Espectro Criogénico (Hielo)
 	if variante.EsDeHielo then
-		local partesHielo = { torso, cabeza, brazoIzq, brazoDer, piernaIzq, piernaDer }
-		for _, parte in ipairs(partesHielo) do
-			parte.Color = Color3.fromRGB(0, 225, 245)
-			parte.Material = Enum.Material.Ice
-		end
+		cabeza.Color = Color3.fromRGB(145, 170, 185)
+		brazoIzq.Color = Color3.fromRGB(145, 170, 185)
+		brazoDer.Color = Color3.fromRGB(145, 170, 185)
+		torso.Color = Color3.fromRGB(32, 42, 54)
+		piernaIzq.Color = Color3.fromRGB(24, 30, 38)
+		piernaDer.Color = Color3.fromRGB(24, 30, 38)
 
-		local fuegoHielo = Instance.new("Fire")
-		fuegoHielo.Name = "IceFire"
-		fuegoHielo.Heat = 6
-		fuegoHielo.Size = math.clamp(4.0 * escala, 3, 6)
-		fuegoHielo.Color = Color3.fromRGB(85, 255, 255)
-		fuegoHielo.SecondaryColor = Color3.fromRGB(0, 190, 255)
-		fuegoHielo.Parent = torso
+		local nieblaHielo = Instance.new("ParticleEmitter")
+		nieblaHielo.Name = "EscarchaAura"
+		nieblaHielo.Color = ColorSequence.new(Color3.fromRGB(170, 230, 255))
+		nieblaHielo.Size = NumberSequence.new(0.8, 1.5)
+		nieblaHielo.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.45),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		nieblaHielo.Rate = 8
+		nieblaHielo.Lifetime = NumberRange.new(0.6, 1.1)
+		nieblaHielo.Speed = NumberRange.new(1, 2.5)
+		nieblaHielo.Parent = torso
 
 		if not usaLuz and _lucesDinamicasActivas < maxLuces then
 			local luzHielo = Instance.new("PointLight")
 			luzHielo.Name = "IceAura"
-			luzHielo.Color = Color3.fromRGB(85, 255, 255)
-			luzHielo.Range = 12 * escala
-			luzHielo.Brightness = 1.6
+			luzHielo.Color = Color3.fromRGB(110, 220, 255)
+			luzHielo.Range = 10 * escala
+			luzHielo.Brightness = 1.2
 			luzHielo.Parent = torso
 			usaLuz = true
 		end
 	end
 
-	-- Efectos visuales optimizados para Toxic Zombie
+	-- Efectos visuales realistas para Coloso Radiactivo (Tóxico)
 	if variante.EsToxico then
-		local partesToxico = { torso, cabeza, brazoIzq, brazoDer, piernaIzq, piernaDer }
-		for _, parte in ipairs(partesToxico) do
-			parte.Color = Color3.fromRGB(44, 101, 29)
-		end
-
 		local emisorVeneno = Instance.new("ParticleEmitter")
 		emisorVeneno.Name = "ToxicSparks"
-		emisorVeneno.Texture = "rbxassetid://332655294"
-		emisorVeneno.Color = ColorSequence.new(Color3.fromRGB(113, 255, 61))
-		emisorVeneno.Rate = 10
-		emisorVeneno.Lifetime = NumberRange.new(0.7, 1.3)
-		emisorVeneno.Speed = NumberRange.new(1.5, 4)
-		emisorVeneno.Size = NumberSequence.new(0.45, 0.9)
+		emisorVeneno.Color = ColorSequence.new(Color3.fromRGB(130, 255, 80))
+		emisorVeneno.Rate = 8
+		emisorVeneno.Lifetime = NumberRange.new(0.6, 1.1)
+		emisorVeneno.Speed = NumberRange.new(1.2, 3.0)
+		emisorVeneno.Size = NumberSequence.new(0.5, 1.1)
+		emisorVeneno.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.35),
+			NumberSequenceKeypoint.new(1, 1),
+		})
 		emisorVeneno.Parent = torso
 
 		if not usaLuz and _lucesDinamicasActivas < maxLuces then
 			local luzToxica = Instance.new("PointLight")
 			luzToxica.Name = "ToxicAura"
-			luzToxica.Color = Color3.fromRGB(113, 255, 61)
-			luzToxica.Range = 12 * escala
-			luzToxica.Brightness = 1.5
+			luzToxica.Color = Color3.fromRGB(130, 255, 80)
+			luzToxica.Range = 11 * escala
+			luzToxica.Brightness = 1.2
 			luzToxica.Parent = torso
 			usaLuz = true
 		end
@@ -395,11 +430,12 @@ local function construirRigZombi(
 	end
 
 	-- Articulaciones Motor6D (postura ligeramente encorvada hacia adelante)
+	local elevacionTorso = math.max(0.22, (escala - 1.0) * 1.05 + 0.22)
 	crearMotor6D(
 		"RootJoint",
 		hrp,
 		torso,
-		CFrame.new(0, 0, 0) * CFrame.Angles(math.rad(-10), 0, 0),
+		CFrame.new(0, elevacionTorso, 0) * CFrame.Angles(math.rad(-10), 0, 0),
 		CFrame.new(0, 0, 0)
 	)
 	crearMotor6D(
@@ -445,6 +481,9 @@ local function construirRigZombi(
 	humanoid.AutomaticScalingEnabled = false
 	humanoid.BreakJointsOnDeath = false
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.MaxSlopeAngle = 89
+	humanoid.UseJumpPower = true
+	humanoid.JumpPower = 55
 	for _, estadoDeshabilitado in ipairs({
 		Enum.HumanoidStateType.Seated,
 		Enum.HumanoidStateType.Climbing,
@@ -481,48 +520,49 @@ local function construirRigZombi(
 		anim.Parent = carpetaAnims
 	end
 
-	-- Barra de vida compacta y nombre sobre el zombi
+	-- Barra de vida táctica (oculta por defecto para zombis normales, visible 3s al recibir daño; fija para Jefes)
 	local bbg = Instance.new("BillboardGui")
 	bbg.Name = "BarraVidaZombi"
-	bbg.Size = UDim2.fromOffset(110, 28)
-	bbg.StudsOffset = Vector3.new(0, 2.2 * escala, 0)
+	bbg.Size = if variante.EsJefe then UDim2.fromOffset(160, 34) else UDim2.fromOffset(105, 22)
+	bbg.StudsOffset = Vector3.new(0, 2.35 * escala, 0)
 	bbg.AlwaysOnTop = false
-	bbg.MaxDistance = 55
+	bbg.MaxDistance = if variante.EsJefe then 120 else 50
+	bbg.Enabled = variante.EsJefe == true
 	bbg.Parent = cabeza
 
 	local lblNombre = Instance.new("TextLabel")
 	lblNombre.Size = UDim2.new(1, 0, 0, 14)
 	lblNombre.BackgroundTransparency = 1
-	lblNombre.Font = Enum.Font.FredokaOne
-	lblNombre.Text = variante.Nombre
-	lblNombre.TextColor3 = Color3.fromRGB(255, 220, 220)
-	lblNombre.TextSize = 11
-	lblNombre.TextStrokeTransparency = 0.4
+	lblNombre.Font = Enum.Font.GothamBold
+	lblNombre.Text = if variante.EsJefe then ("☠ " .. string.upper(variante.Nombre)) else variante.Nombre
+	lblNombre.TextColor3 = if variante.EsJefe then Color3.fromRGB(255, 95, 95) else Color3.fromRGB(235, 235, 235)
+	lblNombre.TextSize = if variante.EsJefe then 12 else 10
+	lblNombre.TextStrokeTransparency = 0.25
 	lblNombre.Parent = bbg
 
 	local fondoBarra = Instance.new("Frame")
-	fondoBarra.Size = UDim2.new(1, 0, 0, 7)
+	fondoBarra.Size = UDim2.new(1, 0, 0, if variante.EsJefe then 7 else 5)
 	fondoBarra.Position = UDim2.fromOffset(0, 16)
-	fondoBarra.BackgroundColor3 = Color3.fromRGB(30, 18, 22)
+	fondoBarra.BackgroundColor3 = Color3.fromRGB(18, 16, 18)
 	fondoBarra.BorderSizePixel = 0
 	fondoBarra.Parent = bbg
 
 	local cornerFondo = Instance.new("UICorner")
-	cornerFondo.CornerRadius = UDim.new(1, 0)
+	cornerFondo.CornerRadius = UDim.new(0, 2)
 	cornerFondo.Parent = fondoBarra
 
 	local rellenoBarra = Instance.new("Frame")
 	rellenoBarra.Name = "Relleno"
 	rellenoBarra.Size = UDim2.fromScale(1, 1)
-	rellenoBarra.BackgroundColor3 = Color3.fromRGB(220, 50, 60)
+	rellenoBarra.BackgroundColor3 = if variante.EsJefe then Color3.fromRGB(235, 45, 55) else Color3.fromRGB(195, 42, 48)
 	rellenoBarra.BorderSizePixel = 0
 	rellenoBarra.Parent = fondoBarra
 
 	local cornerRelleno = Instance.new("UICorner")
-	cornerRelleno.CornerRadius = UDim.new(1, 0)
+	cornerRelleno.CornerRadius = UDim.new(0, 2)
 	cornerRelleno.Parent = rellenoBarra
 
-	return modelo, humanoid, hrp, rellenoBarra, usaLuz
+	return modelo, humanoid, hrp, rellenoBarra, bbg, usaLuz
 end
 
 local function reproducirSonidoEnParte(
@@ -629,25 +669,53 @@ local function procesarMuerteZombi(registro: RegistroZombi)
 		local atacante = registro.UltimoAtacante
 		if not atacante then
 			local tagCreator = registro.Humanoid:FindFirstChild("creator")
-			if
-				tagCreator
-				and tagCreator:IsA("ObjectValue")
-				and tagCreator.Value
-				and tagCreator.Value:IsA("Player")
-			then
+			if tagCreator and tagCreator:IsA("ObjectValue") and tagCreator.Value and tagCreator.Value:IsA("Player") then
 				atacante = tagCreator.Value
 				registro.UltimoAtacante = atacante
 			end
 		end
-		if
-			atacante
-			and HordeSession.EsParticipanteVivo(atacante)
-			and atacante:IsDescendantOf(Players)
-		then
-			GestorDatos.AgregarPesos(atacante, registro.Variante.RecompensaPesos)
-			GestorDatos.AgregarFama(atacante, 1)
-			GestorDatos.AgregarDulce(atacante, "Dulce_Gomita", General.MunicionDropPorMuerte)
-			HordeSession.RegistrarBaja(atacante, registro.Variante.RecompensaPesos, 1)
+		if atacante and HordeSession.EsParticipanteVivo(atacante) and atacante:IsDescendantOf(Players) then
+			local doble = if Workspace:GetAttribute("LazarusPuntosDobles") == true then 2 else 1
+			local recompensaBase = registro.Variante.RecompensaPesos or (General.PuntosPorBaja or 60)
+			local bonoCrit = if registro.UltimoCritico then 40 else 0
+			local recompensaTotal = (recompensaBase + bonoCrit) * doble
+			local famaBaja = if registro.Variante.EsJefe then 3 else 1
+
+			GestorDatos.AgregarPesos(atacante, recompensaTotal)
+			GestorDatos.AgregarFama(atacante, famaBaja)
+			GestorDatos.AgregarDulce(
+				atacante,
+				"Dulce_Gomita",
+				General.MunicionDropPorMuerte
+			)
+			atacante:SetAttribute(
+				"PuntosLazarusAcumulados",
+				(tonumber(atacante:GetAttribute("PuntosLazarusAcumulados")) or 0) + recompensaTotal
+			)
+			if registro.UltimoCritico then
+				atacante:SetAttribute(
+					"HordaCriticos",
+					(tonumber(atacante:GetAttribute("HordaCriticos")) or 0) + 1
+				)
+			end
+			HordeSession.RegistrarBaja(atacante, recompensaTotal, famaBaja, registro.UltimoCritico)
+
+			EventosRemotos.ZombieEventoVisual:FireClient(atacante, {
+				Tipo = "Muerte",
+				Modelo = registro.Modelo,
+				Posicion = registro.HRP.Position,
+				VarianteId = registro.Variante.Id,
+				EsCritico = registro.UltimoCritico,
+				Puntos = recompensaTotal,
+				EsJefe = registro.Variante.EsJefe == true,
+			})
+		end
+
+		if registro.Variante.EsJefe == true then
+			local bindDrop = script.Parent.Parent:FindFirstChild("SpawnDropLazarus")
+			if bindDrop and bindDrop:IsA("BindableEvent") then
+				bindDrop:Fire(registro.HRP.Position, nil)
+			end
 		end
 
 		if _onZombiMuertoCallback then
@@ -705,7 +773,7 @@ function ZombieService.GenerarZombi(
 	UtilidadesMapaHorda.ConfigurarCollisionGroups()
 	local variante = varianteForzada or elegirVarianteParaOleada(numeroOleada)
 	local escala = variante.Escala
-	local modelo, humanoid, hrp, barraVida, usaLuz = construirRigZombi(variante, escala)
+	local modelo, humanoid, hrp, barraVida, bbgVida, usaLuz = construirRigZombi(variante, escala)
 
 	_contadorId += 1
 	local idZombi = _contadorId
@@ -713,8 +781,7 @@ function ZombieService.GenerarZombi(
 	local vidaFinal = math.round(configOleada.VidaBase * variante.MultiplicadorVida)
 	local velocidadFinal = configOleada.VelocidadBase * variante.MultiplicadorVelocidad
 	local danioFinal = math.round(configOleada.DanioBase * variante.MultiplicadorDanio)
-	local cooldownFinal = configOleada.CooldownAtaque
-		* (variante.MultiplicadorCooldownAtaque or 1.0)
+	local cooldownFinal = configOleada.CooldownAtaque * (variante.MultiplicadorCooldownAtaque or 1.0)
 
 	humanoid.MaxHealth = vidaFinal
 	humanoid.Health = vidaFinal
@@ -729,6 +796,7 @@ function ZombieService.GenerarZombi(
 	modelo:SetAttribute("EsDeFuego", variante.EsDeFuego == true)
 	modelo:SetAttribute("EsDeHielo", variante.EsDeHielo == true)
 	modelo:SetAttribute("EsToxico", variante.EsToxico == true)
+	modelo:SetAttribute("EsJefe", variante.EsJefe == true)
 	modelo:SetAttribute("EstadoIA", "Detecting")
 	modelo:SetAttribute("VelocidadBase", velocidadFinal)
 	modelo:SetAttribute("ContadorAtaque", 0)
@@ -788,15 +856,19 @@ function ZombieService.GenerarZombi(
 		PathBlockedConn = nil,
 		Conexiones = {},
 		BillboardVida = barraVida,
+		BillboardGui = bbgVida,
+		EsconditeBarraHasta = 0,
+		UltimoCritico = false,
 	}
 
 	local ultimaVidaValida = vidaFinal
 	local revirtiendoVida = false
+	local aplicandoBonoDanio = false
 
 	table.insert(
 		registro.Conexiones,
 		humanoid.HealthChanged:Connect(function(nuevaVida: number)
-			if revirtiendoVida or registro.Muerto then
+			if revirtiendoVida or aplicandoBonoDanio or registro.Muerto then
 				return
 			end
 
@@ -819,8 +891,70 @@ function ZombieService.GenerarZombi(
 					return
 				end
 
+				local danioBase = ultimaVidaValida - nuevaVida
+				local esCritico = (danioBase >= 42) or (modelo:GetAttribute("UltimoImpactoCritico") == true)
+				modelo:SetAttribute("UltimoImpactoCritico", nil)
+				registro.UltimoCritico = esCritico
 				registro.UltimoAtacante = playerCreator
+
+				local esInsta = Workspace:GetAttribute("LazarusInstaKill") == true
+				local mult = 1.0
+				if playerCreator:GetAttribute("ArmaPotenciada") == true then
+					mult *= 2.2
+				end
+				if playerCreator:GetAttribute("PerkDobleDisparo") == true then
+					mult *= 1.35
+				end
+
+				local danioExtra = if esInsta and nuevaVida > 0
+					then nuevaVida
+					elseif mult > 1.0 and nuevaVida > 0 then (danioBase * (mult - 1.0))
+					else 0
+
+				if danioExtra > 0 then
+					aplicandoBonoDanio = true
+					local vidaTrasBono = math.max(0, nuevaVida - danioExtra)
+					humanoid.Health = vidaTrasBono
+					aplicandoBonoDanio = false
+					nuevaVida = vidaTrasBono
+				end
+
 				ultimaVidaValida = math.max(0, nuevaVida)
+
+				-- Puntos estilo CoD por cada impacto + notificación visual de hitmarker
+				local doble = if Workspace:GetAttribute("LazarusPuntosDobles") == true then 2 else 1
+				local ptsImpacto = (General.PuntosPorImpacto or 10) * doble
+				GestorDatos.AgregarPesos(playerCreator, ptsImpacto)
+				playerCreator:SetAttribute(
+					"PuntosLazarusAcumulados",
+					(tonumber(playerCreator:GetAttribute("PuntosLazarusAcumulados")) or 0) + ptsImpacto
+				)
+
+				EventosRemotos.ZombieEventoVisual:FireClient(playerCreator, {
+					Tipo = "Impacto",
+					Modelo = modelo,
+					Posicion = hrp.Position,
+					VarianteId = variante.Id,
+					EsCritico = esCritico,
+					EsMuerte = nuevaVida <= 0,
+					Puntos = ptsImpacto,
+				})
+
+				if registro.BillboardGui and registro.BillboardGui.Parent and not variante.EsJefe then
+					registro.BillboardGui.Enabled = true
+					local momentoMostrar = os.clock() + 3.0
+					registro.EsconditeBarraHasta = momentoMostrar
+					task.delay(3.05, function()
+						if
+							not registro.Muerto
+							and registro.BillboardGui
+							and registro.BillboardGui.Parent
+							and os.clock() >= registro.EsconditeBarraHasta
+						then
+							registro.BillboardGui.Enabled = false
+						end
+					end)
+				end
 			elseif nuevaVida > ultimaVidaValida then
 				ultimaVidaValida = nuevaVida
 			end
@@ -897,17 +1031,24 @@ function ZombieService.AplicarDanio(
 	reproducirSonidoEnParte(registro.HRP, ConfigZombis.Sonidos.Golpe, 0.55, 0.88)
 	registro.Humanoid:TakeDamage(cantidad)
 
-	for _, p in ipairs(HordeSession.ObtenerParticipantes()) do
-		EventosRemotos.ZombieEventoVisual:FireClient(p, {
-			Tipo = "Impacto",
-			Modelo = modeloZombi,
-			Posicion = registro.HRP.Position,
-			VarianteId = registro.Variante.Id,
-		})
-	end
-
 	return true
 end
+
+EventosRemotos.AtropellarZombi.OnServerEvent:Connect(function(player: Player, modeloZombi: Instance, danio: number)
+	if modeloZombi and modeloZombi:IsA("Model") and typeof(danio) == "number" then
+		local danioSeguro = math.clamp(danio, 10, 100)
+		ZombieService.AplicarDanio(modeloZombi, danioSeguro, player, "AtropelloVehiculo")
+		local hrpZ = modeloZombi:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if hrpZ then
+			local char = player.Character
+			local hrpP = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if hrpP then
+				local dir = (hrpZ.Position - hrpP.Position).Unit
+				hrpZ.AssemblyLinearVelocity = dir * (danioSeguro * 0.8) + Vector3.new(0, 15, 0)
+			end
+		end
+	end
+end)
 
 function ZombieService.LimpiarTodosZombis()
 	local copia: { RegistroZombi } = {}

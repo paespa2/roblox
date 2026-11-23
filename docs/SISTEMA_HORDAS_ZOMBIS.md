@@ -111,17 +111,27 @@ Para garantizar compatibilidad absoluta tanto si existen animaciones oficiales d
 
 ---
 
-## 4. Hoja de Ruta para Futuras Expansiones
+## 4. Mejoras Implementadas estilo Call of Duty Zombies (Overhaul Realista)
 
-1. **Ventajas / Perks (Bebidas de Caramelo):**
-   - *Juggernog*: Aumenta la salud del jugador de 100 a 250.
-   - *Speed Cola*: Recarga 50% más rápida para las armas de dulce.
-   - *Double Tap*: Disparo doble de proyectiles de caramelo.
-   - *Quick Revive*: Reanimación acelerada en cooperativo.
-2. **Caja Misteriosa de Dulces:**
-   - Ubicación aleatoria en el mapa con tiradas de armas legendarias.
-3. **Máquina de Azúcar Concentrado (Pack-a-Punch):**
-   - Mejora de nivel para cualquier dulce-arma, duplicando el daño y cambiando el color del proyectil y efectos de sonido.
-4. **Zombis Especiales y Jefes:**
-   - *Zombi Caries Ácida:* Explota al morir soltando un charco corrosivo.
-   - *El Inspector Dental (Boss):* Aparece cada 5 oleadas con armadura pesada y ataques de área.
+1. **Estado Abatido / Last Stand (`Abatido`) & Reanimación Cooperativa:**
+   - Temporizador de desangrado de 30 segundos con arrastre por el suelo.
+   - Interacción `ProximityPrompt` tecla `E` para revivir a compañeros de equipo (+200 puntos / pesos para el rescatista).
+   - Perk *Quick Revive* / Reanimación Rápida con auto-resurrección en modo solitario e impulso de onda de choque para alejar zombis.
+2. **Rondas Especiales (Sabuesos Infernales / Hellhounds):**
+   - Se activan cada 5 oleadas (5, 10, 15...).
+   - Niebla espesa y relámpagos, spawn acelerado de Sabuesos Infernales rápidos y drop garantizado de *Max Ammo* al terminar la ronda.
+3. **Zombis Jefes (Titán Blindado / Bruto):**
+   - Se activan a partir de la ronda 8 y cada 4 rondas posteriores.
+   - Humanoide con armadura pesada, resistencia a balas (resistencia a aturdimiento de 85%), alto daño y recompensas legendarias.
+4. **Atmósfera y Terror Visual (`HordeAtmosphere.luau`):**
+   - Transición de iluminación nocturna post-apocalíptica con corrección de color y bloom.
+   - Flinch/sacudida de cámara y vignette rojo reactivo a baja salud o estado abatido.
+   - Hitmarkers en X con sonido de impacto de alta fidelidad y efecto de destello de cegamiento al detonar una Nuke.
+5. **HUD Tradicional de CoD Zombies (`HordeUI.luau`):**
+   - Contador de rondas con marcas de tiza (I, II, III, IIII, tachado) del 1 al 5 y tipografía carmesí oscura del 6 en adelante.
+   - Visualización de insignias de perks activos, temporizadores de potenciadores (2X, Insta-Kill), placa de puntuación y números flotantes.
+6. **Integración con Modo Lazarus (`SistemaModoLazarus.server.luau`):**
+   - Barricadas de madera y metal oxidado reparables con martillado.
+   - Caja Misteriosa con tirada de armas reales de `ServerStorage.ArmasHorda`.
+   - Máquina Pack-a-Punch y máquinas de Perk-a-Cola funcionales.
+

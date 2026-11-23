@@ -1,8 +1,9 @@
 --!strict
 --[[
 	ZombieAI.luau
-	Máquina de estados finitos (FSM) y navegación con PathfindingService
-	para todos los zombis activos en un bucle centralizado optimizado.
+	Máquina de estados finitos (FSM), Seguimiento Predictivo Estilo Pac-Man
+	(Blinky, Pinky, Inky, Clyde) y Superador Proactivo de Desniveles/Superficies Planas
+	para la Cuadrícula Urbana (Vías, Aceras, Lotes, Plantas Bajas y Terrazas Bajas).
 ]]
 
 local Players = game:GetService("Players")
@@ -26,6 +27,25 @@ local _activo = false
 local _sesionIdActiva = 0
 local _bucleThread: thread? = nil
 local _ultimoDanioJugador: { [Player]: number } = {}
+local _ultimoSaltoEscalera: { [number]: number } = {}
+local _ultimaDirMovimiento: { [number]: Vector3 } = {}
+
+local ROLES_PACMAN = {
+	[0] = "Blinky_Cazador",
+	[1] = "Pinky_Emboscador",
+	[2] = "Inky_Flanqueador",
+	[3] = "Clyde_Interceptor",
+}
+
+local function obtenerRolPacMan(registro: RegistroZombi): string
+	local rol = registro.Modelo:GetAttribute("RolPacMan")
+	if typeof(rol) == "string" and rol ~= "" then
+		return rol
+	end
+	local asignado = ROLES_PACMAN[registro.Id % 4] or "Blinky_Cazador"
+	registro.Modelo:SetAttribute("RolPacMan", asignado)
+	return asignado
+end
 
 local function actualizarEstadoModelo(registro: RegistroZombi, nuevoEstado: EstadoZombi)
 	if registro.Estado ~= nuevoEstado then
@@ -35,7 +55,7 @@ local function actualizarEstadoModelo(registro: RegistroZombi, nuevoEstado: Esta
 end
 
 local function esJugadorValido(player: Player?): (boolean, BasePart?, Humanoid?)
-	if not player or not HordeSession.EsParticipanteVivo(player) then
+	if not player or not HordeSession.EsParticipanteVivo(player) or HordeSession.EstaAbatido(player) then
 		return false, nil, nil
 	end
 	local char = player.Character
@@ -53,6 +73,15 @@ local function construirParamsVisibilidad(): RaycastParams
 	if sistema then
 		table.insert(exclusiones, sistema)
 	end
+	local peatones = Workspace:FindFirstChild("PeatonesCiudad")
+	if peatones then
+		table.insert(exclusiones, peatones)
+	end
+	local mapa = Workspace:FindFirstChild("Mapa")
+	local vortice = mapa and mapa:FindFirstChild("TormentaVorticeDulce")
+	if vortice then
+		table.insert(exclusiones, vortice)
+	end
 	for _, p in ipairs(Players:GetPlayers()) do
 		if p.Character then
 			table.insert(exclusiones, p.Character)
@@ -62,6 +91,7 @@ local function construirParamsVisibilidad(): RaycastParams
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = exclusiones
+	params.IgnoreWater = true
 	return params
 end
 
@@ -70,14 +100,20 @@ local function tieneLineaVistaDirecta(
 	destino: Vector3,
 	params: RaycastParams
 ): boolean
-	local pOrigen = origen + Vector3.new(0, 1.2, 0)
-	local pDestino = destino + Vector3.new(0, 1.2, 0)
-	local dir = pDestino - pOrigen
-	if dir.Magnitude < 0.5 then
+	local pOrigenAlto = origen + Vector3.new(0, 1.3, 0)
+	local pDestinoAlto = destino + Vector3.new(0, 1.3, 0)
+	local dirAlto = pDestinoAlto - pOrigenAlto
+	if dirAlto.Magnitude < 0.5 then
 		return true
 	end
-	local hit = Workspace:Raycast(pOrigen, dir, params)
-	return hit == nil
+	if Workspace:Raycast(pOrigenAlto, dirAlto, params) ~= nil then
+		return false
+	end
+
+	local pOrigenCintura = origen - Vector3.new(0, 0.5, 0)
+	local pDestinoCintura = destino - Vector3.new(0, 0.5, 0)
+	local hitCintura = Workspace:Raycast(pOrigenCintura, pDestinoCintura - pOrigenCintura, params)
+	return hitCintura == nil
 end
 
 local function buscarObjetivoMasCercano(
@@ -95,7 +131,6 @@ local function buscarObjetivoMasCercano(
 			local dist = (pHrp.Position - origen).Magnitude
 			if dist <= radioMaximo then
 				local accesible = tieneLineaVistaDirecta(origen, pHrp.Position, params)
-				-- Priorizar distancia y favorecer objetivos con visión directa (+25 studs equivalentes si está tras muro)
 				local puntuacion = dist + (if accesible then 0 else 25)
 				if puntuacion < mejorPuntuacion then
 					mejorPuntuacion = puntuacion
@@ -119,6 +154,210 @@ local function orientarSuavementeHacia(hrp: BasePart, destino: Vector3, factor: 
 	hrp.CFrame = hrp.CFrame:Lerp(cfObjetivo, math.clamp(factor, 0.15, 1.0))
 end
 
+local function ajustarPuntoPredictivoEnSuperficie(
+	posJugador: Vector3,
+	posCandidata: Vector3,
+	params: RaycastParams
+): Vector3
+	local delta = Vector3.new(posCandidata.X - posJugador.X, 0, posCandidata.Z - posJugador.Z)
+	local dist = delta.Magnitude
+	local puntoFinalXZ = posCandidata
+
+	if dist > 1.0 then
+		local dir = delta.Unit
+		local hitMuro = Workspace:Raycast(posJugador + Vector3.new(0, 1.5, 0), dir * dist, params)
+		if hitMuro then
+			local distSegura = math.max(0, (hitMuro.Position - (posJugador + Vector3.new(0, 1.5, 0))).Magnitude - 2.5)
+			puntoFinalXZ = posJugador + dir * distSegura
+		end
+	end
+
+	local hitSuelo = Workspace:Raycast(
+		Vector3.new(puntoFinalXZ.X, posJugador.Y + 6.0, puntoFinalXZ.Z),
+		Vector3.new(0, -18.0, 0),
+		params
+	)
+	if hitSuelo and hitSuelo.Normal.Y > 0.65 then
+		return Vector3.new(puntoFinalXZ.X, hitSuelo.Position.Y + 3.0, puntoFinalXZ.Z)
+	end
+
+	return Vector3.new(puntoFinalXZ.X, posJugador.Y, puntoFinalXZ.Z)
+end
+
+local function calcularObjetivoPredictivoPacMan(
+	registro: RegistroZombi,
+	targetHrp: BasePart,
+	params: RaycastParams
+): Vector3
+	local posZombi = registro.HRP.Position
+	local posJugador = targetHrp.Position
+	local distH = Vector3.new(posJugador.X - posZombi.X, 0, posJugador.Z - posZombi.Z).Magnitude
+
+	if distH <= 11.0 then
+		return posJugador
+	end
+
+	local rol = obtenerRolPacMan(registro)
+	local velRaw = targetHrp.AssemblyLinearVelocity
+	local velH = Vector3.new(velRaw.X, 0, velRaw.Z)
+	local rapidez = velH.Magnitude
+	local dirMov = if rapidez > 1.5
+		then velH.Unit
+		else Vector3.new(targetHrp.CFrame.LookVector.X, 0, targetHrp.CFrame.LookVector.Z)
+	if dirMov.Magnitude < 0.1 then
+		dirMov = Vector3.new(0, 0, -1)
+	else
+		dirMov = dirMov.Unit
+	end
+
+	if rol == "Blinky_Cazador" then
+		local anticipacion = posJugador + velH * 0.35
+		return ajustarPuntoPredictivoEnSuperficie(posJugador, anticipacion, params)
+	elseif rol == "Pinky_Emboscador" then
+		local tiempoPred = math.clamp(distH / math.max(registro.VelocidadBase, 10), 0.8, 2.8)
+		local avance = math.clamp(math.max(rapidez * tiempoPred, 14), 12, 42)
+		local puntoEmboscada = posJugador + dirMov * avance
+		return ajustarPuntoPredictivoEnSuperficie(posJugador, puntoEmboscada, params)
+	elseif rol == "Inky_Flanqueador" then
+		local signo = if (registro.Id % 8) < 4 then 1 else -1
+		local anguloPinza = math.rad(42 * signo)
+		local dirPinza = (CFrame.lookAt(Vector3.zero, dirMov) * CFrame.Angles(0, anguloPinza, 0)).LookVector
+		local avancePinza = math.clamp(distH * 0.55, 10, 32)
+		local puntoPinza = posJugador + dirPinza * avancePinza
+		return ajustarPuntoPredictivoEnSuperficie(posJugador, puntoPinza, params)
+	else
+		if distH > 20 then
+			local proyectado = posJugador + dirMov * math.clamp(distH * 0.6, 14, 36)
+			local gridX = math.round(proyectado.X / 40) * 40
+			local gridZ = math.round(proyectado.Z / 40) * 40
+			local puntoEsquina = Vector3.new(
+				proyectado.X * 0.45 + gridX * 0.55,
+				posJugador.Y,
+				proyectado.Z * 0.45 + gridZ * 0.55
+			)
+			return ajustarPuntoPredictivoEnSuperficie(posJugador, puntoEsquina, params)
+		else
+			return ajustarPuntoPredictivoEnSuperficie(posJugador, posJugador + velH * 0.4, params)
+		end
+	end
+end
+
+local function superarDesnivelSuperficiePlana(
+	registro: RegistroZombi,
+	destinoMovimiento: Vector3,
+	ahora: number,
+	params: RaycastParams
+)
+	local hrp = registro.HRP
+	local posZombi = hrp.Position
+	local dir = Vector3.new(destinoMovimiento.X - posZombi.X, 0, destinoMovimiento.Z - posZombi.Z)
+	if dir.Magnitude < 0.2 then
+		dir = Vector3.new(hrp.CFrame.LookVector.X, 0, hrp.CFrame.LookVector.Z)
+	end
+	if dir.Magnitude < 0.1 then
+		return
+	end
+	dir = dir.Unit
+	_ultimaDirMovimiento[registro.Id] = dir
+
+	local hitPecho = Workspace:Raycast(posZombi + Vector3.new(0, 0.8, 0), dir * 3.6, params)
+	if hitPecho and hitPecho.Normal.Y < 0.5 then
+		return
+	end
+	local hitCintura = Workspace:Raycast(posZombi - Vector3.new(0, 0.6, 0), dir * 3.6, params)
+	if hitCintura and hitCintura.Normal.Y < 0.5 then
+		return
+	end
+
+	local hitPies = Workspace:Raycast(posZombi - Vector3.new(0, 2.65, 0), dir * 3.4, params)
+	local hitTobillo = Workspace:Raycast(posZombi - Vector3.new(0, 1.95, 0), dir * 3.4, params)
+	local hitEscalon = hitPies or hitTobillo
+
+	local hitSueloActual = Workspace:Raycast(posZombi, Vector3.new(0, -5.0, 0), params)
+	local hitSueloAdelante = Workspace:Raycast(
+		posZombi + dir * 2.2 + Vector3.new(0, 1.8, 0),
+		Vector3.new(0, -5.8, 0),
+		params
+	)
+
+	local yActual = if hitSueloActual then hitSueloActual.Position.Y else (posZombi.Y - 3.0)
+	local yAdelante = if hitSueloAdelante and hitSueloAdelante.Normal.Y > 0.7 then hitSueloAdelante.Position.Y else yActual
+	local deltaY = yAdelante - yActual
+
+	if (hitEscalon and deltaY >= 0.08 and deltaY <= 1.65) or (deltaY >= 0.14 and deltaY <= 1.65) then
+		local elevacion = math.clamp(deltaY, 0.20, 1.50)
+		local ultimoSalto = _ultimoSaltoEscalera[registro.Id] or 0
+
+		if (ahora - ultimoSalto) >= 0.22 then
+			_ultimoSaltoEscalera[registro.Id] = ahora
+			local velActual = hrp.AssemblyLinearVelocity
+			local velSubida = math.max(velActual.Y, math.clamp(10 + elevacion * 6, 11, 18))
+			hrp.AssemblyLinearVelocity = Vector3.new(
+				dir.X * registro.VelocidadBase,
+				velSubida,
+				dir.Z * registro.VelocidadBase
+			)
+
+			local velHoriz = Vector3.new(velActual.X, 0, velActual.Z).Magnitude
+			if velHoriz < registro.VelocidadBase * 0.65 then
+				local nuevaPos = Vector3.new(
+					posZombi.X + dir.X * 0.55,
+					yAdelante + 3.05,
+					posZombi.Z + dir.Z * 0.55
+				)
+				hrp.CFrame = CFrame.lookAt(nuevaPos, nuevaPos + dir)
+			end
+		end
+	end
+end
+
+local ANGULOS_CORREDOR = { 0, 40, -40, 85, -85, 130, -130, 180 }
+
+local function elegirCorredorPacMan(
+	registro: RegistroZombi,
+	posZombi: Vector3,
+	posDestinoPredictivo: Vector3,
+	params: RaycastParams
+): Vector3
+	local dirObjetivo = Vector3.new(posDestinoPredictivo.X - posZombi.X, 0, posDestinoPredictivo.Z - posZombi.Z)
+	if dirObjetivo.Magnitude < 0.2 then
+		return posDestinoPredictivo
+	end
+	local baseDir = dirObjetivo.Unit
+	local cfBase = CFrame.lookAt(Vector3.zero, baseDir)
+	local dirAnterior = _ultimaDirMovimiento[registro.Id]
+
+	local mejorPunto = posZombi + baseDir * 8
+	local mejorCosto = math.huge
+
+	for _, anguloDeg in ipairs(ANGULOS_CORREDOR) do
+		local dirPrueba = (cfBase * CFrame.Angles(0, math.rad(anguloDeg), 0)).LookVector
+		local hitMuroAlto = Workspace:Raycast(posZombi + Vector3.new(0, 1.2, 0), dirPrueba * 9.0, params)
+		local hitCintura = Workspace:Raycast(posZombi - Vector3.new(0, 0.5, 0), dirPrueba * 9.0, params)
+		if not hitMuroAlto and not hitCintura then
+			local candidato = posZombi + dirPrueba * 8.5
+			local distAlDestino = Vector3.new(
+				posDestinoPredictivo.X - candidato.X,
+				0,
+				posDestinoPredictivo.Z - candidato.Z
+			).Magnitude
+
+			local penalizacionReversa = 0
+			if dirAnterior and dirPrueba:Dot(dirAnterior) < -0.55 then
+				penalizacionReversa = 18
+			end
+
+			local costo = distAlDestino + math.abs(anguloDeg) * 0.08 + penalizacionReversa
+			if costo < mejorCosto then
+				mejorCosto = costo
+				mejorPunto = candidato
+			end
+		end
+	end
+
+	return mejorPunto
+end
+
 local function desconectarPathBlocked(registro: RegistroZombi)
 	if registro.PathBlockedConn and registro.PathBlockedConn.Connected then
 		registro.PathBlockedConn:Disconnect()
@@ -132,11 +371,11 @@ local function calcularRutaZombi(registro: RegistroZombi, destino: Vector3)
 
 	local escala = (registro.Variante and registro.Variante.Escala) or 1.0
 	local path = PathfindingService:CreatePath({
-		AgentRadius = math.max(2.0, 2.0 * escala),
-		AgentHeight = math.max(5.5, 5.5 * escala),
+		AgentRadius = math.clamp(1.6 * escala, 1.4, 2.2),
+		AgentHeight = math.max(5.0, 5.0 * escala),
 		AgentCanJump = true,
-		AgentCanClimb = false,
-		WaypointSpacing = 4.5,
+		AgentCanClimb = true,
+		WaypointSpacing = 4.0,
 	})
 
 	local ok = pcall(function()
@@ -163,46 +402,6 @@ local function calcularRutaZombi(registro: RegistroZombi, destino: Vector3)
 	registro.IndiceWaypoint = 1
 	registro.UltimaPosObjetivoRuta = destino
 	registro.FallosRutaConsecutivos += 1
-end
-
-local function buscarDesvioLateralDespejado(
-	posZombi: Vector3,
-	dirObjetivo: Vector3,
-	params: RaycastParams
-): Vector3?
-	local base = Vector3.new(dirObjetivo.X, 0, dirObjetivo.Z)
-	if base.Magnitude < 0.1 then
-		return nil
-	end
-	base = base.Unit
-	local cfBase = CFrame.lookAt(Vector3.zero, base)
-
-	for _, anguloDeg in ipairs({ 45, -45, 90, -90, 135 }) do
-		local dirPrueba = (cfBase * CFrame.Angles(0, math.rad(anguloDeg), 0)).LookVector
-		local hit = Workspace:Raycast(posZombi + Vector3.new(0, 1.5, 0), dirPrueba * 8, params)
-		if not hit then
-			return posZombi + dirPrueba * 7
-		end
-	end
-	return nil
-end
-
-local function debeSaltarObstaculoBajo(
-	posZombi: Vector3,
-	lookVector: Vector3,
-	params: RaycastParams
-): boolean
-	local dir = Vector3.new(lookVector.X, 0, lookVector.Z)
-	if dir.Magnitude < 0.1 then
-		return false
-	end
-	dir = dir.Unit
-	local hitBajo = Workspace:Raycast(posZombi + Vector3.new(0, 0.6, 0), dir * 3.5, params)
-	if not hitBajo then
-		return false
-	end
-	local hitAlto = Workspace:Raycast(posZombi + Vector3.new(0, 3.8, 0), dir * 3.8, params)
-	return hitAlto == nil
 end
 
 local function aplicarEfectoEspecialAtaque(
@@ -235,11 +434,7 @@ local function aplicarEfectoEspecialAtaque(
 		task.spawn(function()
 			for _ = 1, ticks do
 				task.wait(intervalo)
-				if
-					not HordeSession.EsSesionActiva(sesionId)
-					or not pHum.Parent
-					or pHum.Health <= 0
-				then
+				if not HordeSession.EsSesionActiva(sesionId) or not pHum.Parent or pHum.Health <= 0 then
 					break
 				end
 				pHum:TakeDamage(danioTick)
@@ -301,11 +496,7 @@ local function aplicarEfectoEspecialAtaque(
 		task.spawn(function()
 			for _ = 1, ticks do
 				task.wait(intervalo)
-				if
-					not HordeSession.EsSesionActiva(sesionId)
-					or not pHum.Parent
-					or pHum.Health <= 0
-				then
+				if not HordeSession.EsSesionActiva(sesionId) or not pHum.Parent or pHum.Health <= 0 then
 					break
 				end
 				pHum:TakeDamage(danioTick)
@@ -340,7 +531,6 @@ local function ejecutarAtaqueZombi(registro: RegistroZombi, objetivo: Player)
 		registro.Humanoid:MoveTo(registro.HRP.Position)
 	end
 
-	-- Ventana de impacto validada en el servidor (un solo impacto con verificación de distancia + línea de visión)
 	task.delay(ConfigZombis.VentanaImpactoSegundos, function()
 		if not HordeSession.EsSesionActiva(sesionId) then
 			return
@@ -367,7 +557,6 @@ local function ejecutarAtaqueZombi(registro: RegistroZombi, objetivo: Player)
 			return
 		end
 
-		-- Control de frecuencia de daño cuando múltiples zombis rodean al jugador
 		local momentoGolpe = os.clock()
 		local cooldownJugador = ConfigZombis.CooldownDanioJugadorSegundos or 0.55
 		local ultimoGolpeRecibido = _ultimoDanioJugador[objetivo] or 0
@@ -404,7 +593,6 @@ local function actualizarZombiIndividual(
 		return
 	end
 
-	-- 1. Estado Stunned (aturdido tras recibir impacto)
 	if registro.Estado == "Stunned" then
 		if ahora < registro.AturdidoHasta then
 			return
@@ -413,7 +601,6 @@ local function actualizarZombiIndividual(
 		actualizarEstadoModelo(registro, "Detecting")
 	end
 
-	-- 2. Fin de recuperación de ataque antes de reanudar persecución
 	if registro.Estado == "Attacking" then
 		if (ahora - registro.UltimoAtaque) < 0.50 then
 			return
@@ -422,7 +609,6 @@ local function actualizarZombiIndividual(
 		actualizarEstadoModelo(registro, "Detecting")
 	end
 
-	-- 3. Selección de objetivo (exclusivo a participantes vivos + histéresis)
 	local objetivoValido, targetHrp = esJugadorValido(registro.ObjetivoActual)
 	if not objetivoValido then
 		registro.ObjetivoActual = nil
@@ -459,54 +645,46 @@ local function actualizarZombiIndividual(
 	end
 
 	local posZombi = registro.HRP.Position
-	local posObjetivo = targetHrp.Position
-	local distHorizontal = ((posObjetivo - posZombi) * Vector3.new(1, 0, 1)).Magnitude
+	local posObjetivoReal = targetHrp.Position
+	local distHorizontal = ((posObjetivoReal - posZombi) * Vector3.new(1, 0, 1)).Magnitude
 
-	-- 4. Verificar si está en rango de ataque con línea de visión despejada
 	if
 		distHorizontal <= ConfigZombis.RangoAtaqueStuds
-		and math.abs(posObjetivo.Y - posZombi.Y) <= 5.5
-		and tieneLineaVistaDirecta(posZombi, posObjetivo, paramsVisibilidad)
+		and math.abs(posObjetivoReal.Y - posZombi.Y) <= 5.5
+		and tieneLineaVistaDirecta(posZombi, posObjetivoReal, paramsVisibilidad)
 	then
 		ejecutarAtaqueZombi(registro, registro.ObjetivoActual)
 		return
 	end
 
-	-- 5. Persecución activa
 	actualizarEstadoModelo(registro, "Chasing")
 	registro.Humanoid.WalkSpeed = registro.VelocidadBase
 
-	-- Persecución directa a corta distancia únicamente si hay línea de visión real despejada
+	local destinoPredictivo = calcularObjetivoPredictivoPacMan(registro, targetHrp, paramsVisibilidad)
+
 	if
-		distHorizontal <= 14
-		and math.abs(posObjetivo.Y - posZombi.Y) <= 4.0
-		and tieneLineaVistaDirecta(posZombi, posObjetivo, paramsVisibilidad)
+		math.abs(destinoPredictivo.Y - posZombi.Y) <= 6.5
+		and tieneLineaVistaDirecta(posZombi, destinoPredictivo, paramsVisibilidad)
 	then
-		orientarSuavementeHacia(registro.HRP, posObjetivo, 0.25)
-		registro.Humanoid:MoveTo(posObjetivo)
+		superarDesnivelSuperficiePlana(registro, destinoPredictivo, ahora, paramsVisibilidad)
+		orientarSuavementeHacia(registro.HRP, destinoPredictivo, 0.25)
+		registro.Humanoid:MoveTo(destinoPredictivo)
 		return
 	end
 
-	-- 6. Navegación con PathfindingService (presupuesto global + Path.Blocked)
 	local necesitaRuta = registro.RutaBloqueada
 		or not registro.WaypointsActuales
-		or (registro.UltimaPosObjetivoRuta ~= nil and (posObjetivo - registro.UltimaPosObjetivoRuta).Magnitude > 6.5)
-		or ((ahora - registro.UltimoRecalculoRuta) > 1.35)
+		or (registro.UltimaPosObjetivoRuta ~= nil and (destinoPredictivo - registro.UltimaPosObjetivoRuta).Magnitude > 7.5)
+		or ((ahora - registro.UltimoRecalculoRuta) > 1.25)
 
-	-- Detección de atasco real y recuperación inteligente
-	if (ahora - registro.UltimoChequeoAtasco) >= 1.4 then
+	if (ahora - registro.UltimoChequeoAtasco) >= 0.9 then
 		local desplazamiento = (posZombi - registro.UltimaPosComprobada).Magnitude
 		registro.UltimaPosComprobada = posZombi
 		registro.UltimoChequeoAtasco = ahora
-		if desplazamiento < 1.3 then
-			if
-				debeSaltarObstaculoBajo(posZombi, registro.HRP.CFrame.LookVector, paramsVisibilidad)
-			then
-				registro.Humanoid.Jump = true
-			else
-				necesitaRuta = true
-				registro.RutaBloqueada = true
-			end
+		if desplazamiento < 1.1 then
+			superarDesnivelSuperficiePlana(registro, destinoPredictivo, ahora, paramsVisibilidad)
+			necesitaRuta = true
+			registro.RutaBloqueada = true
 		end
 	end
 
@@ -517,7 +695,7 @@ local function actualizarZombiIndividual(
 	then
 		registro.UltimoRecalculoRuta = ahora
 		presupuestoRutas.Restantes -= 1
-		calcularRutaZombi(registro, posObjetivo)
+		calcularRutaZombi(registro, destinoPredictivo)
 	end
 
 	local waypoints = registro.WaypointsActuales
@@ -528,28 +706,24 @@ local function actualizarZombiIndividual(
 		end
 
 		local distWp = ((wp.Position - posZombi) * Vector3.new(1, 0, 1)).Magnitude
-		if distWp < 3.2 and registro.IndiceWaypoint < #waypoints then
+		if distWp < 3.4 and registro.IndiceWaypoint < #waypoints then
 			registro.IndiceWaypoint += 1
 			wp = waypoints[registro.IndiceWaypoint]
 		end
 
+		superarDesnivelSuperficiePlana(registro, wp.Position, ahora, paramsVisibilidad)
+		orientarSuavementeHacia(registro.HRP, wp.Position, 0.22)
 		registro.Humanoid:MoveTo(wp.Position)
 	else
-		-- Contingencia segura: nunca atravesar paredes; sondear desvío lateral despejado
-		local desvio =
-			buscarDesvioLateralDespejado(posZombi, posObjetivo - posZombi, paramsVisibilidad)
-		if desvio then
-			registro.Humanoid:MoveTo(desvio)
-		elseif
-			tieneLineaVistaDirecta(posZombi, posObjetivo, paramsVisibilidad)
-			and distHorizontal <= 18
-		then
-			registro.Humanoid:MoveTo(posObjetivo)
-		else
-			registro.Humanoid:MoveTo(posZombi)
-		end
+		local puntoCorredor = elegirCorredorPacMan(registro, posZombi, destinoPredictivo, paramsVisibilidad)
+		superarDesnivelSuperficiePlana(registro, puntoCorredor, ahora, paramsVisibilidad)
+		orientarSuavementeHacia(registro.HRP, puntoCorredor, 0.22)
+		registro.Humanoid:MoveTo(puntoCorredor)
 	end
 end
+
+ZombieAI.CalcularObjetivoPredictivoPacMan = calcularObjetivoPredictivoPacMan
+ZombieAI.SuperarDesnivelSuperficiePlana = superarDesnivelSuperficiePlana
 
 function ZombieAI.Iniciar(sesionId: number)
 	if _activo and _sesionIdActiva == sesionId then
@@ -560,11 +734,13 @@ function ZombieAI.Iniciar(sesionId: number)
 	_activo = true
 	_sesionIdActiva = sesionId
 	table.clear(_ultimoDanioJugador)
+	table.clear(_ultimoSaltoEscalera)
+	table.clear(_ultimaDirMovimiento)
 
 	_bucleThread = task.spawn(function()
 		while _activo and HordeSession.EsSesionActiva(sesionId) do
 			local ahora = os.clock()
-			local presupuestoRutas = { Restantes = 4 } -- Máx. 4 cómputos PathfindingService por tick
+			local presupuestoRutas = { Restantes = 5 }
 			local paramsVisibilidad = construirParamsVisibilidad()
 
 			for _, registro in pairs(ZombieService.ObtenerZombisActivos()) do
@@ -580,6 +756,8 @@ function ZombieAI.Detener()
 	_activo = false
 	_sesionIdActiva = 0
 	table.clear(_ultimoDanioJugador)
+	table.clear(_ultimoSaltoEscalera)
+	table.clear(_ultimaDirMovimiento)
 	if _bucleThread then
 		local h = _bucleThread
 		_bucleThread = nil
@@ -590,3 +768,4 @@ function ZombieAI.Detener()
 end
 
 return ZombieAI
+
